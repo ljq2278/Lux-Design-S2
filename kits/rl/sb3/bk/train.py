@@ -44,12 +44,6 @@ class CustomEnvWrapper(gym.Wrapper):
     def step(self, action):
         agent = "player_0"
         opp_agent = "player_1"
-        # if np.random.random() > 0.5:
-        #     agent = "player_0"
-        #     opp_agent = "player_1"
-        # else:
-        #     agent = "player_1"
-        #     opp_agent = "player_0"
 
         opp_factories = self.env.state.factories[opp_agent]
         for k in opp_factories.keys():
@@ -233,7 +227,6 @@ def train(args, env_id, model: PPO):
         render=False,
         n_eval_episodes=5,
     )
-    model = model.load('./best_model1.zip', eval_env)
     model.learn(
         args.total_timesteps,
         callback=[TensorboardCallback(tag="train_metrics"), eval_callback],
@@ -256,7 +249,6 @@ def main(args):
     rollout_steps = 4000
     policy_kwargs = dict(net_arch=(128, 128))
     model = PPO(
-        # "CnnPolicy",
         "MlpPolicy",
         env,
         n_steps=rollout_steps // args.n_envs,
