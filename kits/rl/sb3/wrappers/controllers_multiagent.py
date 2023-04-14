@@ -5,29 +5,9 @@ import numpy as np
 import numpy.typing as npt
 from gym import spaces
 
+from wrappers.controllers import Controller
 
-# Controller class copied here since you won't have access to the luxai_s2 package directly on the competition server
-class Controller:
-    def __init__(self, action_space: spaces.Space) -> None:
-        self.action_space = action_space
-
-    def action_to_lux_action(
-        self, agent: str, obs: Dict[str, Any], action: npt.NDArray
-    ):
-        """
-        Takes as input the current "raw observation" and the parameterized action and returns
-        an action formatted for the Lux env
-        """
-        raise NotImplementedError()
-
-    def action_masks(self, agent: str, obs: Dict[str, Any]):
-        """
-        Generates a boolean action mask indicating in each discrete dimension whether it would be valid or not
-        """
-        raise NotImplementedError()
-
-
-class SimpleUnitDiscreteController(Controller):
+class SimpleUnitDiscreteController_multiagent(Controller):
     def __init__(self, env_cfg) -> None:
         """
         A simple controller that controls only the robot that will get spawned.
@@ -97,14 +77,14 @@ class SimpleUnitDiscreteController(Controller):
         return np.array([3, 0, 0, 0, 0, 1])
 
     def action_to_lux_action(
-        self, agent: str, obs: Dict[str, Any], action: npt.NDArray
+        self, agent: str, obs: Dict[str, Any], actions: Dict[str, npt.NDArray]
     ):
         shared_obs = obs["player_0"]
         lux_action = dict()
         units = shared_obs["units"][agent]
-        for unit_id in units.keys():
+        for unit_id, choice in actions.items():
             unit = units[unit_id]
-            choice = action
+            # choice = action
             action_queue = []
             no_op = False
             if self._is_move_action(choice):
@@ -128,14 +108,12 @@ class SimpleUnitDiscreteController(Controller):
             if not no_op:
                 lux_action[unit_id] = action_queue
 
-            break
-
         factories = shared_obs["factories"][agent]
-        if True or len(units) == 0:
-            for unit_id in factories.keys():
-                lux_action[unit_id] = 1  # build a single heavy
-        # import utils
-        # utils.saveToJsonExample(lux_action, 'lux_action.json')
+
+        # build a single heavy
+        for unit_id in factories.keys():
+            lux_action[unit_id] = 1
+
         return lux_action
 
     def action_masks(self, agent: str, obs: Dict[str, Any]):

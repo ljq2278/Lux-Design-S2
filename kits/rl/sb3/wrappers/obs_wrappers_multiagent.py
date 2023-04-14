@@ -4,9 +4,9 @@ import gym
 import numpy as np
 import numpy.typing as npt
 from gym import spaces
-from utils import saveToJsonExample
 
-class SimpleUnitObservationWrapper(gym.ObservationWrapper):
+
+class SimpleUnitObservationWrapper_multiagent(gym.ObservationWrapper):
     """
     A simple state based observation to work with in pair with the SimpleUnitDiscreteController
 
@@ -25,9 +25,10 @@ class SimpleUnitObservationWrapper(gym.ObservationWrapper):
         self.observation_space = spaces.Box(-999, 999, shape=(13,))
 
     def observation(self, obs):
-        return SimpleUnitObservationWrapper.convert_obs(obs, self.env.state.env_cfg)
+        return SimpleUnitObservationWrapper_multiagent.convert_obs(obs, self.env.state.env_cfg)
 
     # we make this method static so the submission/evaluation code can use this as well
+
     @staticmethod
     def convert_obs(obs: Dict[str, Any], env_cfg: Any) -> Dict[str, npt.NDArray]:
         observation = dict()
@@ -36,10 +37,7 @@ class SimpleUnitObservationWrapper(gym.ObservationWrapper):
         ice_tile_locations = np.argwhere(ice_map == 1)
 
         for agent in obs.keys():
-            obs_vec = np.zeros(
-                13,
-            )
-
+            observation[agent] = {}
             factories = shared_obs["factories"][agent]
             factory_vec = np.zeros(2)
             for k in factories.keys():
@@ -48,9 +46,9 @@ class SimpleUnitObservationWrapper(gym.ObservationWrapper):
                 factory_vec = np.array(factory["pos"]) / env_cfg.map_size
                 break
             units = shared_obs["units"][agent]
-            for k in units.keys():
-                unit = units[k]
-                # saveToJsonExample(obs, 'raw_obs.json')
+            for unit_id in units.keys():
+                unit = units[unit_id]
+
                 # store cargo+power values scaled to [0, 1]
                 cargo_space = env_cfg.ROBOTS[unit["unit_type"]].CARGO_SPACE
                 battery_cap = env_cfg.ROBOTS[unit["unit_type"]].BATTERY_CAPACITY
@@ -79,12 +77,11 @@ class SimpleUnitObservationWrapper(gym.ObservationWrapper):
                 )
                 # normalize the ice tile location
                 closest_ice_tile = (
-                    ice_tile_locations[np.argmin(ice_tile_distances)] / env_cfg.map_size
+                        ice_tile_locations[np.argmin(ice_tile_distances)] / env_cfg.map_size
                 )
                 obs_vec = np.concatenate(
                     [unit_vec, factory_vec - pos, closest_ice_tile - pos], axis=-1
                 )
-                break
-            observation[agent] = obs_vec
+                observation[agent][unit_id] = obs_vec
 
         return observation

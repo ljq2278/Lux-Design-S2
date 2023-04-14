@@ -12,12 +12,13 @@ import numpy as np
 import torch as th
 from stable_baselines3.ppo import PPO
 from lux.config import EnvConfig
-from wrappers import SimpleUnitDiscreteController, SimpleUnitObservationWrapper
+from wrappers import SimpleUnitDiscreteController_multiagent, SimpleUnitObservationWrapper_multiagent
 
 # change this to use weights stored elsewhere
 # make sure the model weights are submitted with the other code files
 # any files in the logs folder are not necessary. Make sure to exclude the .zip extension here
 MODEL_WEIGHTS_RELATIVE_PATH = "./best_model"
+
 
 class Agent:
     def __init__(self, player: str, env_cfg: EnvConfig) -> None:
@@ -29,7 +30,7 @@ class Agent:
         directory = osp.dirname(__file__)
         self.policy = PPO.load(osp.join(directory, MODEL_WEIGHTS_RELATIVE_PATH))
 
-        self.controller = SimpleUnitDiscreteController(self.env_cfg)
+        self.controller = SimpleUnitDiscreteController_multiagent(self.env_cfg)
 
     def bid_policy(self, step: int, obs, remainingOverageTime: int = 60):
         # the policy here is the same one used in the RL tutorial: https://www.kaggle.com/code/stonet2000/rl-with-lux-2-rl-problem-solving
@@ -72,36 +73,37 @@ class Agent:
         metal = obs["teams"][self.player]["metal"]
         return dict(spawn=pos, metal=metal, water=metal)
 
-    def act(self, step: int, obs, remainingOverageTime: int = 60):
+    def act(self, step: int, ori_obs, remainingOverageTime: int = 60):
         # first convert observations using the same observation wrapper you used for training
         # note that SimpleUnitObservationWrapper takes input as the full observation for both players and returns an obs for players
-        raw_obs = dict(player_0=obs, player_1=obs)
-        obs = SimpleUnitObservationWrapper.convert_obs(raw_obs, env_cfg=self.env_cfg)
-        obs = obs[self.player]
+        raw_obs = dict(player_0=ori_obs, player_1=ori_obs)
+        obs_multiagent = SimpleUnitObservationWrapper_multiagent.convert_obs(raw_obs, env_cfg=self.env_cfg)
+        obs_dict = obs_multiagent[self.player]
+        actions_dict = {}
+        for unit_id, obs in obs_dict.items():
+            obs = th.from_numpy(obs).float()
+            with th.no_grad():
+                # to improve performance, we have a rule based action mask generator for the controller used
+                # which will force the agent to generate actions that are valid only.
+                action_mask = (
+                    th.from_numpy(self.controller.action_masks(self.player, raw_obs))
+                        .unsqueeze(0)
+                        .bool()
+                )
 
-        obs = th.from_numpy(obs).float()
-        with th.no_grad():
+                # SB3 doesn't support invalid action masking. So we do it ourselves here
+                features = self.policy.policy.features_extractor(obs.unsqueeze(0))
+                x = self.policy.policy.mlp_extractor.shared_net(features)
+                logits = self.policy.policy.action_net(x)  # shape (1, N) where N=12 for the default controller
 
-            # to improve performance, we have a rule based action mask generator for the controller used
-            # which will force the agent to generate actions that are valid only.
-            action_mask = (
-                th.from_numpy(self.controller.action_masks(self.player, raw_obs))
-                .unsqueeze(0)
-                .bool()
-            )
-            
-            # SB3 doesn't support invalid action masking. So we do it ourselves here
-            features = self.policy.policy.features_extractor(obs.unsqueeze(0))
-            x = self.policy.policy.mlp_extractor.shared_net(features)
-            logits = self.policy.policy.action_net(x) # shape (1, N) where N=12 for the default controller
-
-            logits[~action_mask] = -1e8 # mask out invalid actions
-            dist = th.distributions.Categorical(logits=logits)
-            actions = dist.sample().cpu().numpy() # shape (1, 1)
+                logits[~action_mask] = -1e8  # mask out invalid actions
+                dist = th.distributions.Categorical(logits=logits)
+                actions = dist.sample().cpu().numpy()  # shape (1, 1)
+                actions_dict[unit_id] = actions[0]
 
         # use our controller which we trained with in train.py to generate a Lux S2 compatible action
         lux_action = self.controller.action_to_lux_action(
-            self.player, raw_obs, actions[0]
+            self.player, raw_obs, actions_dict
         )
 
         # commented code below adds watering lichen which can easily improve your agent
