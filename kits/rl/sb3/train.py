@@ -233,7 +233,7 @@ def train(args, env_id, model: PPO):
         render=False,
         n_eval_episodes=5,
     )
-    model = model.load('./best_model1.zip', eval_env)
+    # model = model.load('./best_model1.zip', eval_env)
     model.learn(
         args.total_timesteps,
         callback=[TensorboardCallback(tag="train_metrics"), eval_callback],

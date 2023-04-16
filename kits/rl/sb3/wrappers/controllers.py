@@ -1,6 +1,6 @@
 import sys
 from typing import Any, Dict
-
+import utils
 import numpy as np
 import numpy.typing as npt
 from gym import spaces
@@ -134,8 +134,8 @@ class SimpleUnitDiscreteController(Controller):
         if True or len(units) == 0:
             for unit_id in factories.keys():
                 lux_action[unit_id] = 1  # build a single heavy
-        # import utils
-        # utils.saveToJsonExample(lux_action, 'lux_action.json')
+
+        utils.saveToJsonExample(lux_action, 'lux_action.json')
         return lux_action
 
     def action_masks(self, agent: str, obs: Dict[str, Any]):

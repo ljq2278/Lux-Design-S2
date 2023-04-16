@@ -30,7 +30,7 @@ from stable_baselines3.common.vec_env import (
 )
 from stable_baselines3.ppo import PPO
 
-from wrappers import SimpleUnitDiscreteController, SimpleUnitObservationWrapper
+from wrappers import SimpleUnitDiscreteController_multiagent, SimpleUnitObservationWrapper_multiagent
 
 
 class CustomEnvWrapper(gym.Wrapper):
@@ -44,12 +44,6 @@ class CustomEnvWrapper(gym.Wrapper):
     def step(self, action):
         agent = "player_0"
         opp_agent = "player_1"
-        # if np.random.random() > 0.5:
-        #     agent = "player_0"
-        #     opp_agent = "player_1"
-        # else:
-        #     agent = "player_1"
-        #     opp_agent = "player_0"
 
         opp_factories = self.env.state.factories[opp_agent]
         for k in opp_factories.keys():
@@ -161,9 +155,9 @@ def make_env(env_id: str, rank: int, seed: int = 0, max_episode_steps=100):
         env = SB3Wrapper(
             env,
             factory_placement_policy=place_near_random_ice,
-            controller=SimpleUnitDiscreteController(env.env_cfg),
+            controller=SimpleUnitDiscreteController_multiagent(env.env_cfg),
         )
-        env = SimpleUnitObservationWrapper(
+        env = SimpleUnitObservationWrapper_multiagent(
             env
         )  # changes observation to include a few simple features
         env = CustomEnvWrapper(env)  # convert to single agent, add our reward

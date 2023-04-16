@@ -4,7 +4,7 @@ import gym
 import numpy as np
 import numpy.typing as npt
 from gym import spaces
-from utils import saveToJsonExample
+import utils
 
 class SimpleUnitObservationWrapper(gym.ObservationWrapper):
     """
@@ -50,7 +50,7 @@ class SimpleUnitObservationWrapper(gym.ObservationWrapper):
             units = shared_obs["units"][agent]
             for k in units.keys():
                 unit = units[k]
-                # saveToJsonExample(obs, 'raw_obs.json')
+                utils.saveToJsonExample(obs, 'raw_obs.json')
                 # store cargo+power values scaled to [0, 1]
                 cargo_space = env_cfg.ROBOTS[unit["unit_type"]].CARGO_SPACE
                 battery_cap = env_cfg.ROBOTS[unit["unit_type"]].BATTERY_CAPACITY

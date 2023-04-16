@@ -1,0 +1,182 @@
+{
+    "player_0": {
+        "units": {
+            "player_0": {
+                "unit_2": {
+                    "team_id": 0,
+                    "unit_id": "unit_2",
+                    "power": 510,
+                    "unit_type": "HEAVY",
+                    "pos": "shape_2",
+                    "cargo": {
+                        "ice": 0,
+                        "ore": 0,
+                        "water": 0,
+                        "metal": 0
+                    },
+                    "action_queue": []
+                }
+            },
+            "player_1": {}
+        },
+        "teams": {
+            "player_0": {
+                "team_id": 0,
+                "faction": "AlphaStrike",
+                "water": 0,
+                "metal": 0,
+                "factories_to_place": 1,
+                "factory_strains": [
+                    0
+                ],
+                "place_first": true,
+                "bid": 0
+            },
+            "player_1": {
+                "team_id": 1,
+                "faction": "MotherMars",
+                "water": 0,
+                "metal": 0,
+                "factories_to_place": 1,
+                "factory_strains": [
+                    1
+                ],
+                "place_first": false,
+                "bid": 0
+            }
+        },
+        "factories": {
+            "player_0": {
+                "factory_0": {
+                    "pos": "shape_2",
+                    "power": 550,
+                    "cargo": {
+                        "ice": 0,
+                        "ore": 0,
+                        "water": 299,
+                        "metal": 200
+                    },
+                    "unit_id": "factory_0",
+                    "strain_id": 0,
+                    "team_id": 0
+                }
+            },
+            "player_1": {
+                "factory_1": {
+                    "pos": "shape_2",
+                    "power": 1050,
+                    "cargo": {
+                        "ice": 0,
+                        "ore": 0,
+                        "water": 999,
+                        "metal": 300
+                    },
+                    "unit_id": "factory_1",
+                    "strain_id": 1,
+                    "team_id": 1
+                }
+            }
+        },
+        "board": {
+            "rubble": "shape_48_48",
+            "ore": "shape_48_48",
+            "ice": "shape_48_48",
+            "lichen": "shape_48_48",
+            "lichen_strains": "shape_48_48",
+            "valid_spawns_mask": "shape_48_48",
+            "factories_per_team": 2
+        },
+        "real_env_steps": 1,
+        "global_id": 3
+    },
+    "player_1": {
+        "units": {
+            "player_0": {
+                "unit_2": {
+                    "team_id": 0,
+                    "unit_id": "unit_2",
+                    "power": 510,
+                    "unit_type": "HEAVY",
+                    "pos": "shape_2",
+                    "cargo": {
+                        "ice": 0,
+                        "ore": 0,
+                        "water": 0,
+                        "metal": 0
+                    },
+                    "action_queue": []
+                }
+            },
+            "player_1": {}
+        },
+        "teams": {
+            "player_0": {
+                "team_id": 0,
+                "faction": "AlphaStrike",
+                "water": 0,
+                "metal": 0,
+                "factories_to_place": 1,
+                "factory_strains": [
+                    0
+                ],
+                "place_first": true,
+                "bid": 0
+            },
+            "player_1": {
+                "team_id": 1,
+                "faction": "MotherMars",
+                "water": 0,
+                "metal": 0,
+                "factories_to_place": 1,
+                "factory_strains": [
+                    1
+                ],
+                "place_first": false,
+                "bid": 0
+            }
+        },
+        "factories": {
+            "player_0": {
+                "factory_0": {
+                    "pos": "shape_2",
+                    "power": 550,
+                    "cargo": {
+                        "ice": 0,
+                        "ore": 0,
+                        "water": 299,
+                        "metal": 200
+                    },
+                    "unit_id": "factory_0",
+                    "strain_id": 0,
+                    "team_id": 0
+                }
+            },
+            "player_1": {
+                "factory_1": {
+                    "pos": "shape_2",
+                    "power": 1050,
+                    "cargo": {
+                        "ice": 0,
+                        "ore": 0,
+                        "water": 999,
+                        "metal": 300
+                    },
+                    "unit_id": "factory_1",
+                    "strain_id": 1,
+                    "team_id": 1
+                }
+            }
+        },
+        "board": {
+            "rubble": "shape_48_48",
+            "ore": "shape_48_48",
+            "ice": "shape_48_48",
+            "lichen": "shape_48_48",
+            "lichen_strains": "shape_48_48",
+            "valid_spawns_mask": "shape_48_48",
+            "factories_per_team": 2
+        },
+        "real_env_steps": 1,
+        "global_id": 3
+    }
+}
