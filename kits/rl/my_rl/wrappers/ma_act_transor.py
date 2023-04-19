@@ -4,11 +4,11 @@ from typing import Any, Dict
 import numpy as np
 import numpy.typing as npt
 from gym import spaces
+from lux.config import EnvConfig
 
-from wrappers.controllers import Controller
 
-class SimpleUnitDiscreteController_multiagent(Controller):
-    def __init__(self, env_cfg) -> None:
+class MaActTransor():
+    def __init__(self, env_cfg: EnvConfig) -> None:
         """
         A simple controller that controls only the robot that will get spawned.
         Moreover, it will always try to spawn one heavy robot if there are none regardless of action given
@@ -33,12 +33,12 @@ class SimpleUnitDiscreteController_multiagent(Controller):
 
         """
         self.env_cfg = env_cfg
-        self.move_act_dims = 4
-        self.transfer_ice_act_dims = 1
-        self.transfer_ore_act_dims = 1
-        self.pickup_act_dims = 1
-        self.dig_act_dims = 1
-        self.no_op_dims = 1
+        self.move_act_dims = 4                                  # 0~3
+        self.transfer_ice_act_dims = 1                                 # 4
+        self.transfer_ore_act_dims = 1                                 # 5
+        self.pickup_act_dims = 1                                 # 6
+        self.dig_act_dims = 1                                 # 7
+        self.no_op_dims = 1                                 # 8
 
         self.move_dim_high = self.move_act_dims
         self.transfer_ice_dim_high = self.move_dim_high + self.transfer_ice_act_dims
@@ -48,8 +48,7 @@ class SimpleUnitDiscreteController_multiagent(Controller):
         self.no_op_dim_high = self.dig_dim_high + self.no_op_dims
 
         self.total_act_dims = self.no_op_dim_high
-        action_space = spaces.Discrete(self.total_act_dims)
-        super().__init__(action_space)
+        self.action_space = spaces.Discrete(self.total_act_dims)
 
     def _is_move_action(self, id):
         return id < self.move_dim_high
@@ -83,23 +82,25 @@ class SimpleUnitDiscreteController_multiagent(Controller):
         return np.array([3, 0, 0, 0, 0, 1])
 
     def _can_water(self, water):
-        if water>150:
+        if water > 150:
             return True
         return False
 
     def _can_build(self, power, metal):
-        if power>500 and metal>100:
+        if power > 500 and metal > 100:
             return True
         return False
 
-    def action_to_lux_action(
-        self, agent: str, obs: Dict[str, Any], actions: Dict[str, npt.NDArray]
-    ):
-        shared_obs = obs["player_0"]
-        lux_action = dict()
-        units = shared_obs["units"][agent]
+    def _can_build_light(self, power, metal):
+        if power > 50 and metal > 10:
+            return True
+        return False
+
+    def ma_to_sg(self, actions: Dict[str, npt.NDArray], obs_info, player):
+
+        raw_action = dict()
+
         for unit_id, choice in actions.items():
-            unit = units[unit_id]
             # choice = action
             action_queue = []
             no_op = False
@@ -117,24 +118,52 @@ class SimpleUnitDiscreteController_multiagent(Controller):
                 # action is a no_op, so we don't update the action queue
                 no_op = True
 
-            # simple trick to help agents conserve power is to avoid updating the action queue
-            # if the agent was previously trying to do that particular action already
-            if len(unit["action_queue"]) > 0 and len(action_queue) > 0:
-                same_actions = (unit["action_queue"][0] == action_queue[0]).all()
-                if same_actions:
-                    no_op = True
-            if not no_op:
-                lux_action[unit_id] = action_queue
+            raw_action[unit_id] = action_queue
 
-        factories = shared_obs["factories"][agent]
+        factories = obs_info["factories"][player]
 
         # build a single heavy
         for f_id in factories.keys():
-            if self._can_build(factories[f_id]['power'],factories[f_id]['cargo']['metal']):
-                lux_action[f_id] = 1
+            if self._can_build(factories[f_id]['power'], factories[f_id]['cargo']['metal']):
+                raw_action[f_id] = 1
             else:
-                if self._can_water(factories[f_id]['water']):
-                    lux_action[f_id] = 2
+                if self._can_water(factories[f_id]['cargo']['water']):
+                    raw_action[f_id] = 2
 
-        return lux_action
+        return raw_action
 
+    def ma_to_sg_light(self, actions: Dict[str, npt.NDArray], obs_info, player):
+
+        raw_action = dict()
+
+        for unit_id, choice in actions.items():
+            # choice = action
+            action_queue = []
+            no_op = False
+            if self._is_move_action(choice):
+                action_queue = [self._get_move_action(choice)]
+            elif self._is_transfer_ice_action(choice):
+                action_queue = [self._get_transfer_ice_action(choice)]
+            elif self._is_transfer_ore_action(choice):
+                action_queue = [self._get_transfer_ore_action(choice)]
+            elif self._is_pickup_action(choice):
+                action_queue = [self._get_pickup_action(choice)]
+            elif self._is_dig_action(choice):
+                action_queue = [self._get_dig_action(choice)]
+            else:
+                # action is a no_op, so we don't update the action queue
+                no_op = True
+
+            raw_action[unit_id] = action_queue
+
+        factories = obs_info["factories"][player]
+
+        # build a light heavy
+        for f_id in factories.keys():
+            if self._can_build_light(factories[f_id]['power'], factories[f_id]['cargo']['metal']):
+                raw_action[f_id] = 0
+            else:
+                if self._can_water(factories[f_id]['cargo']['water']):
+                    raw_action[f_id] = 2
+
+        return raw_action

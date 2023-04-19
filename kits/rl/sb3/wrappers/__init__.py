@@ -1,4 +1,3 @@
 from .controllers import SimpleUnitDiscreteController
-from .controllers_multiagent import SimpleUnitDiscreteController_multiagent
 from .obs_wrappers import SimpleUnitObservationWrapper
-from .obs_wrappers_multiagent import SimpleUnitObservationWrapper_multiagent
+

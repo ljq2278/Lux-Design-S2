@@ -1,0 +1,9 @@
+{
+    "player_0":{
+        "unit1":"[], that is: [self info: pos*2,power*1,ice*1,ore*1] + [near area info(rubble((20+1*rubble)/1000):0~1,unit:+1, ): 5*5] + [closest_ice_pos_in_4_area*2*4]+[closest_ore_pos*2*4] + [factor_pos*2*3]",
+        "unit1":"[], that is: [self info: pos*2,power*1,ice*1,ore*1] + [] + [] + []"
+    },
+    "player_1": {
+
+    }
+}
