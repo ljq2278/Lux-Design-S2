@@ -62,7 +62,7 @@ def train(args, env_id):
     maObsTransor = MaObsTransor(env_cfg)
     maRwdTransor = MaRwdTransor(env, env_cfg, debug=True)
     dim_info = [maObsTransor.total_dims, maActTransor.total_act_dims]  # obs and act dims
-    base_res_dir = '/home/ljq/train_res/' + exp + '/'
+    base_res_dir = os.environ['HOME']+'/train_res/' + exp + '/'
     agent_cont = 2
     globalAgents = [GlobalAgent(dim_info, args.buffer_capacity, args.batch_size, args.actor_lr, args.critic_lr,
                                 base_res_dir + str(i), 'player_' + str(i), env_cfg) for i in
