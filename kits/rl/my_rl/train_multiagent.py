@@ -21,7 +21,7 @@ import matplotlib.pyplot as plt
 from wrappers import MaActTransor, MaObsTransor, MaRwdTransor
 from GlobalAgent import GlobalAgent
 
-matplotlib.use(backend='TkAgg')
+# matplotlib.use(backend='TkAgg')
 
 exp = 'B'
 
