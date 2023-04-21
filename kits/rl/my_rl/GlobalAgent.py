@@ -10,7 +10,7 @@ import os.path as osp
 import sys
 import numpy as np
 import torch as th
-from stable_baselines3.ppo import PPO
+# from stable_baselines3.ppo import PPO
 from lux.config import EnvConfig
 from lux.kit import obs_to_game_state, GameState, EnvConfig
 from lux.utils import direction_to, my_turn_to_place_factory
