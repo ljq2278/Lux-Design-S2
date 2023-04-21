@@ -75,12 +75,15 @@ player_1['unit_2']['cargo']['ore'] = 80
 
 player_0_factories = nested_dict()
 player_0_factories['factory_0']['pos'] = [2, 2]
+player_0_factories['factory_0']['cargo']['water'] = 3
 player_0_factories['factory_1']['pos'] = [4, 4]
+player_0_factories['factory_1']['cargo']['water'] = 4
 
 player_1_factories = nested_dict()
 player_1_factories['factory_0']['pos'] = [42, 2]
+player_1_factories['factory_0']['cargo']['water'] = 5
 player_1_factories['factory_1']['pos'] = [42, 4]
-
+player_1_factories['factory_1']['cargo']['water'] = 6
 
 raw_obs = json.load(open('../data_example/raw_obs.json','r',encoding='utf-8'))
 raw_obs['player_0']['board']['ice'] = board_ice

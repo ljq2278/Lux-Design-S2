@@ -6,6 +6,7 @@ import numpy.typing as npt
 from gym import spaces
 # import matplotlib.pyplot as plt
 from lux.config import EnvConfig
+from wrappers.obs_space import ObsSpace
 
 # def show(env):
 #     img = env.render("rgb_array", width=640, height=640)
@@ -13,9 +14,9 @@ from lux.config import EnvConfig
 #     plt.show()
 
 act_dict = {
-    'move_l': 0,  # 0~3
-    'move_u': 1,  # 0~3
-    'move_r': 2,  # 0~3
+    'move_a': 0,  # 0~3
+    'move_b': 1,  # 0~3
+    'move_c': 2,  # 0~3
     'move_d': 3,  # 0~3
     'transfer_ice': 4,  # 4
     'transfer_ore': 5,  # 5
@@ -34,9 +35,8 @@ class MaRwdTransor():
         return
 
     def _if_in_factory(self, unit_info):
-        if (abs(unit_info[46]) <= 1 and abs(unit_info[47]) <= 1) or \
-                (abs(unit_info[48]) <= 1 and abs(unit_info[49]) <= 1) or \
-                (abs(unit_info[50]) <= 1 and abs(unit_info[51]) <= 1):
+        if abs(unit_info[ObsSpace.nearest_factory_pos_start]) <= 1 \
+                and abs(unit_info[ObsSpace.nearest_factory_pos_start + 1]) <= 1:
             return True
         return False
 
@@ -50,7 +50,7 @@ class MaRwdTransor():
             return True
         return False
 
-    def sg_to_ma(self, ori_reward, act, obs, next_obs, ice_map, ore_map, raw_obs=None, typ='HEAVY'):
+    def sg_to_ma(self, ori_reward, act, obs, next_obs, ice_map=None, ore_map=None, raw_obs=None, typ='HEAVY'):
         # show(self.env)
         rewards = {}
         metrics = {}
@@ -63,14 +63,22 @@ class MaRwdTransor():
             elif unit_id not in obs.keys():  # it is new born
                 pass
             else:
-                metrics[unit_id]['min_factory_water'] = min(obs[unit_id][58:61])
+                if obs[unit_id][ObsSpace.nearest_factory_pos_start] == -100:  ####################### no factory
+                    rewards[unit_id] -= 100
+                    continue
+
+                metrics[unit_id]['min_factory_water'] = obs[unit_id][ObsSpace.nearest_factory_water_start]
                 metrics[unit_id]['if_in_factory'] = self._if_in_factory(obs[unit_id])
                 metrics[unit_id]['if_next_in_factory'] = self._if_in_factory(next_obs[unit_id])
 
-                metrics[unit_id]['on_ice'] = bool(ice_map[obs[unit_id][0], obs[unit_id][1]])
-                metrics[unit_id]['next_on_ice'] = bool(ice_map[next_obs[unit_id][0], next_obs[unit_id][1]])
-                metrics[unit_id]['on_ore'] = bool(ore_map[obs[unit_id][0], obs[unit_id][1]])
-                metrics[unit_id]['next_on_ore'] = bool(ore_map[next_obs[unit_id][0], next_obs[unit_id][1]])
+                metrics[unit_id]['on_ice'] = bool(abs(obs[unit_id][ObsSpace.nearest_ice_pos_start]) +
+                                                  abs(obs[unit_id][ObsSpace.nearest_ice_pos_start + 1]) == 0)
+                metrics[unit_id]['next_on_ice'] = bool(abs(next_obs[unit_id][ObsSpace.nearest_ice_pos_start]) +
+                                                       abs(next_obs[unit_id][ObsSpace.nearest_ice_pos_start + 1]) == 0)
+                metrics[unit_id]['on_ore'] = bool(abs(obs[unit_id][ObsSpace.nearest_ore_pos_start]) +
+                                                  abs(obs[unit_id][ObsSpace.nearest_ore_pos_start + 1]) == 0)
+                metrics[unit_id]['next_on_ore'] = bool(abs(next_obs[unit_id][ObsSpace.nearest_ore_pos_start]) +
+                                                       abs(next_obs[unit_id][ObsSpace.nearest_ore_pos_start + 1]) == 0)
 
                 metrics[unit_id]['ice'] = obs[unit_id][3]
                 metrics[unit_id]['next_ice'] = next_obs[unit_id][3]
@@ -87,16 +95,13 @@ class MaRwdTransor():
                 metrics[unit_id]['next_power'] = next_obs[unit_id][2]
                 metrics[unit_id]['power_changed'] = metrics[unit_id]['next_power'] - metrics[unit_id]['power']
 
-                metrics[unit_id]['next_min_dis_to_factory'] = min(
-                    next_obs[unit_id][46] ** 2 + next_obs[unit_id][47] ** 2,
-                    next_obs[unit_id][48] ** 2 + next_obs[unit_id][49] ** 2,
-                    next_obs[unit_id][50] ** 2 + next_obs[unit_id][51] ** 2
-                )
-                metrics[unit_id]['min_dis_to_factory'] = min(
-                    obs[unit_id][46] ** 2 + obs[unit_id][47] ** 2,
-                    obs[unit_id][48] ** 2 + obs[unit_id][49] ** 2,
-                    obs[unit_id][50] ** 2 + obs[unit_id][51] ** 2
-                )
+                metrics[unit_id]['min_dis_to_factory'] = \
+                    obs[unit_id][ObsSpace.nearest_factory_pos_start] ** 2 \
+                    + obs[unit_id][ObsSpace.nearest_factory_pos_start + 1] ** 2
+
+                metrics[unit_id]['next_min_dis_to_factory'] = \
+                    next_obs[unit_id][ObsSpace.nearest_factory_pos_start] ** 2 \
+                    + next_obs[unit_id][ObsSpace.nearest_factory_pos_start + 1] ** 2
 
                 if metrics[unit_id]['cargo'] > 0:  ########################## on the way home with cargo
                     factor = 1
@@ -104,7 +109,14 @@ class MaRwdTransor():
                     factor2 = 1 if dist_diff < 0 else (0 if dist_diff == 0 else -2)
                     rewards[unit_id] += factor * factor2 * metrics[unit_id]['cargo']
                     if self.debug and factor2 != 0:
-                        print(unit_id, ' on the way home with cargo ', factor * factor2 * metrics[unit_id]['cargo'])
+                        if next_obs[unit_id][ObsSpace.nearest_factory_pos_start]!=-100:
+                            print(unit_id, ' on the way home with cargo ',
+                                  factor * factor2 * metrics[unit_id]['cargo'],
+                                  obs[unit_id][ObsSpace.nearest_factory_pos_start],
+                                  obs[unit_id][ObsSpace.nearest_factory_pos_start + 1],
+                                  next_obs[unit_id][ObsSpace.nearest_factory_pos_start],
+                                  next_obs[unit_id][ObsSpace.nearest_factory_pos_start + 1]
+                                  )
 
                 # if metrics[unit_id]['next_min_dis_to_factory'] < metrics[unit_id]['min_dis_to_factory'] \
                 #         and metrics[unit_id]['cargo'] > 0:  ########################## on the way home with cargo
@@ -146,7 +158,7 @@ class MaRwdTransor():
 
                 # if act[unit_id] == 7 \
                 #         and not (next_obs[unit_id][3] - obs[unit_id][3] > 0) \
-                #         and not (next_obs[unit_id][4] - obs[unit_id][4] > 0):  ################## dig ice or ore failed
+                #         and not (next_obs[unit_id][4] - obs[unit_id][4] > 0):  ################# dig ice or ore failed
                 #     rewards[unit_id] -= 0.1
                 #     if self.debug:
                 #         print(unit_id, ' dig ice or ore failed ', -0.1)
@@ -159,9 +171,9 @@ class MaRwdTransor():
 
                 if act[unit_id] == 7 and metrics[unit_id]['ice_changed'] > 0:  ################### dig ice success
                     rewards[unit_id] += 1 * (metrics[unit_id]['ice_changed'])
-                    if self.debug:
-                        print(unit_id, ' dig ice success ', 1 * (metrics[unit_id]['ice_changed']),
-                              metrics[unit_id]['power'])
+                    # if self.debug:
+                    #     print(unit_id, ' dig ice success ', 1 * (metrics[unit_id]['ice_changed']),
+                    #           metrics[unit_id]['power'])
 
                 if act[unit_id] == 7 and metrics[unit_id]['ore_changed'] > 0:  ###################### dig ore success
                     rewards[unit_id] += 0.5 * (metrics[unit_id]['ore_changed'])

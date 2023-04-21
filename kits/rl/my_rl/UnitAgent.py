@@ -78,11 +78,11 @@ class MLPNetwork(nn.Module):
         super(MLPNetwork, self).__init__()
 
         self.net = nn.Sequential(
-            nn.Linear(in_dim, hidden_dim),
-            non_linear,
-            nn.Linear(hidden_dim, hidden_dim),
-            non_linear,
-            nn.Linear(hidden_dim, out_dim),
+            # nn.Linear(in_dim, hidden_dim),
+            # non_linear,
+            # nn.Linear(hidden_dim, hidden_dim),
+            # non_linear,
+            nn.Linear(in_dim, out_dim),
         ).apply(self.init)
 
     @staticmethod
