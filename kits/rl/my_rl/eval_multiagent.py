@@ -14,16 +14,17 @@ from gym.wrappers import TimeLimit
 from luxai_s2.state import ObservationStateDict, StatsStateDict
 from luxai_s2.utils.heuristics.factory_placement import place_near_random_ice
 from luxai_s2.wrappers import SB3Wrapper
-
+import os
 import matplotlib
 import matplotlib.pyplot as plt
-
+import json
 from wrappers import MaActTransor, MaObsTransor, MaRwdTransor
 from GlobalAgent import GlobalAgent
 
 matplotlib.use(backend='TkAgg')
 
 exp = 'B'
+
 
 def parse_args():
     import argparse
@@ -41,7 +42,7 @@ def parse_args():
     parser.add_argument('--tau', type=float, default=0.02, help='soft update parameter')
     parser.add_argument('--gamma', type=float, default=0.98, help='discount factor')
     parser.add_argument('--buffer_capacity', type=int, default=int(1e6), help='capacity of replay buffer')
-    parser.add_argument('--batch_size', type=int, default=1024, help='batch-size of replay buffer')
+    parser.add_argument('--batch_size', type=int, default=1000, help='batch-size of replay buffer')
     parser.add_argument('--actor_lr', type=float, default=0.01, help='learning rate of actor')
     parser.add_argument('--critic_lr', type=float, default=0.01, help='learning rate of critic')
     args = parser.parse_args()
@@ -60,13 +61,13 @@ def eval(args, env_id):
     maActTransor = MaActTransor(env_cfg)
     maObsTransor = MaObsTransor(env_cfg)
     maRwdTransor = MaRwdTransor(env, env_cfg, debug=True)
-    dim_info = [58, 9]  # obs and act dims
-    base_res_dir = '/home/ljq/train_res/'+exp+'/'
+    dim_info = [maObsTransor.total_dims, maActTransor.total_act_dims]  # obs and act dims
+    base_res_dir = '/home/ljq/train_res/' + exp + '/'
     agent_cont = 2
     globalAgents = [GlobalAgent(dim_info, args.buffer_capacity, args.batch_size, args.actor_lr, args.critic_lr,
                                 base_res_dir + str(i), 'player_' + str(i), env_cfg) for i in
                     range(0, agent_cont)]
-    for g_agent in globalAgents:
+    for i, g_agent in enumerate(globalAgents):
         g_agent.load(base_res_dir + '0/model.pt')
     globale_step = 0
     for episode in range(args.episode_num):
@@ -76,9 +77,12 @@ def eval(args, env_id):
         step = 0
         # early_steps = -raw_obs['player_0']["real_env_steps"]
         done = {'player_0': False, 'player_1': False}
-        # interact with the env for an episode
+
+        ######################################################################### interact with the env for an episode
+
         while raw_obs['player_0']["real_env_steps"] < 0 or sum(done.values()) < len(done):
-            # show(env)
+            # if (episode + 1) % 1000 == 0:
+            #     show(env)
             globale_step += 1
             if raw_obs['player_0']["real_env_steps"] < 0:
                 raw_action = {}
@@ -95,8 +99,8 @@ def eval(args, env_id):
 
                 raw_action = {}
                 for g_agent in globalAgents:
-                    raw_action[g_agent.player] = maActTransor.ma_to_sg(
-                        action[g_agent.player], raw_obs[g_agent.player], g_agent.player)
+                    raw_action[g_agent.player] = maActTransor.ma_to_sg(action[g_agent.player], raw_obs[g_agent.player],
+                                                                       g_agent.player)
                 raw_next_obs, raw_reward, done, info = env.step(raw_action)
                 next_obs, norm_next_obs = maObsTransor.sg_to_ma(raw_next_obs['player_0'])
                 reward = {}
@@ -108,6 +112,9 @@ def eval(args, env_id):
                         raw_obs['player_0']['board']['ice'],
                         raw_obs['player_0']['board']['ore']
                     )
+                    g_agent.add(norm_obs[g_agent.player], action[g_agent.player], reward[g_agent.player],
+                                norm_next_obs[g_agent.player],
+                                done[g_agent.player])  # it should be a stand reward and action for maddpg
                     sum_rwd += sum([v for v in reward[g_agent.player].values()])
                 raw_obs = raw_next_obs
                 obs = next_obs
@@ -117,9 +124,12 @@ def eval(args, env_id):
         message = f'episode {episode + 1}, '
         message += f'sum reward: {sum_rwd}'
         print(message)
-        for g_agent in globalAgents:
-            g_agent.save()  # save model
-            break
+        units_info = [(v.power, v.cargo) for uid, v in env.get_state().units['player_0'].items()]
+        state_info = env.get_state().stats['player_0']
+        if state_info['generation']['ice']['HEAVY']!=0 or state_info['generation']['ore']['HEAVY']!=0:
+            print(state_info)
+            for unit_info in units_info:
+                print(unit_info)
 
 
 def main(args):

@@ -42,20 +42,30 @@ class MaObsTransor():
         self.plyr_ftry_rela_pos = 3 * 2
         self.oppo_ftry_rela_pos_start = self.plyr_ftry_rela_pos_start + self.plyr_ftry_rela_pos  # 52
         self.oppo_ftry_rela_pos = 3 * 2
-        self.total_dims = self.oppo_ftry_rela_pos_start + self.oppo_ftry_rela_pos  # 58
+
+        self.factories_water_start = self.oppo_ftry_rela_pos_start + self.oppo_ftry_rela_pos  # 58
+        self.factories_water = 3
+
+        self.day_or_night_start = self.factories_water_start + self.factories_water  # 61
+        self.day_or_night = 1
+        self.total_dims = self.day_or_night_start + self.day_or_night  # 62
 
         self.observation_space = spaces.Box(-999, 999, shape=(self.total_dims,))
         self.normer = np.array([self.env_cfg.map_size for _ in range(0, 2)] +
                                [self.env_cfg.ROBOTS['HEAVY'].BATTERY_CAPACITY for _ in range(0, 1)] +
                                [self.env_cfg.ROBOTS['HEAVY'].CARGO_SPACE for _ in range(0, 2)] +
                                [self.env_cfg.MAX_RUBBLE for _ in range(0, 25)] +
-                               [self.env_cfg.map_size for _ in range(0, 28)])
+                               [self.env_cfg.map_size for _ in range(0, 28)] +
+                               [1000 for _ in range(0, 3)] +
+                               [1])
 
         self.normer_light = np.array([self.env_cfg.map_size for _ in range(0, 2)] +
-                               [self.env_cfg.ROBOTS['HEAVY'].BATTERY_CAPACITY for _ in range(0, 1)] +
-                               [self.env_cfg.ROBOTS['HEAVY'].CARGO_SPACE for _ in range(0, 2)] +
-                               [self.env_cfg.MAX_RUBBLE for _ in range(0, 25)] +
-                               [self.env_cfg.map_size for _ in range(0, 28)])
+                                     [self.env_cfg.ROBOTS['HEAVY'].BATTERY_CAPACITY for _ in range(0, 1)] +
+                                     [self.env_cfg.ROBOTS['HEAVY'].CARGO_SPACE for _ in range(0, 2)] +
+                                     [self.env_cfg.MAX_RUBBLE for _ in range(0, 25)] +
+                                     [self.env_cfg.map_size for _ in range(0, 28)] +
+                                     [1000 for _ in range(0, 3)] +
+                                     [1])
 
     # we make this method static so the submission/evaluation code can use this as well
     def sg_to_ma(self, raw_obs: Dict[str, Any]):
@@ -124,19 +134,27 @@ class MaObsTransor():
                             ret[player_id][unit_id][52 + oppo_f_count:54 + oppo_f_count] = \
                                 f_info['pos'][0] - unit_info['pos'][0], f_info['pos'][1] - unit_info['pos'][1]
                             oppo_f_count += 2
+                for p_id, p_info in raw_obs["factories"].items():
+                    for i, (f_id, f_info) in enumerate(p_info.items()):
+                        if p_id == player_id:
+                            ret[player_id][unit_id][58+i] = f_info['cargo']['water']
+                # is day ?
+                # ret[player_id][unit_id][-1] = int(raw_obs['real_env_steps'] % self.env_cfg.CYCLE_LENGTH < self.env_cfg.DAY_LENGTH)
+                # the time
+                ret[player_id][unit_id][-1] = (raw_obs['real_env_steps'] % self.env_cfg.DAY_LENGTH) / self.env_cfg.DAY_LENGTH
 
         return ret, dict([
-                (
-                    p_id,
-                    dict([
-                        (
-                            u_id,
-                            (np.array(u_info) / self.normer).tolist()
-                        )
-                        for u_id, u_info in p_info.items()
-                    ])
-                )
-                for p_id, p_info in ret.items()
+            (
+                p_id,
+                dict([
+                    (
+                        u_id,
+                        (np.array(u_info) / self.normer).tolist()
+                    )
+                    for u_id, u_info in p_info.items()
+                ])
+            )
+            for p_id, p_info in ret.items()
         ])
 
     def sg_to_ma_light(self, raw_obs: Dict[str, Any]):
@@ -207,15 +225,15 @@ class MaObsTransor():
                             oppo_f_count += 2
 
         return ret, dict([
-                (
-                    p_id,
-                    dict([
-                        (
-                            u_id,
-                            (np.array(u_info) / self.normer_light).tolist()
-                        )
-                        for u_id, u_info in p_info.items()
-                    ])
-                )
-                for p_id, p_info in ret.items()
+            (
+                p_id,
+                dict([
+                    (
+                        u_id,
+                        (np.array(u_info) / self.normer_light).tolist()
+                    )
+                    for u_id, u_info in p_info.items()
+                ])
+            )
+            for p_id, p_info in ret.items()
         ])

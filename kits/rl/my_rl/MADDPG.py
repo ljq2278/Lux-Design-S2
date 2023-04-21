@@ -126,16 +126,29 @@ class MADDPG:
 
     def save(self):
         """save actor parameters of all agents and training reward to `res_dir`"""
-        torch.save(
-            self.unit_agent,  # actor parameter
-            os.path.join(self.res_dir, 'model.pt')
-        )
+        torch.save({
+            'actor': self.unit_agent.actor.state_dict(),
+            'critic': self.unit_agent.critic.state_dict(),
+            'target_actor': self.unit_agent.target_actor.state_dict(),
+            'target_critic': self.unit_agent.target_critic.state_dict(),
+            'actor_optimizer': self.unit_agent.actor_optimizer.state_dict(),
+            'critic_optimizer': self.unit_agent.critic_optimizer.state_dict(),
+        }, os.path.join(self.res_dir, 'model.pt'))
+        # torch.save(
+        #     self.unit_agent,  # actor parameter
+        #     os.path.join(self.res_dir, 'model.pt')
+        # )
         # with open(os.path.join(self.res_dir, 'rewards.pkl'), 'wb') as f:  # save training data
         #     pickle.dump({'rewards': reward}, f)
 
-
     def load(self, file):
         """init maddpg using the model saved in `file`"""
-        # instance = cls(dim_info, 0, 0, 0, 0, os.path.dirname(file))
-        self.unit_agent = torch.load(file)
+        checkpoint = torch.load(file)
+        self.unit_agent.actor.load_state_dict(checkpoint['actor'])
+        self.unit_agent.critic.load_state_dict(checkpoint['critic'])
+        self.unit_agent.target_actor.load_state_dict(checkpoint['target_actor'])
+        self.unit_agent.target_critic.load_state_dict(checkpoint['target_critic'])
+        self.unit_agent.actor_optimizer.load_state_dict(checkpoint['actor_optimizer'])
+        self.unit_agent.critic_optimizer.load_state_dict(checkpoint['critic_optimizer'])
+        # self.unit_agent = torch.load(file)
 

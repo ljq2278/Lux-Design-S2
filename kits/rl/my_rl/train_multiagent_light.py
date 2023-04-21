@@ -15,12 +15,13 @@ from luxai_s2.state import ObservationStateDict, StatsStateDict
 from luxai_s2.utils.heuristics.factory_placement import place_near_random_ice
 from luxai_s2.wrappers import SB3Wrapper
 import os
-
+import matplotlib
 import matplotlib.pyplot as plt
 
 from wrappers import MaActTransor, MaObsTransor, MaRwdTransor
 from GlobalAgent import GlobalAgent
 
+matplotlib.use(backend='TkAgg')
 exp = 'light'
 
 def parse_args():
@@ -73,8 +74,8 @@ def train(args, env_id):
         # early_steps = -raw_obs['player_0']["real_env_steps"]
         done = {'player_0': False, 'player_1': False}
         while raw_obs['player_0']["real_env_steps"] < 0 or sum(done.values()) < len(done):  # interact with the env for an episode
-            if (episode+1) % 1000 == 0:
-                show(env)
+            # if (episode+1) % 1000 == 0:
+            #     show(env)
             globale_step += 1
             if raw_obs['player_0']["real_env_steps"] < 0:
                 raw_action = {}
@@ -120,6 +121,7 @@ def train(args, env_id):
             message = f'episode {episode + 1}, '
             message += f'sum reward: {sum_rwd}'
             print(message)
+        if (episode + 1) % 100 == 0:
             for g_agent in globalAgents:
                 g_agent.save()  # save model
                 break

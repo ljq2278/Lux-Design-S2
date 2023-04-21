@@ -74,7 +74,7 @@ class UnitAgent:
 
 
 class MLPNetwork(nn.Module):
-    def __init__(self, in_dim, out_dim, hidden_dim=64, non_linear=nn.ReLU()):
+    def __init__(self, in_dim, out_dim, hidden_dim=124, non_linear=nn.ReLU()):
         super(MLPNetwork, self).__init__()
 
         self.net = nn.Sequential(

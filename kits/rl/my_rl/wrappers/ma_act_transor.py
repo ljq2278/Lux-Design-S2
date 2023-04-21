@@ -99,8 +99,9 @@ class MaActTransor():
     def ma_to_sg(self, actions: Dict[str, npt.NDArray], obs_info, player):
 
         raw_action = dict()
-
+        units = obs_info["units"][player]
         for unit_id, choice in actions.items():
+            unit = units[unit_id]
             # choice = action
             action_queue = []
             no_op = False
@@ -117,8 +118,12 @@ class MaActTransor():
             else:
                 # action is a no_op, so we don't update the action queue
                 no_op = True
-
-            raw_action[unit_id] = action_queue
+            if len(unit["action_queue"]) > 0 and len(action_queue) > 0:
+                same_actions = (unit["action_queue"][0] == action_queue[0]).all()
+                if same_actions:
+                    no_op = True
+            if not no_op:
+                raw_action[unit_id] = action_queue
 
         factories = obs_info["factories"][player]
 
@@ -126,8 +131,10 @@ class MaActTransor():
         for f_id in factories.keys():
             if self._can_build(factories[f_id]['power'], factories[f_id]['cargo']['metal']):
                 raw_action[f_id] = 1
+                # print('########################### build a HEAVY')
             else:
                 if self._can_water(factories[f_id]['cargo']['water']):
+                    # print('$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$ can water ')
                     raw_action[f_id] = 2
 
         return raw_action
@@ -135,8 +142,9 @@ class MaActTransor():
     def ma_to_sg_light(self, actions: Dict[str, npt.NDArray], obs_info, player):
 
         raw_action = dict()
-
+        units = obs_info["units"][player]
         for unit_id, choice in actions.items():
+            unit = units[unit_id]
             # choice = action
             action_queue = []
             no_op = False
@@ -153,8 +161,12 @@ class MaActTransor():
             else:
                 # action is a no_op, so we don't update the action queue
                 no_op = True
-
-            raw_action[unit_id] = action_queue
+            if len(unit["action_queue"]) > 0 and len(action_queue) > 0:
+                same_actions = (unit["action_queue"][0] == action_queue[0]).all()
+                if same_actions:
+                    no_op = True
+            if not no_op:
+                raw_action[unit_id] = action_queue
 
         factories = obs_info["factories"][player]
 

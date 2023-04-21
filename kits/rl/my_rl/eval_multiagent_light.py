@@ -117,9 +117,7 @@ def eval(args, env_id):
         message = f'episode {episode + 1}, '
         message += f'sum reward: {sum_rwd}'
         print(message)
-        for g_agent in globalAgents:
-            g_agent.save()  # save model
-            break
+
 
 
 def main(args):
