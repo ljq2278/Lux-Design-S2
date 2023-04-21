@@ -43,7 +43,7 @@ class MADDPG:
 
         self.batch_size = batch_size
         self.res_dir = res_dir  # directory to save the training result
-        self.logger = setup_logger(os.path.join(res_dir, 'maddpg.log'))
+        # self.logger = setup_logger(os.path.join(res_dir, 'maddpg.log'))
 
     def add(self, obs, action, reward, next_obs, done):
         # NOTE that the experience is a dict with agent name as its key
@@ -86,7 +86,7 @@ class MADDPG:
             a = self.unit_agent.action(o)  # torch.Size([1, action_size])
             # NOTE that the output is a tensor, convert it to int before input to the environment
             actions[agent] = a.squeeze(0).argmax().item()
-            self.logger.info(f'{agent} action: {actions[agent]}')
+            # self.logger.info(f'{agent} action: {actions[agent]}')
         return actions
 
 
