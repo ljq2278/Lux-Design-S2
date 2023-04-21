@@ -169,6 +169,13 @@ class MaRwdTransor():
                         print(unit_id, ' dig ore success ', 0.5 * (metrics[unit_id]['ore_changed']),
                               metrics[unit_id]['power'])
 
+                if act[unit_id] < 4 and metrics[unit_id]['if_in_factory'] \
+                        and metrics[unit_id]['cargo'] > 0:  ##################### want to leave factory with cargo
+                    factor = -2.5
+                    rewards[unit_id] += factor * metrics[unit_id]['cargo']
+                    if self.debug:
+                        print(unit_id, ' want to leave factory with cargo ', factor * metrics[unit_id]['cargo'])
+
                 if act[unit_id] < 4 and not metrics[unit_id]['if_in_factory'] \
                         and metrics[unit_id]['if_next_in_factory'] \
                         and metrics[unit_id]['ice'] > 0:  #################################### return factory with ices
