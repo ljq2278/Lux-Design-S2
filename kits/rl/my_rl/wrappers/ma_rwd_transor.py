@@ -101,7 +101,7 @@ class MaRwdTransor():
                 if metrics[unit_id]['cargo'] > 0:  ########################## on the way home with cargo
                     factor = 1
                     dist_diff = metrics[unit_id]['next_min_dis_to_factory'] - metrics[unit_id]['min_dis_to_factory']
-                    factor2 = 1 if dist_diff < 0 else (0 if dist_diff == 0 else -1)
+                    factor2 = 1 if dist_diff < 0 else (0 if dist_diff == 0 else -2)
                     rewards[unit_id] += factor * factor2 * metrics[unit_id]['cargo']
                     if self.debug and factor2 != 0:
                         print(unit_id, ' on the way home with cargo ', factor * factor2 * metrics[unit_id]['cargo'])
