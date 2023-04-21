@@ -67,9 +67,9 @@ def train(args, env_id):
     globalAgents = [GlobalAgent(dim_info, args.buffer_capacity, args.batch_size, args.actor_lr, args.critic_lr,
                                 base_res_dir + str(i), 'player_' + str(i), env_cfg) for i in
                     range(0, agent_cont)]
-    for i, g_agent in enumerate(globalAgents):
-        g_agent.load(base_res_dir + '0/model.pt')
-        print('loading model .................')
+    # for i, g_agent in enumerate(globalAgents):
+    #     g_agent.load(base_res_dir + '0/model.pt')
+    #     print('loading model .................')
     globale_step = 0
     for episode in range(args.episode_num):
         raw_obs = env.reset()

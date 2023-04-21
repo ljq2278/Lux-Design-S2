@@ -15,7 +15,7 @@ class UnitAgent:
 
         # critic input all the observations and actions
         # if there are 3 agents for example, the input for critic is (obs1, obs2, obs3, act1, act2, act3)
-        self.critic = MLPNetwork(global_obs_dim, 1)
+        self.critic = CriMLPNetwork(global_obs_dim, 1)
         self.actor_optimizer = Adam(self.actor.parameters(), lr=actor_lr)
         self.critic_optimizer = Adam(self.critic.parameters(), lr=critic_lr)
         self.target_actor = deepcopy(self.actor)
@@ -83,6 +83,29 @@ class MLPNetwork(nn.Module):
             # nn.Linear(hidden_dim, hidden_dim),
             # non_linear,
             nn.Linear(in_dim, out_dim),
+        ).apply(self.init)
+
+    @staticmethod
+    def init(m):
+        """init parameter of the module"""
+        gain = nn.init.calculate_gain('relu')
+        if isinstance(m, nn.Linear):
+            torch.nn.init.xavier_uniform_(m.weight, gain=gain)
+            m.bias.data.fill_(0.01)
+
+    def forward(self, x):
+        return self.net(x)
+
+class CriMLPNetwork(nn.Module):
+    def __init__(self, in_dim, out_dim, hidden_dim=64, non_linear=nn.ReLU()):
+        super(CriMLPNetwork, self).__init__()
+
+        self.net = nn.Sequential(
+            nn.Linear(in_dim, hidden_dim),
+            non_linear,
+            nn.Linear(hidden_dim, hidden_dim),
+            non_linear,
+            nn.Linear(hidden_dim, out_dim),
         ).apply(self.init)
 
     @staticmethod
