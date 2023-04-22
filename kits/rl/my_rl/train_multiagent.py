@@ -14,17 +14,22 @@ from gym.wrappers import TimeLimit
 from luxai_s2.state import ObservationStateDict, StatsStateDict
 from luxai_s2.utils.heuristics.factory_placement import place_near_random_ice
 from luxai_s2.wrappers import SB3Wrapper
+from lux.config import EnvConfig
 import os
 import matplotlib
 import matplotlib.pyplot as plt
 
 from wrappers import MaActTransor, MaObsTransor, MaRwdTransor
-from GlobalAgent import GlobalAgent
-
+from agent.BaseAgent import EarlyRuleAgent
+from maddpg.MADDPG import MADDPG
 # matplotlib.use(backend='TkAgg')
 
 exp = 'B'
 
+class GlobalAgent(EarlyRuleAgent, MADDPG):
+    def __init__(self, dim_info, capacity, batch_size, actor_lr, critic_lr, res_dir, player: str, env_cfg: EnvConfig):
+        EarlyRuleAgent.__init__(self, player, env_cfg)
+        MADDPG.__init__(self, dim_info, capacity, batch_size, actor_lr, critic_lr, res_dir)
 
 def parse_args():
     import argparse

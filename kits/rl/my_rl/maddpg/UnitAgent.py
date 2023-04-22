@@ -97,14 +97,14 @@ class MLPNetwork(nn.Module):
         return self.net(x)
 
 class CriMLPNetwork(nn.Module):
-    def __init__(self, in_dim, out_dim, hidden_dim=64, non_linear=nn.ReLU()):
+    def __init__(self, in_dim, out_dim, hidden_dim=80, non_linear=nn.ReLU()):
         super(CriMLPNetwork, self).__init__()
 
         self.net = nn.Sequential(
             nn.Linear(in_dim, hidden_dim),
             non_linear,
-            nn.Linear(hidden_dim, hidden_dim),
-            non_linear,
+            # nn.Linear(hidden_dim, hidden_dim),
+            # non_linear,
             nn.Linear(hidden_dim, out_dim),
         ).apply(self.init)
 

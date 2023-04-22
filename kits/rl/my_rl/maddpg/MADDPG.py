@@ -6,23 +6,8 @@ import numpy as np
 import torch
 import torch.nn.functional as F
 
-from UnitAgent import UnitAgent
-from Buffer import Buffer
-
-
-def setup_logger(filename):
-    """ set up logger with filename. """
-    logger = logging.getLogger()
-    logger.setLevel(logging.INFO)
-
-    handler = logging.FileHandler(filename, mode='w')
-    handler.setLevel(logging.INFO)
-
-    formatter = logging.Formatter('%(asctime)s--%(levelname)s--%(message)s', datefmt='%Y-%m-%d %H:%M:%S')
-    handler.setFormatter(formatter)
-
-    logger.addHandler(handler)
-    return logger
+from maddpg.UnitAgent import UnitAgent
+from maddpg.Buffer import Buffer
 
 
 class MADDPG:
@@ -47,19 +32,19 @@ class MADDPG:
 
     def add(self, obs, action, reward, next_obs, done):
         # NOTE that the experience is a dict with agent name as its key
-        for agent_id in obs.keys():
-            o = obs[agent_id]
-            a = action[agent_id]
+        for unit_id in obs.keys():
+            o = obs[unit_id]
+            a = action[unit_id]
             if isinstance(a, int):
                 # the action from env.action_space.sample() is int, we have to convert it to onehot
                 a = np.eye(self.dim_info[1])[a]
 
-            r = reward[agent_id]
-            if agent_id not in next_obs.keys():
-                next_o = obs[agent_id]
+            r = reward[unit_id]
+            if unit_id not in next_obs.keys():
+                next_o = obs[unit_id]
                 d = True
             else:
-                next_o = next_obs[agent_id]
+                next_o = next_obs[unit_id]
                 d = False
             self.unit_buffer.add(o, a, r, next_o, d)
 

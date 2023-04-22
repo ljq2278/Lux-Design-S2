@@ -22,36 +22,11 @@ import torch.nn.functional as F
 from torch import nn, Tensor
 from torch.optim import Adam
 
-from MADDPG import MADDPG
-
 # change this to use weights stored elsewhere
 # make sure the model weights are submitted with the other code files
 # any files in the logs folder are not necessary. Make sure to exclude the .zip extension here
 MODEL_WEIGHTS_RELATIVE_PATH = "./best_model"
 
-
-class MLPNetwork(nn.Module):
-    def __init__(self, in_dim, out_dim, hidden_dim=64, non_linear=nn.ReLU()):
-        super(MLPNetwork, self).__init__()
-
-        self.net = nn.Sequential(
-            nn.Linear(in_dim, hidden_dim),
-            non_linear,
-            nn.Linear(hidden_dim, hidden_dim),
-            non_linear,
-            nn.Linear(hidden_dim, out_dim),
-        ).apply(self.init)
-
-    @staticmethod
-    def init(m):
-        """init parameter of the module"""
-        gain = nn.init.calculate_gain('relu')
-        if isinstance(m, nn.Linear):
-            torch.nn.init.xavier_uniform_(m.weight, gain=gain)
-            m.bias.data.fill_(0.01)
-
-    def forward(self, x):
-        return self.net(x)
 
 
 class Agent:
@@ -143,7 +118,3 @@ class EarlyRuleAgent(Agent):
         return actions
 
 
-class GlobalAgent(EarlyRuleAgent, MADDPG):
-    def __init__(self, dim_info, capacity, batch_size, actor_lr, critic_lr, res_dir, player: str, env_cfg: EnvConfig):
-        EarlyRuleAgent.__init__(self, player, env_cfg)
-        MADDPG.__init__(self, dim_info, capacity, batch_size, actor_lr, critic_lr, res_dir)
