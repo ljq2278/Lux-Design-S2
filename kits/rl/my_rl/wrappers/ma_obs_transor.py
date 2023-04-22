@@ -46,7 +46,6 @@ class MaObsTransor(ObsSpace):
         else:
             return min_rela_pos, extra_list[min_ind]
 
-
     # we make this method static so the submission/evaluation code can use this as well
     def sg_to_ma(self, raw_obs: Dict[str, Any]):
         player_set = set(raw_obs["factories"].keys())
@@ -135,6 +134,9 @@ class MaObsTransor(ObsSpace):
                 # the time
                 ret[player_id][unit_id][self.day_or_night_start] = \
                     (raw_obs['real_env_steps'] % self.env_cfg.DAY_LENGTH) / self.env_cfg.DAY_LENGTH
+
+                ret[player_id][unit_id][self.has_ice_start] = 1 if unit_info['cargo']['ice'] > 0 else 0
+                ret[player_id][unit_id][self.has_ore_start] = 1 if unit_info['cargo']['ore'] > 0 else 0
 
         return ret, dict([
             (

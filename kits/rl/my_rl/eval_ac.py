@@ -4,7 +4,8 @@ Implementation of RL agent. Note that luxai_s2 and stable_baselines3 are package
 
 import copy
 import os.path as osp
-
+from PIL import Image
+import time
 import gym
 import numpy as np
 import torch as th
@@ -14,16 +15,26 @@ from gym.wrappers import TimeLimit
 from luxai_s2.state import ObservationStateDict, StatsStateDict
 from luxai_s2.utils.heuristics.factory_placement import place_near_random_ice
 from luxai_s2.wrappers import SB3Wrapper
-
+import os
 import matplotlib
 import matplotlib.pyplot as plt
-
+from lux.config import EnvConfig
 from wrappers import MaActTransor, MaObsTransor, MaRwdTransor
-from GlobalAgent import GlobalAgent
+from agent.BaseAgent import EarlyRuleAgent
+from ac.AC import AC
+from ac.UnitAgent import UnitAgent
+from ac.UnitBuffer import Buffer
 
 matplotlib.use(backend='TkAgg')
 
-exp = 'light'
+exp = 'B'
+
+
+class GlobalAgent(EarlyRuleAgent, AC):
+    def __init__(self, res_dir, player: str, env_cfg: EnvConfig, unit_agent, unit_buffer):
+        EarlyRuleAgent.__init__(self, player, env_cfg)
+        AC.__init__(self, res_dir, unit_agent, unit_buffer)
+
 
 def parse_args():
     import argparse
@@ -33,15 +44,8 @@ def parse_args():
     #                     choices=['simple_adversary_v2', 'simple_spread_v2', 'simple_tag_v2'])
     parser.add_argument('--episode_num', type=int, default=3000000,
                         help='total episode num during training procedure')
-    parser.add_argument('--episode_length', type=int, default=25, help='steps per episode')
-    parser.add_argument('--learn_interval', type=int, default=1000,
-                        help='steps interval between learning time')
-    parser.add_argument('--random_search', type=float, default=0.1,
-                        help='random search probability')
-    parser.add_argument('--tau', type=float, default=0.02, help='soft update parameter')
     parser.add_argument('--gamma', type=float, default=0.98, help='discount factor')
-    parser.add_argument('--buffer_capacity', type=int, default=int(1e6), help='capacity of replay buffer')
-    parser.add_argument('--batch_size', type=int, default=1024, help='batch-size of replay buffer')
+    parser.add_argument('--buffer_capacity', type=int, default=int(1e3), help='capacity of replay buffer')
     parser.add_argument('--actor_lr', type=float, default=0.01, help='learning rate of actor')
     parser.add_argument('--critic_lr', type=float, default=0.01, help='learning rate of critic')
     args = parser.parse_args()
@@ -54,32 +58,37 @@ def show(env):
     plt.show()
 
 
-def eval(args, env_id):
+def train(args, env_id):
     env = gym.make(env_id, verbose=0, collect_stats=True, MAX_FACTORIES=3)
     env_cfg = env.env_cfg
-    maActTransor = MaActTransor(env_cfg)
-    maObsTransor = MaObsTransor(env_cfg)
+    maActTransor = MaActTransor(env, env_cfg)
+    maObsTransor = MaObsTransor(env, env_cfg)
     maRwdTransor = MaRwdTransor(env, env_cfg, debug=True)
-    dim_info = [58, 9]  # obs and act dims
-    base_res_dir = '/home/ljq/train_res/'+exp+'/'
+
+    dim_info = [maObsTransor.total_dims, maActTransor.total_act_dims]  # obs and act dims
+    base_res_dir = os.environ['HOME'] + '/train_res/' + exp + '/'
     agent_cont = 2
-    globalAgents = [GlobalAgent(dim_info, args.buffer_capacity, args.batch_size, args.actor_lr, args.critic_lr,
-                                base_res_dir + str(i), 'player_' + str(i), env_cfg) for i in
+    unit_agent = UnitAgent(dim_info[0], dim_info[1], args.actor_lr, args.critic_lr)
+    unit_buffer = Buffer(args.buffer_capacity, dim_info[0], dim_info[1], 'cpu')
+    globalAgents = [GlobalAgent(base_res_dir + str(i), 'player_' + str(i), env_cfg, unit_agent, unit_buffer) for i in
                     range(0, agent_cont)]
-    for g_agent in globalAgents:
+    for i, g_agent in enumerate(globalAgents):
         g_agent.load(base_res_dir + '0/model.pt')
+        print('loading model .................')
     globale_step = 0
     for episode in range(args.episode_num):
         raw_obs = env.reset()
-        obs, norm_obs = maObsTransor.sg_to_ma_light(raw_obs['player_0'])
+        obs, norm_obs = maObsTransor.sg_to_ma(raw_obs['player_0'])
         sum_rwd = 0
         step = 0
         # early_steps = -raw_obs['player_0']["real_env_steps"]
         done = {'player_0': False, 'player_1': False}
-        # interact with the env for an episode
+        imgs = []
+        ######################################################################### interact with the env for an episode
+
         while raw_obs['player_0']["real_env_steps"] < 0 or sum(done.values()) < len(done):
-            # show(env)
-            globale_step += 1
+            # if (episode + 1) % 1000 == 0:
+            #     show(env)
             if raw_obs['player_0']["real_env_steps"] < 0:
                 raw_action = {}
                 for g_agent in globalAgents:
@@ -88,35 +97,50 @@ def eval(args, env_id):
                 raw_obs = raw_next_obs
                 step += 1
             else:
+                globale_step += 1
                 action = {}
+
                 for g_agent in globalAgents:
-                    action[g_agent.player] = g_agent.select_action(
-                        norm_obs[g_agent.player])  # it should be a stand obs and  for maddpg
+                    action[g_agent.player] = g_agent.get_action(norm_obs[g_agent.player])
 
                 raw_action = {}
                 for g_agent in globalAgents:
-                    raw_action[g_agent.player] = maActTransor.ma_to_sg_light(
-                        action[g_agent.player], raw_obs[g_agent.player], g_agent.player)
+                    raw_action[g_agent.player] = maActTransor.ma_to_sg(action[g_agent.player], raw_obs[g_agent.player],
+                                                                       g_agent.player)
                 raw_next_obs, raw_reward, done, info = env.step(raw_action)
-                next_obs, norm_next_obs = maObsTransor.sg_to_ma_light(raw_next_obs['player_0'])
+                imgs += [env.render("rgb_array", width=640, height=640)]
+                next_obs, norm_next_obs = maObsTransor.sg_to_ma(raw_next_obs['player_0'])
                 reward = {}
                 for g_agent in globalAgents:
                     reward[g_agent.player] = maRwdTransor.sg_to_ma(
                         raw_reward[g_agent.player], action[g_agent.player],
                         obs[g_agent.player],
                         next_obs[g_agent.player],
-                        raw_obs['player_0']['board']['ice'],
-                        raw_obs['player_0']['board']['ore']
+                        done[g_agent.player]
                     )
                     sum_rwd += sum([v for v in reward[g_agent.player].values()])
+
                 raw_obs = raw_next_obs
                 obs = next_obs
                 norm_obs = norm_next_obs
+
             # show(env)
+        for img in imgs:
+            img = Image.fromarray(img)
+            img.show()
+            time.sleep(0.5)
+            img.close()
+
         # episode finishes
-        message = f'episode {episode + 1}, '
-        message += f'sum reward: {sum_rwd}'
-        print(message)
+        if (episode + 1) % 10 == 0:  # print info every 100 episodes
+            message = f'episode {episode + 1}, '
+            message += f'sum reward: {sum_rwd}'
+            print(message, globale_step)
+            units_info = [(v.power, v.cargo) for uid, v in env.get_state().units['player_0'].items()]
+            state_info = env.get_state().stats['player_0']
+            print(state_info)
+            for unit_info in units_info:
+                print(unit_info)
 
 
 
@@ -126,7 +150,7 @@ def main(args):
     #     set_random_seed(args.seed)
     env_id = "LuxAI_S2-v0"
 
-    eval(args, env_id)
+    train(args, env_id)
 
 
 if __name__ == "__main__":

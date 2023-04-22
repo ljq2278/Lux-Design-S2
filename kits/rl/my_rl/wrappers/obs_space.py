@@ -27,7 +27,14 @@ class ObsSpace:
 
     day_or_night_start = nearest_factory_water_start + nearest_factory_water  # 39
     day_or_night = 1
-    total_dims = day_or_night_start + day_or_night  # 40
+
+    has_ice_start = day_or_night_start + day_or_night  # 40
+    has_ice = 1
+
+    has_ore_start = has_ice_start + has_ice  # 41
+    has_ore = 1
+
+    total_dims = has_ore_start + has_ore  # 42
 
     def __init__(self, env_cfg):
         self.env_cfg = env_cfg
@@ -37,6 +44,6 @@ class ObsSpace:
                                [self.env_cfg.MAX_RUBBLE for _ in range(0, 25)] +
                                [self.env_cfg.map_size for _ in range(0, 8)] +
                                [1000 for _ in range(0, 1)] +
-                               [1])
+                               [1 for _ in range(0, 3)])
 
         return

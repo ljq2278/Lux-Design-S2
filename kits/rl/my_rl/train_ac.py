@@ -44,9 +44,9 @@ def parse_args():
     parser.add_argument('--episode_num', type=int, default=3000000,
                         help='total episode num during training procedure')
     parser.add_argument('--gamma', type=float, default=0.98, help='discount factor')
-    parser.add_argument('--buffer_capacity', type=int, default=int(1e3), help='capacity of replay buffer')
-    parser.add_argument('--actor_lr', type=float, default=0.01, help='learning rate of actor')
-    parser.add_argument('--critic_lr', type=float, default=0.01, help='learning rate of critic')
+    parser.add_argument('--buffer_capacity', type=int, default=int(1e4), help='capacity of replay buffer')
+    parser.add_argument('--actor_lr', type=float, default=0.0005, help='learning rate of actor')
+    parser.add_argument('--critic_lr', type=float, default=0.0005, help='learning rate of critic')
     args = parser.parse_args()
     return args
 
@@ -111,9 +111,11 @@ def train(args, env_id):
                 reward = {}
                 for g_agent in globalAgents:
                     reward[g_agent.player] = maRwdTransor.sg_to_ma(
-                        raw_reward[g_agent.player], action[g_agent.player],
+                        raw_reward[g_agent.player],
+                        action[g_agent.player],
                         obs[g_agent.player],
                         next_obs[g_agent.player],
+                        done[g_agent.player]
                         # raw_obs['player_0']['board']['ice'],
                         # raw_obs['player_0']['board']['ore']
                     )
