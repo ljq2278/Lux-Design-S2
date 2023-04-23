@@ -44,7 +44,7 @@ def parse_args():
     parser.add_argument('--episode_num', type=int, default=3000000,
                         help='total episode num during training procedure')
     parser.add_argument('--gamma', type=float, default=0.98, help='discount factor')
-    parser.add_argument('--buffer_capacity', type=int, default=int(1e4), help='capacity of replay buffer')
+    parser.add_argument('--buffer_capacity', type=int, default=int(1e3), help='capacity of replay buffer')
     parser.add_argument('--actor_lr', type=float, default=0.0005, help='learning rate of actor')
     parser.add_argument('--critic_lr', type=float, default=0.0005, help='learning rate of critic')
     args = parser.parse_args()
