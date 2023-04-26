@@ -46,7 +46,7 @@ gamma = 0.98
 sub_proc_count = 5
 exp = 'paral_ppo'
 want_load_model = True
-max_episode_length = 20
+max_episode_length = 100
 agent_debug = False
 density_rwd = True
 
@@ -72,6 +72,7 @@ def sub_run(replay_queue: multiprocessing.Queue, param_queue: multiprocessing.Qu
     globalAgents = [GlobalAgent('player_' + str(i), env_cfg, unit_online_agent) for i in range(0, agent_cont)]
     globale_step = 0
     sum_rwd = 0
+    survive_step = 0
     for episode in range(episode_num):
         np.random.seed()
         seed = np.random.randint(0, 100000000)
@@ -139,6 +140,9 @@ def sub_run(replay_queue: multiprocessing.Queue, param_queue: multiprocessing.Qu
                 raw_obs = raw_next_obs
                 obs = next_obs
                 norm_obs = norm_next_obs
+        ############################### episode data record  #################################
+        survive_step += raw_obs["player_0"]["real_env_steps"]
+
         ##################### after a game, use MC the reward and get Advantage and tranport #####################
         for u_id, behaviors in tmp_buffer.items():
             unit_buffer.add_examples(*list(zip(*behaviors)))
@@ -155,16 +159,18 @@ def sub_run(replay_queue: multiprocessing.Queue, param_queue: multiprocessing.Qu
         ########################################### episode finishes  ########################################
         if episode % print_interv == 0:  # print info every 100 g_step
             message = f'episode {episode}, '
-            message += f'avg episode reward: {sum_rwd/print_interv}'
+            message += f'avg episode reward: {sum_rwd/print_interv}, '
+            message += f'avg survive step: {survive_step/print_interv}'
             print(message)
             print(maRwdTransor.reward_collect)
             sum_rwd = 0
+            survive_step = 0
             for k, v in maRwdTransor.reward_collect.items():
                 maRwdTransor.reward_collect[k] = 0
 
 
 def offline_learn(replay_queue: multiprocessing.Queue, param_queue_list, pid):
-    ppo_offline_agent = PPO_Offline_Agent(dim_info[0], dim_info[1], actor_lr, critic_lr, eps_clip)
+    ppo_offline_agent = PPO_Offline_Agent(dim_info[0], dim_info[1], actor_lr, critic_lr, eps_clip, base_res_dir)
     if want_load_model:
         ppo_offline_agent.load()
         for param_queue in param_queue_list:
