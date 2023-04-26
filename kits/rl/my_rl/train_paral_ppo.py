@@ -46,7 +46,7 @@ gamma = 0.98
 sub_proc_count = 5
 exp = 'paral_ppo'
 want_load_model = True
-max_episode_length = 100
+max_episode_length = 1000
 agent_debug = False
 density_rwd = True
 
@@ -162,7 +162,7 @@ def sub_run(replay_queue: multiprocessing.Queue, param_queue: multiprocessing.Qu
             message += f'avg episode reward: {sum_rwd/print_interv}, '
             message += f'avg survive step: {survive_step/print_interv}'
             print(message)
-            print(maRwdTransor.reward_collect)
+            print(raw_obs["player_0"]["real_env_steps"], maRwdTransor.reward_collect)
             sum_rwd = 0
             survive_step = 0
             for k, v in maRwdTransor.reward_collect.items():

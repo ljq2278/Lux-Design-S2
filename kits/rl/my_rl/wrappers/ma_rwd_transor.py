@@ -71,7 +71,6 @@ class MaRwdTransor():
         return False
 
     def sg_to_ma(self, ori_reward, act, obs, next_obs, done, ice_map=None, ore_map=None, raw_obs=None, typ='HEAVY'):
-        # show(self.env)
         rewards = {}
         metrics = {}
         unit_ids = list(set(obs.keys()).union(set(next_obs.keys())))

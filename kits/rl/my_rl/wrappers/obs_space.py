@@ -49,10 +49,10 @@ class ObsSpace:
         self.mask = np.array([0 for _ in range(0, 2)] +
                              [1 for _ in range(0, 1)] +
                              [1 for _ in range(0, 2)] +
-                             [0 if i != 12 else 1 for i in range(0, 25)] +
+                             [0.1 if i != 12 else 1 for i in range(0, 25)] +
                              [1, 1, 0, 0, 1, 1] +
                              [0 for _ in range(0, 2)] +
-                             [0 for _ in range(0, 1)] +
+                             [0.25 for _ in range(0, 1)] +
                              [1 for _ in range(0, 3)])
 
         return
