@@ -22,9 +22,10 @@ class MaObsTransor(ObsSpace):
 
     """
 
-    def __init__(self, env, env_cfg: EnvConfig) -> None:
+    def __init__(self, env, env_cfg: EnvConfig, if_mask=False) -> None:
         super().__init__(env_cfg)
         self.env = env
+        self.if_mask = if_mask
         self.observation_space = spaces.Box(-999, 999, shape=(self.total_dims,))
 
     def _get_min_rela_pos(self, pos, f_pos_list, extra_list=None):
@@ -53,11 +54,12 @@ class MaObsTransor(ObsSpace):
         space_info[2:self.env_cfg.map_size + 2, 2:self.env_cfg.map_size + 2] = raw_obs["board"]["rubble"]  # rubble map
         ice_locs = np.argwhere(raw_obs["board"]["ice"] == 1)
         ore_locs = np.argwhere(raw_obs["board"]["ore"] == 1)
+        robot_rubble_identied = self.env_cfg.MAX_RUBBLE * 2
         ################################################################### fill the robot map
         for player_id, player_info in raw_obs['units'].items():
             for unit_id, unit_info in player_info.items():
                 space_info[
-                    unit_info['pos'][0] + 2, unit_info['pos'][1] + 2] += self.env_cfg.MAX_RUBBLE  # complete space
+                    unit_info['pos'][0] + 2, unit_info['pos'][1] + 2] += robot_rubble_identied  # complete space
 
         ############################################################# get factory pos
         players_f_dict = {}
@@ -95,7 +97,6 @@ class MaObsTransor(ObsSpace):
                              unit_info['pos'][0] + 2 - 2:unit_info['pos'][0] + 2 + 3,
                              unit_info['pos'][1] + 2 - 2:unit_info['pos'][1] + 2 + 3
                              ].reshape(-1)
-
                 ############################################################# start build obs feature
 
                 # 0,1 pos
@@ -103,8 +104,10 @@ class MaObsTransor(ObsSpace):
                 # 2,3,4 power/ice/ore
                 ret[player_id][unit_id][2:5] = [unit_info['power'], unit_info['cargo']['ice'],
                                                 unit_info['cargo']['ore']]
-                # near_space
+                # near_space, the centr tile have the self robot
                 ret[player_id][unit_id][self.near_space_start: self.near_space_start + self.near_space] = near_space
+                ret[player_id][unit_id][int((self.near_space_start + self.near_space_start + self.near_space) // 2)] \
+                    -= robot_rubble_identied
 
                 # add the near ice info
                 ret[player_id][unit_id][
@@ -137,17 +140,31 @@ class MaObsTransor(ObsSpace):
 
                 ret[player_id][unit_id][self.has_ice_start] = 1 if unit_info['cargo']['ice'] > 0 else 0
                 ret[player_id][unit_id][self.has_ore_start] = 1 if unit_info['cargo']['ore'] > 0 else 0
-
-        return ret, dict([
-            (
-                p_id,
-                dict([
-                    (
-                        u_id,
-                        (np.array(u_info) / self.normer).tolist()
-                    )
-                    for u_id, u_info in p_info.items()
-                ])
-            )
-            for p_id, p_info in ret.items()
-        ])
+        if self.if_mask:
+            return ret, dict([
+                (
+                    p_id,
+                    dict([
+                        (
+                            u_id,
+                            (np.array(u_info) / self.normer * self.mask).tolist()
+                        )
+                        for u_id, u_info in p_info.items()
+                    ])
+                )
+                for p_id, p_info in ret.items()
+            ])
+        else:
+            return ret, dict([
+                (
+                    p_id,
+                    dict([
+                        (
+                            u_id,
+                            (np.array(u_info) / self.normer).tolist()
+                        )
+                        for u_id, u_info in p_info.items()
+                    ])
+                )
+                for p_id, p_info in ret.items()
+            ])

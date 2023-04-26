@@ -26,13 +26,11 @@ from ac.UnitBuffer import Buffer
 
 # matplotlib.use(backend='TkAgg')
 
-exp = 'B'
-
 
 class GlobalAgent(EarlyRuleAgent, AC):
-    def __init__(self, res_dir, player: str, env_cfg: EnvConfig, unit_agent, unit_buffer):
+    def __init__(self, player: str, env_cfg: EnvConfig, unit_agent):
         EarlyRuleAgent.__init__(self, player, env_cfg)
-        AC.__init__(self, res_dir, unit_agent, unit_buffer)
+        AC.__init__(self, unit_agent)
 
 
 def parse_args():
@@ -56,27 +54,29 @@ def show(env):
     plt.imshow(img)
     plt.show()
 
+exp = 'B'
+max_episode_length = 20
 
 def train(args, env_id):
     env = gym.make(env_id, verbose=0, collect_stats=True, MAX_FACTORIES=3)
     env_cfg = env.env_cfg
+    env_cfg.max_episode_length = max_episode_length
     maActTransor = MaActTransor(env, env_cfg)
     maObsTransor = MaObsTransor(env, env_cfg)
     maRwdTransor = MaRwdTransor(env, env_cfg, debug=True)
 
     dim_info = [maObsTransor.total_dims, maActTransor.total_act_dims]  # obs and act dims
-    base_res_dir = os.environ['HOME'] + '/train_res/' + exp + '/'
+    base_res_dir = os.environ['HOME'] + '/train_res/' + exp
     agent_cont = 2
-    unit_agent = UnitAgent(dim_info[0], dim_info[1], args.actor_lr, args.critic_lr)
     unit_buffer = Buffer(args.buffer_capacity, dim_info[0], dim_info[1], 'cpu')
-    globalAgents = [GlobalAgent(base_res_dir + str(i), 'player_' + str(i), env_cfg, unit_agent, unit_buffer) for i in
-                    range(0, agent_cont)]
-    # for i, g_agent in enumerate(globalAgents):
-    #     g_agent.load(base_res_dir + '0/model.pt')
-    #     print('loading model .................')
+    unit_agent = UnitAgent(dim_info[0], dim_info[1], args.actor_lr, args.critic_lr, unit_buffer, base_res_dir)
+    # unit_agent.load()
+    globalAgents = [GlobalAgent('player_' + str(i), env_cfg, unit_agent) for i in range(0, agent_cont)]
     globale_step = 0
     for episode in range(args.episode_num):
-        raw_obs = env.reset()
+        np.random.seed()
+        seed = np.random.randint(0, 100000000)
+        raw_obs = env.reset(seed=seed)
         obs, norm_obs = maObsTransor.sg_to_ma(raw_obs['player_0'])
         sum_rwd = 0
         step = 0
@@ -100,7 +100,9 @@ def train(args, env_id):
                 action = {}
 
                 for g_agent in globalAgents:
-                    action[g_agent.player] = g_agent.get_action(norm_obs[g_agent.player])
+                    action[g_agent.player] = {}
+                    for u_id, u_obs in norm_obs[g_agent.player].items():
+                        action[g_agent.player][u_id] = unit_agent.get_action(norm_obs[g_agent.player][u_id])
 
                 raw_action = {}
                 for g_agent in globalAgents:
@@ -119,13 +121,21 @@ def train(args, env_id):
                         # raw_obs['player_0']['board']['ice'],
                         # raw_obs['player_0']['board']['ore']
                     )
-                    g_agent.add(norm_obs[g_agent.player], action[g_agent.player], reward[g_agent.player],
-                                norm_next_obs[g_agent.player],
-                                done[g_agent.player])  # it should be a stand reward and action for maddpg
+
+                    for u_id, u_obs in norm_obs[g_agent.player].items():
+                        if u_id not in norm_next_obs[g_agent.player].keys():
+                            norm_next_o = norm_obs[g_agent.player][u_id]
+                            d = True
+                        else:
+                            norm_next_o = norm_next_obs[g_agent.player][u_id]
+                            d = False
+                        unit_agent.unit_buffer.add(norm_obs[g_agent.player][u_id],
+                                                   action[g_agent.player][u_id],
+                                                   reward[g_agent.player][u_id], norm_next_o, d)
                     sum_rwd += sum([v for v in reward[g_agent.player].values()])
                     # learn only one time ! that is what policy gradient ask for
-                    if g_agent.unit_buffer.size == args.buffer_capacity:
-                        g_agent.learn(args.gamma)
+                    if g_agent.unit_agent.unit_buffer.size == args.buffer_capacity:
+                        unit_agent.learn(args.gamma)
 
                 raw_obs = raw_next_obs
                 obs = next_obs
@@ -142,9 +152,7 @@ def train(args, env_id):
             for unit_info in units_info:
                 print(unit_info)
         if (episode + 1) % 100 == 0:  # print info every 100 episodes
-            for g_agent in globalAgents:
-                g_agent.save()  # save model
-                break
+            unit_agent.save()
 
 
 def main(args):

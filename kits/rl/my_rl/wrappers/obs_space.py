@@ -42,8 +42,17 @@ class ObsSpace:
                                [self.env_cfg.ROBOTS['HEAVY'].BATTERY_CAPACITY for _ in range(0, 1)] +
                                [self.env_cfg.ROBOTS['HEAVY'].CARGO_SPACE for _ in range(0, 2)] +
                                [self.env_cfg.MAX_RUBBLE for _ in range(0, 25)] +
-                               [self.env_cfg.map_size for _ in range(0, 8)] +
+                               [self.env_cfg.map_size / 10 for _ in range(0, 8)] +
                                [1000 for _ in range(0, 1)] +
                                [1 for _ in range(0, 3)])
+
+        self.mask = np.array([0 for _ in range(0, 2)] +
+                             [1 for _ in range(0, 1)] +
+                             [1 for _ in range(0, 2)] +
+                             [0 if i != 12 else 1 for i in range(0, 25)] +
+                             [1, 1, 0, 0, 1, 1] +
+                             [0 for _ in range(0, 2)] +
+                             [0 for _ in range(0, 1)] +
+                             [1 for _ in range(0, 3)])
 
         return

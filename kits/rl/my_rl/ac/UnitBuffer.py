@@ -30,7 +30,7 @@ class Buffer:
         else:
             print("full of buff !")
 
-    def get(self):
+    def get_replays(self):
         # retrieve data, Note that the data stored is ndarray
         if self.size != self.capacity:
             raise Exception("batch no right !")

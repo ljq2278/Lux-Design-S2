@@ -5,9 +5,9 @@ import numpy as np
 import numpy.typing as npt
 from gym import spaces
 from lux.config import EnvConfig
+from wrappers.act_space import ActSpace
 
-
-class MaActTransor():
+class MaActTransor(ActSpace):
     def __init__(self, env, env_cfg: EnvConfig) -> None:
         """
         A simple controller that controls only the robot that will get spawned.
@@ -32,24 +32,8 @@ class MaActTransor():
         see how the lux action space is defined in luxai_s2/spaces/action.py
 
         """
+        super().__init__(env_cfg)
         self.env = env
-        self.env_cfg = env_cfg
-
-        self.move_act_dims = 4  # 0~3
-        self.transfer_ice_act_dims = 1  # 4
-        self.transfer_ore_act_dims = 1  # 5
-        self.pickup_act_dims = 1  # 6
-        self.dig_act_dims = 1  # 7
-        self.no_op_dims = 1  # 8
-
-        self.move_dim_high = self.move_act_dims
-        self.transfer_ice_dim_high = self.move_dim_high + self.transfer_ice_act_dims
-        self.transfer_ore_dim_high = self.transfer_ice_dim_high + self.transfer_ore_act_dims
-        self.pickup_dim_high = self.transfer_ore_dim_high + self.pickup_act_dims
-        self.dig_dim_high = self.pickup_dim_high + self.dig_act_dims
-        self.no_op_dim_high = self.dig_dim_high + self.no_op_dims
-
-        self.total_act_dims = self.no_op_dim_high
         self.action_space = spaces.Discrete(self.total_act_dims)
 
     def _is_move_action(self, id):
