@@ -28,7 +28,7 @@ class MaObsTransor(ObsSpace):
         self.if_mask = if_mask
         self.observation_space = spaces.Box(-999, 999, shape=(self.total_dims,))
 
-    def _get_min_rela_pos(self, pos, f_pos_list, extra_list=None):
+    def _get_min_rela_pos(self, pos, f_pos_list):
         min_dist2 = 1000000000
         min_rela_pos = [self.env_cfg.map_size * 5, self.env_cfg.map_size * 5]
         min_ind = None
@@ -42,10 +42,7 @@ class MaObsTransor(ObsSpace):
                 if np.random.random() > 0.5:
                     min_rela_pos = [f_pos[0] - pos[0], f_pos[1] - pos[1]]
                     min_ind = i
-        if extra_list is None:
-            return min_rela_pos
-        else:
-            return min_rela_pos, extra_list[min_ind]
+        return min_rela_pos, min_ind
 
     # we make this method static so the submission/evaluation code can use this as well
     def sg_to_ma(self, raw_obs: Dict[str, Any]):
@@ -64,13 +61,22 @@ class MaObsTransor(ObsSpace):
         ############################################################# get factory pos
         players_f_dict = {}
         players_f_water_dict = {}
+        players_f_metal_dict = {}
+        players_f_ice_dict = {}
+        players_f_ore_dict = {}
         oppo_players_f_dict = {}
         for p_id, p_info in raw_obs["factories"].items():
             players_f_dict[p_id] = []
             players_f_water_dict[p_id] = []
+            players_f_metal_dict[p_id] = []
+            players_f_ice_dict[p_id] = []
+            players_f_ore_dict[p_id] = []
             for i, (f_id, f_info) in enumerate(p_info.items()):
                 players_f_dict[p_id].append(f_info['pos'])
                 players_f_water_dict[p_id].append(f_info['cargo']['water'])
+                players_f_metal_dict[p_id].append(f_info['cargo']['metal'])
+                players_f_ice_dict[p_id].append(f_info['cargo']['ice'])
+                players_f_ore_dict[p_id].append(f_info['cargo']['ore'])
                 for pid in player_set:
                     if pid != p_id:
                         if pid not in oppo_players_f_dict.keys():
@@ -86,11 +92,12 @@ class MaObsTransor(ObsSpace):
                     continue
                 #################################################### get near f_pos oppo_f_pos ice ore
 
-                f_min_rela_pos, f_water = self._get_min_rela_pos(
-                    unit_info['pos'], players_f_dict[player_id], players_f_water_dict[player_id])
-                f_oppo_min_rela_pos = self._get_min_rela_pos(unit_info['pos'], oppo_players_f_dict[player_id])
-                ice_min_rela_pos = self._get_min_rela_pos(unit_info['pos'], ice_locs)
-                ore_min_rela_pos = self._get_min_rela_pos(unit_info['pos'], ore_locs)
+                f_min_rela_pos, ind = self._get_min_rela_pos(unit_info['pos'], players_f_dict[player_id])
+                f_water, f_metal, f_ice, f_ore = players_f_water_dict[player_id][ind], players_f_metal_dict[player_id][ind], \
+                                                 players_f_ice_dict[player_id][ind], players_f_ore_dict[player_id][ind]
+                f_oppo_min_rela_pos, _ = self._get_min_rela_pos(unit_info['pos'], oppo_players_f_dict[player_id])
+                ice_min_rela_pos, _ = self._get_min_rela_pos(unit_info['pos'], ice_locs)
+                ore_min_rela_pos, _ = self._get_min_rela_pos(unit_info['pos'], ore_locs)
                 ############################################################## near space
 
                 near_space = space_info[
@@ -110,27 +117,22 @@ class MaObsTransor(ObsSpace):
                     -= robot_rubble_identied
 
                 # add the near ice info
-                ret[player_id][unit_id][
-                self.nearest_ice_pos_start:self.nearest_ice_pos_start + self.nearest_ice_pos
-                ] = ice_min_rela_pos
+                ret[player_id][unit_id][self.nearest_ice_pos_start:self.nearest_ice_pos_start + self.nearest_ice_pos] = ice_min_rela_pos
 
                 # add the near ore info
-                ret[player_id][unit_id][
-                self.nearest_ore_pos_start:self.nearest_ore_pos_start + self.nearest_ore_pos
-                ] = ore_min_rela_pos
+                ret[player_id][unit_id][self.nearest_ore_pos_start:self.nearest_ore_pos_start + self.nearest_ore_pos] = ore_min_rela_pos
 
                 # add near factory
-                ret[player_id][unit_id][
-                self.nearest_factory_pos_start:self.nearest_factory_pos_start + self.nearest_factory_pos
-                ] = f_min_rela_pos
+                ret[player_id][unit_id][self.nearest_factory_pos_start:self.nearest_factory_pos_start + self.nearest_factory_pos] = f_min_rela_pos
 
                 # add near oppo factory
-                ret[player_id][unit_id][
-                self.nearest_oppo_factory_pos_start:self.nearest_oppo_factory_pos_start + self.nearest_oppo_factory_pos
-                ] = f_oppo_min_rela_pos
+                ret[player_id][unit_id][self.nearest_oppo_factory_pos_start:self.nearest_oppo_factory_pos_start + self.nearest_oppo_factory_pos] = f_oppo_min_rela_pos
 
-                # add near water
+                # add near water/meta/ice/ore
                 ret[player_id][unit_id][self.nearest_factory_water_start] = f_water
+                ret[player_id][unit_id][self.nearest_factory_metal_start] = f_metal
+                ret[player_id][unit_id][self.nearest_factory_ice_start] = f_ice
+                ret[player_id][unit_id][self.nearest_factory_ore_start] = f_ore
 
                 # is day ?
                 # ret[player_id][unit_id][-1] = int(raw_obs['real_env_steps'] % self.env_cfg.CYCLE_LENGTH < self.env_cfg.DAY_LENGTH)

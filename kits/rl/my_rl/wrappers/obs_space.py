@@ -2,7 +2,7 @@ import numpy as np
 
 
 class ObsSpace:
-    pos_dim_start = 0
+    pos_dim_start = 0   # 0
     pos_dim = 2
     power_dim_start = pos_dim_start + pos_dim  # 2
     power_dim = 1
@@ -25,16 +25,25 @@ class ObsSpace:
     nearest_factory_water_start = nearest_oppo_factory_pos_start + nearest_oppo_factory_pos  # 38
     nearest_factory_water = 1
 
-    day_or_night_start = nearest_factory_water_start + nearest_factory_water  # 39
+    nearest_factory_metal_start = nearest_factory_water_start + nearest_factory_water  # 39
+    nearest_factory_metal = 1
+
+    nearest_factory_ice_start = nearest_factory_metal_start + nearest_factory_metal  # 40
+    nearest_factory_ice = 1
+
+    nearest_factory_ore_start = nearest_factory_ice_start + nearest_factory_ice  # 41
+    nearest_factory_ore = 1
+
+    day_or_night_start = nearest_factory_ore_start + nearest_factory_ore  # 42
     day_or_night = 1
 
-    has_ice_start = day_or_night_start + day_or_night  # 40
+    has_ice_start = day_or_night_start + day_or_night  # 43
     has_ice = 1
 
-    has_ore_start = has_ice_start + has_ice  # 41
+    has_ore_start = has_ice_start + has_ice  # 44
     has_ore = 1
 
-    total_dims = has_ore_start + has_ore  # 42
+    total_dims = has_ore_start + has_ore  # total 45 dim
 
     def __init__(self, env_cfg):
         self.env_cfg = env_cfg
@@ -43,16 +52,16 @@ class ObsSpace:
                                [self.env_cfg.ROBOTS['HEAVY'].CARGO_SPACE for _ in range(0, 2)] +
                                [self.env_cfg.MAX_RUBBLE for _ in range(0, 25)] +
                                [self.env_cfg.map_size / 10 for _ in range(0, 8)] +
-                               [1000 for _ in range(0, 1)] +
+                               [1000 for _ in range(0, 4)] +
                                [1 for _ in range(0, 3)])
 
         self.mask = np.array([0 for _ in range(0, 2)] +
                              [1 for _ in range(0, 1)] +
                              [1 for _ in range(0, 2)] +
-                             [0.1 if i != 12 else 1 for i in range(0, 25)] +
+                             [0.5 if i != 12 else 1 for i in range(0, 25)] +
                              [1, 1, 0, 0, 1, 1] +
                              [0 for _ in range(0, 2)] +
-                             [0.25 for _ in range(0, 1)] +
+                             [0.5 for _ in range(0, 4)] +
                              [1 for _ in range(0, 3)])
 
         return

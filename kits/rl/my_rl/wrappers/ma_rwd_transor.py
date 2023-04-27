@@ -8,7 +8,6 @@ from gym import spaces
 from lux.config import EnvConfig
 from wrappers.obs_space import ObsSpace
 
-
 # act_dict = {
 #     'move_a': 0,  # 0~3
 #     'move_b': 1,  # 0~3
@@ -69,6 +68,14 @@ class MaRwdTransor():
         if ice_board[pos[0], pos[1]] == 1:
             return True
         return False
+
+    def _ice_reward_factor(self, f_ice, f_water):
+        return np.log(101 / (f_water + 1))
+        # return 1 / (f_ice / 100 + 1) + 1 / (f_water / 25 + 1)
+
+    def _ore_reward_factor(self, f_ore, f_metal):
+        return np.log(300 / (f_ore + 100)) + np.log(100 / (f_metal + 10))
+        # return 1 / (f_ore / 1000 + 1) + 1 / (f_metal / 50 + 1)
 
     def sg_to_ma(self, ori_reward, act, obs, next_obs, done, ice_map=None, ore_map=None, raw_obs=None, typ='HEAVY'):
         rewards = {}
@@ -152,11 +159,18 @@ class MaRwdTransor():
                     int((ObsSpace.near_space_start + ObsSpace.near_space_start + ObsSpace.near_space) // 2)]
                 metrics[unit_id]['rubble_changed'] = \
                     metrics[unit_id]['next_curr_tile_rubble'] - metrics[unit_id]['curr_tile_rubble']
+
+                metrics[unit_id]['near_factory_ice'] = obs[unit_id][ObsSpace.nearest_factory_ice_start]
+                metrics[unit_id]['near_factory_water'] = obs[unit_id][ObsSpace.nearest_factory_water_start]
+                metrics[unit_id]['ice_factor'] = self._ice_reward_factor(metrics[unit_id]['near_factory_ice'], metrics[unit_id]['near_factory_water'])
+                metrics[unit_id]['near_factory_ore'] = obs[unit_id][ObsSpace.nearest_factory_ore_start]
+                metrics[unit_id]['near_factory_metal'] = obs[unit_id][ObsSpace.nearest_factory_metal_start]
+                metrics[unit_id]['ore_factor'] = self._ore_reward_factor(metrics[unit_id]['near_factory_ore'], metrics[unit_id]['near_factory_metal'])
+
                 if self.debug:
                     print(obs[unit_id])
                     print(next_obs[unit_id])
-                if self.density and metrics[unit_id][
-                    'cargo'] > 0:  ########################## on the way home with cargo
+                if self.density and metrics[unit_id]['cargo'] > 0:  ############################################################# on the way home with cargo
                     base = 20
                     factor = 20
                     dist_diff = metrics[unit_id]['next_min_dis_to_factory'] - metrics[unit_id]['min_dis_to_factory']
@@ -178,10 +192,9 @@ class MaRwdTransor():
                                   next_obs[unit_id][ObsSpace.nearest_factory_pos_start + 1]
                                   )
 
-                if self.density and metrics[unit_id][
-                    'ice'] == 0:  ########################## on the way ice with low cargo
+                if self.density and metrics[unit_id]['ice'] == 0:  ############################################################ on the way ice with low cargo
                     dist_diff = metrics[unit_id]['next_min_dis_to_ice'] - metrics[unit_id]['min_dis_to_ice']
-                    rwd = 0.1 if dist_diff < 0 else (0 if dist_diff == 0 else -0.12)
+                    rwd = metrics[unit_id]['ice_factor'] * (0.1 if dist_diff < 0 else (0 if dist_diff == 0 else -0.12))
                     rewards[unit_id] += rwd
                     if rwd < 0:
                         self.reward_collect['leave the way ice with low cargo'] += 1
@@ -196,10 +209,9 @@ class MaRwdTransor():
                     #           next_obs[unit_id][ObsSpace.nearest_ice_pos_start + 1]
                     #           )
 
-                if self.density and metrics[unit_id][
-                    'ore'] == 0:  ########################## on the way ore with low cargo
+                if self.density and metrics[unit_id]['ore'] == 0:  ############################################################ on the way ore with low cargo
                     dist_diff = metrics[unit_id]['next_min_dis_to_ore'] - metrics[unit_id]['min_dis_to_ore']
-                    rwd = 0.08 if dist_diff < 0 else (0 if dist_diff == 0 else -0.1)
+                    rwd = metrics[unit_id]['ore_factor'] * (0.08 if dist_diff < 0 else (0 if dist_diff == 0 else -0.1))
                     rewards[unit_id] += rwd
                     if rwd < 0:
                         self.reward_collect['leave the way ore with low cargo'] += 1
@@ -216,8 +228,8 @@ class MaRwdTransor():
 
                 if self.density and act[unit_id] < 4 and \
                         (not metrics[unit_id]['on_ice']) and metrics[unit_id]['next_on_ice'] and \
-                        metrics[unit_id]['cargo'] < 100:  ############################### get to ice tile low cargo
-                    rwd = 5
+                        metrics[unit_id]['cargo'] < 100:  ############################################################################ get to ice tile low cargo
+                    rwd = metrics[unit_id]['ice_factor'] * 5
                     rewards[unit_id] += rwd
                     self.reward_collect['get to ice tile'] += 1
                 # if self.debug:
@@ -225,14 +237,14 @@ class MaRwdTransor():
 
                 if self.density and act[unit_id] < 4 and \
                         (not metrics[unit_id]['on_ore']) and metrics[unit_id]['next_on_ore'] and \
-                        metrics[unit_id]['cargo'] < 100:  ############################## get to ore tile low cargo
-                    rwd = 2
+                        metrics[unit_id]['cargo'] < 100:  ######################################################################### get to ore tile low cargo
+                    rwd = metrics[unit_id]['ore_factor'] * 3
                     rewards[unit_id] += rwd
                     self.reward_collect['get to ore tile'] += 1
 
                 if self.density and (act[unit_id] == 8 and (metrics[unit_id]['on_ice'] or metrics[unit_id]['on_ore'])
                                      and metrics[unit_id]['power'] < 1.2 * self.env_cfg.ROBOTS[typ].DIG_COST):
-                    ############################################################################# prepare for dig
+                    ####################################################################################################################### prepare for dig
                     rwd = 1
                     rewards[unit_id] += rwd
                     self.reward_collect['prepare for dig'] += 1
@@ -240,41 +252,41 @@ class MaRwdTransor():
                     #     print(unit_id, ' prepare for dig ', 2)
 
                 if act[unit_id] == 7 and metrics[unit_id]['on_ice'] \
-                        and metrics[unit_id]['rubble_changed'] < 0:  ################### dig out rubble on ice
-                    rwd = 8
+                        and metrics[unit_id]['rubble_changed'] < 0:  ##################################################################### dig out rubble on ice
+                    rwd = metrics[unit_id]['ice_factor'] * 8
                     rewards[unit_id] += rwd
                     self.reward_collect['dig out rubble on ice'] += 1
                     if self.debug:
                         print(unit_id, ' dig out rubble on ice ', rwd)
 
                 if act[unit_id] == 7 and metrics[unit_id]['on_ore'] \
-                        and metrics[unit_id]['rubble_changed'] < 0:  ################### dig out rubble on ore
-                    rwd = 6
+                        and metrics[unit_id]['rubble_changed'] < 0:  #################################################################### dig out rubble on ore
+                    rwd = metrics[unit_id]['ore_factor'] * 6
                     rewards[unit_id] += rwd
                     self.reward_collect['dig out rubble on ore'] += 1
                     if self.debug:
                         print(unit_id, ' dig out rubble on ore ', rwd)
 
                 if act[unit_id] == 7 and metrics[unit_id][
-                    'ice_changed'] > 0:  ################################################## dig ice success
+                    'ice_changed'] > 0:  ##################################################################################################### dig ice success
                     factor = 0.6
-                    rwd = factor * (metrics[unit_id]['ice_changed'])
+                    rwd = metrics[unit_id]['ice_factor'] * factor * (metrics[unit_id]['ice_changed'])
                     rewards[unit_id] += rwd
                     self.reward_collect['dig ice success'] += 1
                     if self.debug:
                         print(unit_id, ' dig ice success ', rwd, metrics[unit_id]['power'])
 
                 if act[unit_id] == 7 and metrics[unit_id][
-                    'ore_changed'] > 0:  ################################################# dig ore success
+                    'ore_changed'] > 0:  ###################################################################################################### dig ore success
                     factor = 0.4
-                    rwd = factor * (metrics[unit_id]['ore_changed'])
+                    rwd = metrics[unit_id]['ore_factor'] * factor * (metrics[unit_id]['ore_changed'])
                     rewards[unit_id] += rwd
                     self.reward_collect['dig ore success'] += 1
                     if self.debug:
                         print(unit_id, ' dig ore success ', rwd, metrics[unit_id]['power'])
 
                 if self.density and act[unit_id] < 4 and metrics[unit_id]['if_in_factory'] \
-                        and metrics[unit_id]['cargo'] > 0:  ##################### want to leave factory with cargo
+                        and metrics[unit_id]['cargo'] > 0:  ##################################################################### want to leave factory with cargo
                     base = -20
                     factor = -20
                     cargo_norm = metrics[unit_id]['cargo'] / self.env_cfg.ROBOTS['HEAVY'].CARGO_SPACE
@@ -286,11 +298,11 @@ class MaRwdTransor():
 
                 if self.density and act[unit_id] < 4 and not metrics[unit_id]['if_in_factory'] \
                         and metrics[unit_id]['if_next_in_factory'] \
-                        and metrics[unit_id]['ice'] > 0:  #################################### return factory with ices
+                        and metrics[unit_id]['ice'] > 0:  ############################################################################### return factory with ices
                     base = 30
                     factor = 30
                     ice_norm = metrics[unit_id]['ice'] / self.env_cfg.ROBOTS['HEAVY'].CARGO_SPACE
-                    rwd = base + factor * ice_norm
+                    rwd = metrics[unit_id]['ice_factor'] * (base + factor * ice_norm)
                     rewards[unit_id] += rwd
                     self.reward_collect['return factory with ices'] += 1
                     if self.debug:
@@ -298,47 +310,45 @@ class MaRwdTransor():
 
                 if self.density and act[unit_id] < 4 and not metrics[unit_id]['if_in_factory'] \
                         and metrics[unit_id]['if_next_in_factory'] \
-                        and metrics[unit_id]['ore'] > 0:  #################################### return factory with ores
+                        and metrics[unit_id]['ore'] > 0:  ############################################################################## return factory with ores
                     base = 20
                     factor = 20
                     ore_norm = metrics[unit_id]['ore'] / self.env_cfg.ROBOTS['HEAVY'].CARGO_SPACE
-                    rwd = base + factor * ore_norm
+                    rwd = metrics[unit_id]['ore_factor'] * (base + factor * ore_norm)
                     rewards[unit_id] += rwd
                     self.reward_collect['return factory with ores'] += 1
                     if self.debug:
                         print(unit_id, ' return to factory with ore success ', rwd)
 
                 if act[unit_id] == 4 and metrics[unit_id]['if_in_factory'] \
-                        and metrics[unit_id]['ice_changed'] < 0:  ######################### transfer ice success
+                        and metrics[unit_id]['ice_changed'] < 0:  ################################################################## transfer ice success
                     base = 50
                     factor = -50
                     ice_changed_norm = metrics[unit_id]['ice_changed'] / self.env_cfg.ROBOTS['HEAVY'].CARGO_SPACE
-                    rwd = base + factor * ice_changed_norm
+                    rwd = metrics[unit_id]['ice_factor'] * (base + factor * ice_changed_norm)
                     rewards[unit_id] += rwd
                     self.reward_collect['transfer ice success'] += 1
                     if self.debug:
                         print(unit_id, ' transfer ice success ', rwd)
 
                 if act[unit_id] == 5 and metrics[unit_id]['if_in_factory'] \
-                        and metrics[unit_id]['ore_changed'] < 0:  ########################## transfer ore success
+                        and metrics[unit_id]['ore_changed'] < 0:  ######################################################################### transfer ore success
                     base = 40
                     factor = -40
                     ore_changed_norm = metrics[unit_id]['ore_changed'] / self.env_cfg.ROBOTS['HEAVY'].CARGO_SPACE
-                    rwd = base + factor * ore_changed_norm
+                    rwd = metrics[unit_id]['ore_factor'] * (base + factor * ore_changed_norm)
                     rewards[unit_id] += rwd
                     self.reward_collect['transfer ore success'] += 1
                     if self.debug:
                         print(unit_id, ' transfer ore success ', rwd)
 
-
                 if self.density and metrics[unit_id]['power_changed'] > 0 and \
                         metrics[unit_id]['power'] < self.env_cfg.ROBOTS[
-                    typ].BATTERY_CAPACITY * 0.2:  ##################################### low power charge reward
+                    typ].BATTERY_CAPACITY * 0.2:  ############################################################################# low power charge reward
                     rwd = 0.002 * metrics[unit_id]['power_changed']
                     rewards[unit_id] += rwd
                     self.reward_collect['low power charged'] += 1
                     # if self.debug:
                     #     print(unit_id, ' low power charge reward ', 0.002 * metrics[unit_id]['power_changed'])
-
 
         return rewards

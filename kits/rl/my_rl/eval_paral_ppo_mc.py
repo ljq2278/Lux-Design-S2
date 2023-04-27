@@ -24,7 +24,7 @@ from ppo.PPO import PPO
 from ppo.UnitAgent import PPO_Offline_Agent
 from ppo.UnitAgent import PPO_Online_Agent
 from ppo.UnitBuffer import Buffer
-
+import cv2
 
 # matplotlib.use(backend='TkAgg')
 
@@ -43,10 +43,10 @@ eps_clip = 0.2
 K_epochs = 40
 episode_num = 3000000
 gamma = 0.98
-sub_proc_count = 5
-exp = 'paral_ppo2'
-want_load_model = False
-max_episode_length = 1000
+sub_proc_count = 1
+exp = 'paral_ppo'
+want_load_model = True
+max_episode_length = 20
 agent_debug = False
 density_rwd = True
 
@@ -71,15 +71,13 @@ def sub_run(replay_queue: multiprocessing.Queue, param_queue: multiprocessing.Qu
     globalAgents = [GlobalAgent('player_' + str(i), env_cfg, unit_online_agent) for i in range(0, agent_cont)]
     globale_step = 0
     sum_rwd = 0
-    survive_step = 0
-    unit_buffer = Buffer()
-    tmp_buffer = {}  # record every unit datas
-    for episode in range(episode_num):
+    for episode in range(0,1):
         np.random.seed()
         seed = np.random.randint(0, 100000000)
         raw_obs = env.reset(seed=seed)
         obs, norm_obs = maObsTransor.sg_to_ma(raw_obs['player_0'])
         done = {'player_0': False, 'player_1': False}
+        imgs = []
         ################################ interact with the env for an episode ###################################
         while raw_obs['player_0']["real_env_steps"] < 0 or sum(done.values()) < len(done):
             if raw_obs['player_0']["real_env_steps"] < 0:
@@ -107,6 +105,7 @@ def sub_run(replay_queue: multiprocessing.Queue, param_queue: multiprocessing.Qu
                         action[g_agent.player], raw_obs[g_agent.player], g_agent.player)
                 ############################### get action to env result ###############################
                 raw_next_obs, raw_reward, done, info = env.step(raw_action)
+                imgs += [env.render("rgb_array", width=640, height=640)]
                 ############################### get next norm obs ######################################
                 next_obs, norm_next_obs = maObsTransor.sg_to_ma(raw_next_obs['player_0'])
                 ############################### get custom reward ######################################
@@ -124,51 +123,16 @@ def sub_run(replay_queue: multiprocessing.Queue, param_queue: multiprocessing.Qu
                             d = True
                         else:
                             d = False
-                        ############################ record the simple data ################################
-                        if u_id not in tmp_buffer.keys():
-                            tmp_buffer[u_id] = []
-                        tmp_buffer[u_id].append([
-                            u_id,
-                            action[g_agent.player][u_id],
-                            norm_obs[g_agent.player][u_id],
-                            action_logprob[g_agent.player][u_id],
-                            reward[g_agent.player][u_id],
-                            state_val[g_agent.player][u_id],
-                            d
-                        ])
                         sum_rwd += reward[g_agent.player][u_id]
                 ############################### prepare to the next step #################################
                 raw_obs = raw_next_obs
                 obs = next_obs
                 norm_obs = norm_next_obs
-        ############################### episode data record  #################################
-        survive_step += raw_obs["player_0"]["real_env_steps"]
-
-        ##################### after a game, use MC the reward and get Advantage and tranport #####################
-        for u_id, behaviors in tmp_buffer.items():
-            unit_buffer.add_examples(*list(zip(*behaviors)))
-        unit_buffer.transfer_reward(gamma)
-        unit_buffer.calc_advantage()
-        replay_queue.put(
-            [unit_buffer.states, unit_buffer.actions, unit_buffer.action_logprobs,
-             unit_buffer.state_vals, unit_buffer.rewards, unit_buffer.dones, unit_buffer.advantages])
-        new_params = param_queue.get()
-        unit_online_agent.update(new_params)
-        unit_buffer.clear()
-        tmp_buffer.clear()
-
-        ########################################### episode finishes  ########################################
-        if episode % print_interv == 0:  # print info every 100 g_step
-            message = f'episode {episode}, '
-            message += f'avg episode reward: {sum_rwd/print_interv}, '
-            message += f'avg survive step: {survive_step/print_interv}'
-            print(message)
-            print(raw_obs["player_0"]["real_env_steps"], maRwdTransor.reward_collect)
-            sum_rwd = 0
-            survive_step = 0
-            for k, v in maRwdTransor.reward_collect.items():
-                maRwdTransor.reward_collect[k] = 0
-
+        for img in imgs:
+            cv2.imshow("Window", img)
+            cv2.moveWindow('Window', 100, 100)
+            cv2.waitKey(800)
+            cv2.destroyAllWindows()
 
 def offline_learn(replay_queue: multiprocessing.Queue, param_queue_list, pid):
     ppo_offline_agent = PPO_Offline_Agent(dim_info[0], dim_info[1], actor_lr, critic_lr, eps_clip, base_res_dir)
@@ -188,9 +152,7 @@ def offline_learn(replay_queue: multiprocessing.Queue, param_queue_list, pid):
             train_data.clear()
             for param_queue in param_queue_list:
                 param_queue.put(new_params)
-            if online_agent_update_time % 10 == 0:
-                print('save model, online agent update time ', online_agent_update_time)
-                ppo_offline_agent.save()
+
 
 
 if __name__ == "__main__":
