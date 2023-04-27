@@ -20,18 +20,19 @@ import matplotlib.pyplot as plt
 from lux.config import EnvConfig
 from wrappers import MaActTransor, MaObsTransor, MaRwdTransor
 from agent.BaseAgent import EarlyRuleAgent
-from a3c_tdn.A3C import A3C
-from a3c_tdn.UnitAgent import A3C_Online_Agent, A3C_Offline_Agent
-from a3c_tdn.UnitBuffer import Buffer
+from ppo.PPO import PPO
+from ppo.UnitAgent import PPO_Offline_Agent
+from ppo.UnitAgent import PPO_Online_Agent
+from ppo.UnitBuffer import Buffer
 
 
 # matplotlib.use(backend='TkAgg')
 
 
-class GlobalAgent(EarlyRuleAgent, A3C):
+class GlobalAgent(EarlyRuleAgent, PPO):
     def __init__(self, player: str, env_cfg: EnvConfig, unit_agent):
         EarlyRuleAgent.__init__(self, player, env_cfg)
-        A3C.__init__(self, unit_agent)
+        PPO.__init__(self, unit_agent)
 
 
 env_id = "LuxAI_S2-v0"
@@ -39,10 +40,12 @@ print_interv = 10
 actor_lr = 0.0004
 critic_lr = 0.001
 eps_clip = 0.2
+td_n = 10
+K_epochs = 40
 episode_num = 3000000
 gamma = 0.98
 sub_proc_count = 5
-exp = 'a3c_tdn'
+exp = 'paral_ppo'
 want_load_model = False
 max_episode_length = 20
 agent_debug = False
@@ -61,7 +64,7 @@ def sub_run(replay_queue: multiprocessing.Queue, param_queue: multiprocessing.Qu
     maObsTransor = MaObsTransor(env, env_cfg, if_mask=True)
     maRwdTransor = MaRwdTransor(env, env_cfg, debug=False, density=density_rwd)
     agent_cont = 2
-    unit_online_agent = A3C_Online_Agent(dim_info[0], dim_info[1])
+    unit_online_agent = PPO_Online_Agent(dim_info[0], dim_info[1])
     if want_load_model:
         new_params = param_queue.get()
         unit_online_agent.update(new_params)
@@ -125,6 +128,7 @@ def sub_run(replay_queue: multiprocessing.Queue, param_queue: multiprocessing.Qu
                         if u_id not in tmp_buffer.keys():
                             tmp_buffer[u_id] = []
                         tmp_buffer[u_id].append([
+                            u_id,
                             action[g_agent.player][u_id],
                             norm_obs[g_agent.player][u_id],
                             action_logprob[g_agent.player][u_id],
@@ -137,21 +141,21 @@ def sub_run(replay_queue: multiprocessing.Queue, param_queue: multiprocessing.Qu
                 raw_obs = raw_next_obs
                 obs = next_obs
                 norm_obs = norm_next_obs
+                ##################### after a step, use tdn calc reward and get Advantage and tranport #####################
+                if globale_step % td_n == 0:
+                    for u_id, behaviors in tmp_buffer.items():
+                        unit_buffer.add_examples(*list(zip(*behaviors)))
+                    unit_buffer.transfer_reward_tdn(gamma)
+                    unit_buffer.calc_advantage()
+                    replay_queue.put(
+                        [unit_buffer.states, unit_buffer.actions, unit_buffer.action_logprobs,
+                         unit_buffer.state_vals, unit_buffer.rewards, unit_buffer.dones, unit_buffer.advantages])
+                    new_params = param_queue.get()
+                    unit_online_agent.update(new_params)
+                    unit_buffer.clear()
+                    tmp_buffer.clear()
         ############################### episode data record  #################################
         survive_step += raw_obs["player_0"]["real_env_steps"]
-
-        ##################### after a game, use MC the reward and get Advantage and tranport #####################
-        for u_id, behaviors in tmp_buffer.items():
-            unit_buffer.add_examples(*list(zip(*behaviors)))
-        unit_buffer.transfer_reward(gamma)
-        unit_buffer.calc_advantage()
-        replay_queue.put(
-            [unit_buffer.states, unit_buffer.actions, unit_buffer.action_logprobs,
-             unit_buffer.state_vals, unit_buffer.rewards, unit_buffer.dones, unit_buffer.advantages])
-        new_params = param_queue.get()
-        unit_online_agent.update(new_params)
-        unit_buffer.clear()
-        tmp_buffer.clear()
 
         ########################################### episode finishes  ########################################
         if episode % print_interv == 0:  # print info every 100 g_step
@@ -166,8 +170,8 @@ def sub_run(replay_queue: multiprocessing.Queue, param_queue: multiprocessing.Qu
                 maRwdTransor.reward_collect[k] = 0
 
 
-def sub_obs_action_learn(replay_queue: multiprocessing.Queue, param_queue_list, pid):
-    ppo_offline_agent = A3C_Offline_Agent(dim_info[0], dim_info[1], actor_lr, critic_lr, eps_clip, base_res_dir)
+def offline_learn(replay_queue: multiprocessing.Queue, param_queue_list, pid):
+    ppo_offline_agent = PPO_Offline_Agent(dim_info[0], dim_info[1], actor_lr, critic_lr, eps_clip, base_res_dir)
     if want_load_model:
         ppo_offline_agent.load()
         for param_queue in param_queue_list:
@@ -179,7 +183,7 @@ def sub_obs_action_learn(replay_queue: multiprocessing.Queue, param_queue_list, 
             while replay_queue.qsize() != 0:
                 data = replay_queue.get()
                 train_data.append(data)
-            new_params = ppo_offline_agent.update_and_get_new_param(train_data)
+            new_params = ppo_offline_agent.update_and_get_new_param(train_data, K_epochs)
             online_agent_update_time += 1
             train_data.clear()
             for param_queue in param_queue_list:
@@ -201,9 +205,9 @@ if __name__ == "__main__":
         process.start()
         processes.append(process)
 
-    learn_process = multiprocessing.Process(target=sub_obs_action_learn, args=(replay_queue, param_queue_list, -1))
-    learn_process.start()
-    processes.append(learn_process)
+    offline_learn_process = multiprocessing.Process(target=offline_learn, args=(replay_queue, param_queue_list, -1))
+    offline_learn_process.start()
+    processes.append(offline_learn_process)
 
     # Wait for the sub-processes to finish
     for process in processes:
