@@ -12,8 +12,7 @@ from actcrt_model.ac_model import ActorCritic
 from ppo.UnitBuffer import Buffer
 
 
-
-class PPO_Online_Agent:
+class A3C_Online_Agent:
     def __init__(self, state_dim, action_dim):
         self.policy = ActorCritic(state_dim, action_dim)
 
@@ -21,7 +20,7 @@ class PPO_Online_Agent:
         self.policy.load_state_dict(new_params)
 
 
-class PPO_Offline_Agent:
+class A3C_Offline_Agent:
     def __init__(self, state_dim, action_dim, lr_actor, lr_critic, eps_clip, save_dir='./'):
         self.eps_clip = eps_clip
         self.policy = ActorCritic(state_dim, action_dim)
@@ -32,28 +31,36 @@ class PPO_Offline_Agent:
         self.save_dir = save_dir
         self.mseLoss = nn.MSELoss()
 
-    def update_and_get_new_param(self, train_data, K_epochs):
+    def update_and_get_new_param(self, train_data):
         # Monte Carlo estimate of returns
         # Optimize policy for K epochs
-        for _ in range(K_epochs):
-            for pid_data in train_data:
-                # Evaluating old actions and values
-                old_states, old_actions, old_logprobs, old_state_vals, old_rewards, old_done, advantages = \
-                    [torch.Tensor(np.array(x)) for x in pid_data]
-                logprobs, state_values, dist_entropy = self.policy.evaluate(old_states, old_actions)
-                # match state_values tensor dimensions with rewards tensor
-                state_values = torch.squeeze(state_values)
-                # Finding the ratio (pi_theta / pi_theta__old)
-                ratios = torch.exp(logprobs - old_logprobs)
-                # Finding Surrogate Loss
-                surr1 = ratios * advantages
-                surr2 = torch.clamp(ratios, 1 - self.eps_clip, 1 + self.eps_clip) * advantages
-                # final loss of clipped objective PPO
-                loss = -torch.min(surr1, surr2) + 0.5 * self.mseLoss(state_values, old_rewards) - 0.01 * dist_entropy
-                # take gradient step
-                self.optimizer.zero_grad()
-                loss.mean().backward()
-                self.optimizer.step()
+        old_states, old_actions, old_logprobs, old_state_vals, old_rewards, old_done, advantages = [], [], [], [], [], [], []
+        for pid_data in train_data:
+            old_states += pid_data[0]
+            old_actions += pid_data[1]
+            old_logprobs += pid_data[2]
+            old_state_vals += pid_data[3]
+            old_rewards += pid_data[4]
+            old_done += pid_data[5]
+            advantages += pid_data[6]
+        old_states, old_actions, old_logprobs, old_state_vals, old_rewards, old_done, advantages = \
+            torch.Tensor(np.array(old_states)), torch.Tensor(np.array(old_actions)), \
+            torch.Tensor(np.array(old_logprobs)), \
+            torch.Tensor(np.array(old_state_vals)), torch.Tensor(np.array(old_rewards)), \
+            torch.Tensor(np.array(old_done)), torch.Tensor(np.array(advantages))
+        logprobs, state_values, dist_entropy = self.policy.evaluate(old_states, old_actions)
+        # match state_values tensor dimensions with rewards tensor
+        state_values = torch.squeeze(state_values)
+        # Finding the ratio (pi_theta / pi_theta__old)
+        # actor_loss = torch.log(-logprobs) * advantages
+        actor_loss = -logprobs * advantages
+        critic_loss = 0.5 * self.mseLoss(state_values, old_rewards)
+        # final loss of clipped objective PPO
+        loss = actor_loss + critic_loss
+        # take gradient step
+        self.optimizer.zero_grad()
+        loss.mean().backward()
+        self.optimizer.step()
 
         return self.policy.state_dict()
 

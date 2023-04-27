@@ -43,13 +43,13 @@ def show(env):
 env_id = "LuxAI_S2-v0"
 buffer_capacity = 10
 actor_lr = 0.0004
-critic_lr = 0.0004
+critic_lr = 0.001
 # total_lr = 0.001
 episode_num = 3000000
 gamma = 0.98
 sub_proc_count = 10
 exp = 'mask_obs'
-want_load_model = True
+want_load_model = False
 max_episode_length = 20
 agent_debug = False
 density_rwd = True
@@ -152,7 +152,7 @@ def sub_obs_action_learn(replay_queue: multiprocessing.Queue, action_queue_list,
             replay = replay_queue.get()
             o, a, r, next_o, d = replay
             unit_agent.unit_buffer.add(o, a, r, next_o, d)
-            if unit_agent.unit_buffer.size == buffer_capacity:
+            if len(unit_agent.unit_buffer) == buffer_capacity:
                 cont += 1
                 unit_agent.learn(gamma)
                 if (cont + 1) % (10000 // buffer_capacity) == 0:

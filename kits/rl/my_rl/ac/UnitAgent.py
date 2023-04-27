@@ -60,14 +60,14 @@ class UnitAgent:
         # for agent_id, agent in self.agents.items():
         print('on learning ...............')
         obs, act, reward, next_obs, done = self.unit_buffer.get_replays()
-        actor_dist = self.actor(torch.from_numpy(obs).float())
-        critic_value = self.critic(torch.from_numpy(obs).float())
-        next_critic_value = self.critic(torch.from_numpy(obs).float())
+        actor_dist = self.actor(torch.from_numpy(np.array(obs)).float())
+        critic_value = self.critic(torch.from_numpy(np.array(obs)).float())
+        next_critic_value = self.critic(torch.from_numpy(np.array(next_obs)).float()).detach()
         # _, next_critic_value = self.actor_critic(torch.from_numpy(next_obs).float())
 
-        ts_act = torch.FloatTensor(act)
-        ts_reward = torch.FloatTensor(reward).unsqueeze(1)
-        ts_live = torch.FloatTensor(1 - done).unsqueeze(1)
+        ts_act = torch.FloatTensor(np.array(act))
+        ts_reward = torch.FloatTensor(np.array(reward)).unsqueeze(1)
+        ts_live = torch.FloatTensor(1 - np.array(done)).unsqueeze(1)
 
         Q = ts_reward + gamma * next_critic_value * ts_live
         advantage = Q - critic_value
@@ -77,6 +77,7 @@ class UnitAgent:
         entropy_loss = -0.0 * actor_dist.entropy().mean()
         self.update_actor(actor_loss + entropy_loss)
         self.update_critic(critic_loss)
+        self.unit_buffer.clear()
         # self.update_actor_critic(actor_loss + critic_loss + entropy_loss)
         print('............... end learning ')
 
