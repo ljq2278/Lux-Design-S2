@@ -40,14 +40,14 @@ print_interv = 10
 actor_lr = 0.0004
 critic_lr = 0.001
 eps_clip = 0.2
-td_n = 10
+td_n = 500
 K_epochs = 40
 episode_num = 3000000
 gamma = 0.98
 sub_proc_count = 5
 exp = 'paral_ppo'
-want_load_model = False
-max_episode_length = 20
+want_load_model = True
+max_episode_length = 200
 agent_debug = False
 density_rwd = True
 
@@ -68,17 +68,17 @@ def sub_run(replay_queue: multiprocessing.Queue, param_queue: multiprocessing.Qu
     if want_load_model:
         new_params = param_queue.get()
         unit_online_agent.update(new_params)
-    unit_buffer = Buffer()
     globalAgents = [GlobalAgent('player_' + str(i), env_cfg, unit_online_agent) for i in range(0, agent_cont)]
     globale_step = 0
     sum_rwd = 0
     survive_step = 0
+    unit_buffer = Buffer()
+    tmp_buffer = {}  # record every unit datas
     for episode in range(episode_num):
         np.random.seed()
         seed = np.random.randint(0, 100000000)
         raw_obs = env.reset(seed=seed)
         obs, norm_obs = maObsTransor.sg_to_ma(raw_obs['player_0'])
-        tmp_buffer = {}  # record every unit datas
         done = {'player_0': False, 'player_1': False}
         ################################ interact with the env for an episode ###################################
         while raw_obs['player_0']["real_env_steps"] < 0 or sum(done.values()) < len(done):
