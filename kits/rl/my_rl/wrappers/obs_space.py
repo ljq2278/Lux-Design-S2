@@ -59,8 +59,8 @@ class ObsSpace:
                              [1 for _ in range(0, 1)] +
                              [1 for _ in range(0, 2)] +
                              [0.5 if i != 12 else 1 for i in range(0, 25)] +
-                             [1, 1, 0, 0, 1, 1] +
-                             [0 for _ in range(0, 2)] +
+                             [1, 1, 1, 1, 1, 1] +
+                             [0.2 for _ in range(0, 2)] +
                              [0.5 for _ in range(0, 4)] +
                              [1 for _ in range(0, 3)])
 
