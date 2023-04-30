@@ -22,12 +22,6 @@ import torch.nn.functional as F
 from torch import nn, Tensor
 from torch.optim import Adam
 
-# change this to use weights stored elsewhere
-# make sure the model weights are submitted with the other code files
-# any files in the logs folder are not necessary. Make sure to exclude the .zip extension here
-MODEL_WEIGHTS_RELATIVE_PATH = "./best_model"
-
-
 
 class Agent:
     def __init__(self, player: str, env_cfg: EnvConfig) -> None:
@@ -99,7 +93,7 @@ class EarlyRuleAgent(Agent):
                     if len(my_factories) >= 1:
                         closes_my_factory_dist = np.min(np.mean((np.array(my_factories) - loc) ** 2, 1))
 
-                    minimum_ice_dist = np.min(ice_tile_distances) * 10 + 0.01 * np.min(
+                    minimum_ice_dist = np.min(ice_tile_distances) * 10 + 10 * np.min(
                         ore_tile_distances) + 10 * density_rubble / (
                                            d_rubble) - closes_opp_factory_dist * 0.1 + closes_opp_factory_dist * 0.01
 
@@ -113,7 +107,7 @@ class EarlyRuleAgent(Agent):
                 #                 actions['metal']=metal_left
                 #                 actions['water']=water_left
                 actions['metal'] = min(self.env_cfg.INIT_WATER_METAL_PER_FACTORY, metal_left)
-                actions['water'] = min(self.env_cfg.INIT_WATER_METAL_PER_FACTORY, metal_left)
+                actions['water'] = min(self.env_cfg.INIT_WATER_METAL_PER_FACTORY, water_left)
 
         return actions
 

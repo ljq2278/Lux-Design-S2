@@ -44,9 +44,9 @@ K_epochs = 40
 episode_num = 3000000
 gamma = 0.98
 sub_proc_count = 1
-exp = 'paral_ppo'
+exp = 'paral_ppo2'
 want_load_model = True
-max_episode_length = 20
+max_episode_length = 200
 agent_debug = False
 density_rwd = True
 

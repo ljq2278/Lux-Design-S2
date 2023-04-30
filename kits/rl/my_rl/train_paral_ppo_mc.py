@@ -40,16 +40,15 @@ print_interv = 10
 actor_lr = 0.0004
 critic_lr = 0.001
 eps_clip = 0.2
-K_epochs = 40
+K_epochs = 10
 episode_num = 3000000
 gamma = 0.98
 sub_proc_count = 5
 exp = 'paral_ppo2'
 want_load_model = False
-max_episode_length = 1000
+max_episode_length = 100
 agent_debug = False
 density_rwd = True
-
 
 dim_info = [MaObsTransor.total_dims, MaActTransor.total_act_dims]  # obs and act dims
 base_res_dir = os.environ['HOME'] + '/train_res/' + exp
@@ -89,6 +88,14 @@ def sub_run(replay_queue: multiprocessing.Queue, param_queue: multiprocessing.Qu
                 raw_next_obs, raw_reward, done, info = env.step(raw_action)
                 raw_obs = raw_next_obs
             else:
+                if raw_obs['player_0']["real_env_steps"] == 0:
+                    for p_id, fp_info in env.state.factories.items():
+                        for f_id in fp_info.keys():
+                            # set factories to have 1000 water to check the ore dig ability
+                            env.state.factories[p_id][f_id].cargo.water = 40 + int(np.random.random() * 40)
+                            # env.state.factories[p_id][f_id].cargo.metal = 100 + int(np.random.random() * 50)
+                            env.state.factories[p_id][f_id].cargo.ore = 0 + int(np.random.random() * 100)
+
                 globale_step += 1
                 ############################### get action and raw_action ###############################
                 action = {}
@@ -101,10 +108,8 @@ def sub_run(replay_queue: multiprocessing.Queue, param_queue: multiprocessing.Qu
                     state_val[g_agent.player] = {}
                     for u_id, u_obs in norm_obs[g_agent.player].items():
                         a, b, c = unit_online_agent.policy.act([u_obs])
-                        action[g_agent.player][u_id], action_logprob[g_agent.player][u_id], \
-                            state_val[g_agent.player][u_id] = a[0], b[0], c[0][0]
-                    raw_action[g_agent.player] = maActTransor.ma_to_sg(
-                        action[g_agent.player], raw_obs[g_agent.player], g_agent.player)
+                        action[g_agent.player][u_id], action_logprob[g_agent.player][u_id], state_val[g_agent.player][u_id] = a[0], b[0], c[0][0]
+                    raw_action[g_agent.player] = maActTransor.ma_to_sg(action[g_agent.player], raw_obs[g_agent.player], g_agent.player)
                 ############################### get action to env result ###############################
                 raw_next_obs, raw_reward, done, info = env.step(raw_action)
                 ############################### get next norm obs ######################################
@@ -160,8 +165,8 @@ def sub_run(replay_queue: multiprocessing.Queue, param_queue: multiprocessing.Qu
         ########################################### episode finishes  ########################################
         if episode % print_interv == 0:  # print info every 100 g_step
             message = f'episode {episode}, '
-            message += f'avg episode reward: {sum_rwd/print_interv}, '
-            message += f'avg survive step: {survive_step/print_interv}'
+            message += f'avg episode reward: {sum_rwd / print_interv}, '
+            message += f'avg survive step: {survive_step / print_interv}'
             print(message)
             print(raw_obs["player_0"]["real_env_steps"], maRwdTransor.reward_collect)
             sum_rwd = 0
