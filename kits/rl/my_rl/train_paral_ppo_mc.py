@@ -40,13 +40,13 @@ print_interv = 10
 actor_lr = 0.0004
 critic_lr = 0.001
 eps_clip = 0.2
-K_epochs = 10
+K_epochs = 40
 episode_num = 3000000
 gamma = 0.98
 sub_proc_count = 5
 exp = 'paral_ppo2'
 want_load_model = False
-max_episode_length = 100
+max_episode_length = 1000
 agent_debug = False
 density_rwd = True
 

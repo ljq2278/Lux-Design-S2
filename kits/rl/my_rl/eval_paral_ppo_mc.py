@@ -46,7 +46,7 @@ gamma = 0.98
 sub_proc_count = 1
 exp = 'paral_ppo2'
 want_load_model = True
-max_episode_length = 200
+max_episode_length = 100
 agent_debug = False
 density_rwd = True
 

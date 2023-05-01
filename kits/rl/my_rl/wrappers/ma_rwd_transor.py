@@ -72,12 +72,12 @@ class MaRwdTransor():
         return False
 
     def _ice_reward_factor(self, f_ice, f_water):
-        return np.log(61 / (f_water + 1))
+        return np.log(31 / (f_water + 1))
         # return 1 / (f_water / 25 + 1) + 0.4
         # return 0
 
     def _ore_reward_factor(self, f_ore, f_metal, f_water):
-        return np.log((f_water + 1) / 61)
+        return np.log((f_water + 1) / 31)
         # return np.log(300 / (f_ore + 100)) + np.log(100 / (f_metal + 10))
         # return 1 / (f_ore / 1000 + 1) + 1 / (f_metal / 50 + 1)
 
