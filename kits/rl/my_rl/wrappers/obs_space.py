@@ -2,7 +2,7 @@ import numpy as np
 
 
 class ObsSpace:
-    pos_dim_start = 0   # 0
+    pos_dim_start = 0  # 0
     pos_dim = 2
     power_dim_start = pos_dim_start + pos_dim  # 2
     power_dim = 1
@@ -49,7 +49,7 @@ class ObsSpace:
         self.env_cfg = env_cfg
         self.normer = np.array([self.env_cfg.map_size for _ in range(0, 2)] +
                                [self.env_cfg.ROBOTS['HEAVY'].BATTERY_CAPACITY for _ in range(0, 1)] +
-                               [self.env_cfg.ROBOTS['HEAVY'].CARGO_SPACE for _ in range(0, 2)] +
+                               [self.env_cfg.ROBOTS['HEAVY'].CARGO_SPACE / 100 for _ in range(0, 2)] +
                                [self.env_cfg.MAX_RUBBLE for _ in range(0, 25)] +
                                [self.env_cfg.map_size / 10 for _ in range(0, 8)] +
                                [1000 for _ in range(0, 4)] +
@@ -60,8 +60,8 @@ class ObsSpace:
                              [1 for _ in range(0, 2)] +
                              [0.5 if i != 12 else 1 for i in range(0, 25)] +
                              [1, 1, 1, 1, 1, 1] +
-                             [0.2 for _ in range(0, 2)] +
-                             [0.5 for _ in range(0, 4)] +
+                             [1 for _ in range(0, 2)] +
+                             [1 for _ in range(0, 4)] +
                              [1 for _ in range(0, 3)])
 
         return

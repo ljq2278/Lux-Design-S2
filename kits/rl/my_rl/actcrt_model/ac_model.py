@@ -6,7 +6,7 @@ from torch.distributions import Categorical
 
 
 class ActMLPNetwork(nn.Module):
-    def __init__(self, in_dim, out_dim, hidden_dim=64, non_linear=nn.ReLU()):
+    def __init__(self, in_dim, out_dim, hidden_dim=64, non_linear=nn.Tanh()):
         super(ActMLPNetwork, self).__init__()
         self.sfmx = nn.Softmax(dim=-1)
         self.deep_net = nn.Sequential(
@@ -27,7 +27,7 @@ class ActMLPNetwork(nn.Module):
 
 
 class CriMLPNetwork(nn.Module):
-    def __init__(self, in_dim, out_dim, hidden_dim=64, non_linear=nn.ReLU()):
+    def __init__(self, in_dim, out_dim, hidden_dim=64, non_linear=nn.Tanh()):
         super(CriMLPNetwork, self).__init__()
         self.p_d = nn.Parameter(torch.Tensor(3))  # ice, ore, factory
         torch.nn.init.ones_(self.p_d)
@@ -37,7 +37,7 @@ class CriMLPNetwork(nn.Module):
             nn.Linear(7, 1),
         )
         self.deep_net = nn.Sequential(
-            nn.Linear(in_dim+3, hidden_dim),
+            nn.Linear(in_dim, hidden_dim),
             non_linear,
             nn.Linear(hidden_dim, hidden_dim),
             non_linear,
@@ -53,10 +53,10 @@ class CriMLPNetwork(nn.Module):
             -(x[:, 34:35] ** 2 + x[:, 35:36] ** 2) / (2 * self.p_d[2] ** 2))
         # v_factory = self.p_s * torch.exp(
         #     -((x[30] - self.p_e[0]) ** 2 + (x[31] - self.p_e[1]) ** 2) / (2 * self.p_d ** 2))
-        # simple_input = torch.concat([x[:, 2:3], x[:, 3:4], x[:, 4:5], x[:, 38:39], v_ice, v_ore, v_factory], dim=1)
+        simple_input = torch.concat([x[:, 2:3], x[:, 3:4], x[:, 4:5], x[:, 38:39], v_ice, v_ore, v_factory], dim=1)
         # ret = self.simple_net(simple_input) + self.deep_net(x)
-        input = torch.concat([x, v_ice, v_ore, v_factory], dim=1)
-        ret = self.deep_net(input)
+        # input = torch.concat([x, v_ice, v_ore, v_factory], dim=1)
+        ret = self.deep_net(x)
         return ret
 
 

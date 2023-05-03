@@ -75,6 +75,7 @@ def sub_run(replay_queue: multiprocessing.Queue, param_queue: multiprocessing.Qu
         np.random.seed()
         seed = np.random.randint(0, 100000000)
         raw_obs = env.reset(seed=seed)
+        env.env_cfg.ROBOTS['HEAVY'].DIG_COST, env.env_cfg.ROBOTS['HEAVY'].MOVE_COST = 0, 0
         obs, norm_obs = maObsTransor.sg_to_ma(raw_obs['player_0'])
         done = {'player_0': False, 'player_1': False}
         imgs = []
