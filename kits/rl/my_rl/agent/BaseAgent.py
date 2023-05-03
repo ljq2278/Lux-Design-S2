@@ -93,8 +93,7 @@ class EarlyRuleAgent(Agent):
                     if len(my_factories) >= 1:
                         closes_my_factory_dist = np.min(np.mean((np.array(my_factories) - loc) ** 2, 1))
 
-                    minimum_ice_dist = np.min(ice_tile_distances) * 10 + 10 * np.min(
-                        ore_tile_distances) + 10 * density_rubble / (
+                    minimum_ice_dist = 10 * np.min(ice_tile_distances) + 6 * np.min(ore_tile_distances) + 10 * density_rubble / (
                                            d_rubble) - closes_opp_factory_dist * 0.1 + closes_opp_factory_dist * 0.01
 
                     if minimum_ice_dist < min_dist:

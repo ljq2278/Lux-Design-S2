@@ -77,7 +77,7 @@ def sub_run(replay_queue: multiprocessing.Queue, param_queue: multiprocessing.Qu
         np.random.seed()
         seed = np.random.randint(0, 100000000)
         raw_obs = env.reset(seed=seed)
-        env.env_cfg.ROBOTS['HEAVY'].DIG_COST, env.env_cfg.ROBOTS['HEAVY'].MOVE_COST = 0, 0
+        # env.env_cfg.ROBOTS['HEAVY'].DIG_COST, env.env_cfg.ROBOTS['HEAVY'].MOVE_COST = 0, 0
         obs, norm_obs = maObsTransor.sg_to_ma(raw_obs['player_0'])
         done = {'player_0': False, 'player_1': False}
         ################################ interact with the env for an episode ###################################
@@ -90,12 +90,15 @@ def sub_run(replay_queue: multiprocessing.Queue, param_queue: multiprocessing.Qu
                 raw_obs = raw_next_obs
             else:
                 # if raw_obs['player_0']["real_env_steps"] == 0:
-                #     for p_id, fp_info in env.state.factories.items():
-                #         for f_id in fp_info.keys():
-                #             # set factories to have 1000 water to check the ore dig ability
-                #             env.state.factories[p_id][f_id].cargo.water = 40 + int(np.random.random() * 40)
-                #             # env.state.factories[p_id][f_id].cargo.metal = 100 + int(np.random.random() * 50)
-                #             env.state.factories[p_id][f_id].cargo.ore = 0 + int(np.random.random() * 100)
+                #     for i in range(48):
+                #         for j in range(48):
+                #             env.state.board.rubble[i, j] = 0
+                    # for p_id, fp_info in env.state.factories.items():
+                    #     for f_id in fp_info.keys():
+                    #         # set factories to have 1000 water to check the ore dig ability
+                    #         env.state.factories[p_id][f_id].cargo.water = 40 + int(np.random.random() * 40)
+                    #         # env.state.factories[p_id][f_id].cargo.metal = 100 + int(np.random.random() * 50)
+                    #         env.state.factories[p_id][f_id].cargo.ore = 0 + int(np.random.random() * 100)
 
                 globale_step += 1
                 ############################### get action and raw_action ###############################

@@ -23,6 +23,7 @@ class ActMLPNetwork(nn.Module):
     def forward(self, x):
         # output = F.gumbel_softmax(self.simple_net(x) + self.deep_net(x), tau=2)
         output = self.sfmx(self.deep_net(x))
+        # output = F.gumbel_softmax(self.deep_net(x), tau=5)
         return output
 
 

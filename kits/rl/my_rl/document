@@ -1,0 +1,13 @@
+a tow layer system.
+
+the factory layer:
+it decide what resource needed now and which tile is the digging target nearby
+it receive reward from env
+it make decision to dispatch sub-reward and sub-obs-param
+it get obs from env
+
+the robot layer:
+it decide how to get to the target tile and dig how much
+it receive reward from upper-system
+it make decision to act to get the max reward from upper-system
+it get obs-param from env and upper-system

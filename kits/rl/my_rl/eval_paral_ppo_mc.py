@@ -125,6 +125,12 @@ def sub_run(replay_queue: multiprocessing.Queue, param_queue: multiprocessing.Qu
                         else:
                             d = False
                         sum_rwd += reward[g_agent.player][u_id]
+                ############################### print for debug #################################
+                print('############################### print for debug #################################: ')
+                print('norm_obs: ', norm_obs['player_0'])
+                print('reward: ', reward['player_0'])
+                print('action: ', action['player_0'])
+                print('norm_next_obs: ', norm_next_obs['player_0'])
                 ############################### prepare to the next step #################################
                 raw_obs = raw_next_obs
                 obs = next_obs
