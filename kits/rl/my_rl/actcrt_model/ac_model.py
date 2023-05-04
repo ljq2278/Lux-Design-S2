@@ -54,7 +54,7 @@ class CriMLPNetwork(nn.Module):
             -(x[:, 34:35] ** 2 + x[:, 35:36] ** 2) / (2 * self.p_d[2] ** 2))
         # v_factory = self.p_s * torch.exp(
         #     -((x[30] - self.p_e[0]) ** 2 + (x[31] - self.p_e[1]) ** 2) / (2 * self.p_d ** 2))
-        simple_input = torch.concat([x[:, 2:3], x[:, 3:4], x[:, 4:5], x[:, 38:39], v_ice, v_ore, v_factory], dim=1)
+        # simple_input = torch.concat([x[:, 2:3], x[:, 3:4], x[:, 4:5], x[:, 38:39], v_ice, v_ore, v_factory], dim=1)
         # ret = self.simple_net(simple_input) + self.deep_net(x)
         # input = torch.concat([x, v_ice, v_ore, v_factory], dim=1)
         ret = self.deep_net(x)

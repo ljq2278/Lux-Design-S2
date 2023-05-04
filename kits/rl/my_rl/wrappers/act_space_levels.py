@@ -25,19 +25,15 @@ class ActSpaceUnit:
 
 
 class ActSpaceFactory:
-    move_act_dims = 4  # 0~3
-    transfer_ice_act_dims = 1  # 4
-    transfer_ore_act_dims = 1  # 5
-    pickup_act_dims = 1  # 6
-    dig_act_dims = 1  # 7
-    no_op_dims = 1  # 8
+    build_light_dims = 1  # 0
+    build_heavy_dims = 1  # 1
+    water_lichen_dims = 1  # 2
+    no_op_dims = 1  # 3
 
-    move_dim_high = move_act_dims
-    transfer_ice_dim_high = move_dim_high + transfer_ice_act_dims
-    transfer_ore_dim_high = transfer_ice_dim_high + transfer_ore_act_dims
-    pickup_dim_high = transfer_ore_dim_high + pickup_act_dims
-    dig_dim_high = pickup_dim_high + dig_act_dims
-    no_op_dim_high = dig_dim_high + no_op_dims
+    build_light_high = build_light_dims
+    build_heavy_high = build_light_high + build_heavy_dims
+    water_lichen_high = build_heavy_high + water_lichen_dims
+    no_op_dim_high = water_lichen_high + no_op_dims
 
     total_act_dims = no_op_dim_high
 

@@ -38,9 +38,9 @@ gamma = 0.98
 sub_proc_count = 5
 exp = 'paral_ppo2'
 want_load_model = True
-max_episode_length = 1000
+max_episode_length = 20
 agent_debug = False
-density_rwd = False
+density_rwd = True
 
 dim_info_unit = [MaObsTransorUnit.total_dims, MaActTransorUnit.total_act_dims]  # obs and act dims
 base_res_dir = os.environ['HOME'] + '/train_res/' + exp
@@ -59,11 +59,11 @@ def sub_run(replay_queue: multiprocessing.Queue, param_queue: multiprocessing.Qu
     maRwdTransorFactory = MaRwdTransorFactory(env, env_cfg, debug=False, density=density_rwd)
     agent_cont = 2
     unit_online_agent = PPO_Online_Agent(dim_info_unit[0], dim_info_unit[1])
-    factory_agent = Factory_Agent(dim_info_unit[0], dim_info_unit[1])
+    factory_agent = Factory_Agent()
     if want_load_model:
         new_params = param_queue.get()
         unit_online_agent.update(new_params)
-    globalAgents = [GlobalAgent('player_' + str(i), env_cfg, unit_online_agent) for i in range(0, agent_cont)]
+    globalAgents = [GlobalAgent('player_' + str(i), env_cfg, unit_online_agent, factory_agent) for i in range(0, agent_cont)]
     globale_step = 0
     sum_rwd = 0
     survive_step = 0
@@ -73,7 +73,6 @@ def sub_run(replay_queue: multiprocessing.Queue, param_queue: multiprocessing.Qu
         np.random.seed()
         seed = np.random.randint(0, 100000000)
         raw_obs = env.reset(seed=seed)
-        # env.env_cfg.ROBOTS['HEAVY'].DIG_COST, env.env_cfg.ROBOTS['HEAVY'].MOVE_COST = 0, 0
         obs_unit, norm_obs_unit = maObsTransorUnit.sg_to_ma(raw_obs['player_0'])
         obs_factory, norm_obs_factory = maObsTransorFactory.sg_to_ma(raw_obs['player_0'])
         done = {'player_0': False, 'player_1': False}
@@ -86,22 +85,26 @@ def sub_run(replay_queue: multiprocessing.Queue, param_queue: multiprocessing.Qu
                 raw_next_obs, raw_reward, done, info = env.step(raw_action)
                 raw_obs = raw_next_obs
             else:
+                if raw_obs['player_0']["real_env_steps"] == 0:
+                    obs_factory, norm_obs_factory = maObsTransorFactory.sg_to_ma(raw_obs['player_0'])
+                    ice_locs = np.argwhere(raw_obs['player_0']["board"]["ice"] == 1)
+                    ore_locs = np.argwhere(raw_obs['player_0']["board"]["ore"] == 1)
+                    factory_agent.order_resource_pos(raw_obs['player_0']['factories'], ice_locs, ore_locs)
                 globale_step += 1
                 raw_action = {}
                 ############################### get action and raw_action factory ###############################
                 action_factory = {}
-                action_logprob_factory = {}
-                state_val_factory = {}
                 raw_action_factory = {}
+                order_to_uid = {}
                 for g_agent in globalAgents:
                     action_factory[g_agent.player] = {}
-                    action_logprob_factory[g_agent.player] = {}
-                    state_val_factory[g_agent.player] = {}
+                    order_to_uid[g_agent.player] = {}
                     for f_id, f_obs in norm_obs_factory[g_agent.player].items():
-                        a, b, c = factory_agent.act([f_obs])
-                        action_factory[g_agent.player][f_id], action_logprob_factory[g_agent.player][f_id], state_val_factory[g_agent.player][f_id] = a[0], b[0], c[0][0]
+                        action_factory[g_agent.player][f_id], order_to_uid[g_agent.player][f_id] = factory_agent.act(f_id, f_obs, norm_obs_unit[g_agent.player].keys())
                     raw_action_factory[g_agent.player] = maActTransorFactory.ma_to_sg(action_factory[g_agent.player], raw_obs[g_agent.player], g_agent.player)
-                ############################### get action and raw_action unit ###############################
+                ################################ change the unit obs #############################################################################
+                obs_unit, norm_obs_unit = maObsTransorUnit.change_uobs_with_order(obs_unit, norm_obs_unit, order_to_uid)
+                ############################### get action and raw_action unit ###################################################################
                 action_unit = {}
                 action_logprob_unit = {}
                 state_val_unit = {}
@@ -115,7 +118,12 @@ def sub_run(replay_queue: multiprocessing.Queue, param_queue: multiprocessing.Qu
                         action_unit[g_agent.player][u_id], action_logprob_unit[g_agent.player][u_id], state_val_unit[g_agent.player][u_id] = a[0], b[0], c[0][0]
                     raw_action_unit[g_agent.player] = maActTransorUnit.ma_to_sg(action_unit[g_agent.player], raw_obs[g_agent.player], g_agent.player)
                 ############################### get action to env result ###############################
-                raw_action.add(raw_action_factory, raw_action_unit)
+                for p_id, p_info in raw_action_factory.items():
+                    raw_action[p_id] = {}
+                    for f_id, f_info in p_info.items():
+                        raw_action[p_id][f_id] = f_info
+                    for u_id, u_info in raw_action_unit[p_id].items():
+                        raw_action[p_id][u_id] = u_info
                 raw_next_obs, raw_reward, done, info = env.step(raw_action)
                 ############################### get next norm obs factory ######################################
                 next_obs_factory, norm_next_obs_factory = maObsTransorFactory.sg_to_ma(raw_next_obs['player_0'])
@@ -138,7 +146,9 @@ def sub_run(replay_queue: multiprocessing.Queue, param_queue: multiprocessing.Qu
                         ############################ record the simple data ################################
                         # if we want do some factory action samples record
                 ############################### get next norm obs unit ######################################
-                next_obs_unit, norm_next_obs_unit = maObsTransorUnit.sg_to_ma(raw_next_obs['player_0'], next_obs_factory)
+                next_obs_unit, norm_next_obs_unit = maObsTransorUnit.sg_to_ma(raw_next_obs['player_0'])
+                ################################ change the unit obs #############################################################################
+                next_obs_unit, norm_next_obs_unit = maObsTransorUnit.change_uobs_with_order(next_obs_unit, norm_next_obs_unit, order_to_uid)
                 ############################### get custom reward unit ######################################
                 reward_unit = {}
                 for g_agent in globalAgents:
@@ -167,7 +177,7 @@ def sub_run(replay_queue: multiprocessing.Queue, param_queue: multiprocessing.Qu
                             state_val_unit[g_agent.player][u_id],
                             d_unit
                         ])
-                        ############################### prepare to the next step #################################
+                ############################### prepare to the next step #################################
                 raw_obs = raw_next_obs
                 obs_factory = next_obs_factory
                 norm_obs_factory = norm_next_obs_factory

@@ -32,8 +32,28 @@ class MaObsTransorUnit(ObsSpaceUnit):
                     min_ind = i
         return min_rela_pos, min_ind
 
+    def change_uobs_with_order(self, unit_obs, unit_norm_obs, order_to_uid):
+        for pid, p_info in order_to_uid.items():
+            for f_id, u_target in p_info.items():
+                for u_id, target in u_target.items():
+                    if u_id in unit_obs[pid].keys():
+                        t_x, t_y, f_x, f_y, task_type = target
+                        if (f_x - unit_obs[pid][u_id][0]) ** 2 + (f_y - unit_obs[pid][u_id][1]) ** 2 < \
+                                unit_obs[pid][u_id][self.target_factory_pos_start] ** 2 + unit_obs[pid][u_id][self.target_factory_pos_start + 1] ** 2:  # the unit listen to the proximal factory
+                            unit_obs[pid][u_id][self.task_type_start] = ObsSpaceUnit.task_type_to_int(task_type)
+                            unit_obs[pid][u_id][self.target_pos_start:self.target_pos_start + 2] = [t_x - unit_obs[pid][u_id][0], t_y - unit_obs[pid][u_id][1]]
+                            unit_obs[pid][u_id][self.target_factory_pos_start:self.target_factory_pos_start + 2] = [f_x - unit_obs[pid][u_id][0], f_y - unit_obs[pid][u_id][1]]
+                            unit_norm_obs[pid][u_id][self.task_type_start] = ObsSpaceUnit.task_type_to_int(task_type) / self.normer[self.task_type_start] * self.mask[self.task_type_start]
+                            unit_norm_obs[pid][u_id][self.target_pos_start:self.target_pos_start + 2] = \
+                                np.array([t_x - unit_obs[pid][u_id][0], t_y - unit_obs[pid][u_id][1]]) / self.normer[self.target_pos_start:self.target_pos_start + 2] \
+                                * self.mask[self.target_pos_start:self.target_pos_start + 2]
+                            unit_norm_obs[pid][u_id][self.target_factory_pos_start:self.target_factory_pos_start + 2] = \
+                                np.array([f_x - unit_obs[pid][u_id][0], f_y - unit_obs[pid][u_id][1]]) / self.normer[self.target_factory_pos_start:self.target_factory_pos_start + 2] \
+                                * self.mask[self.target_factory_pos_start:self.target_factory_pos_start + 2]
+        return unit_obs, unit_norm_obs
+
     # we make this method static so the submission/evaluation code can use this as well
-    def sg_to_ma(self, raw_obs: Dict[str, Any], target_factory_pos, target_task):
+    def sg_to_ma(self, raw_obs: Dict[str, Any]):
         player_set = set(raw_obs["factories"].keys())
         space_info = np.ones([self.env_cfg.map_size + 4, self.env_cfg.map_size + 4]) * self.env_cfg.MAX_RUBBLE
         space_info[2:self.env_cfg.map_size + 2, 2:self.env_cfg.map_size + 2] = raw_obs["board"]["rubble"]  # rubble map
@@ -46,25 +66,13 @@ class MaObsTransorUnit(ObsSpaceUnit):
                 space_info[
                     unit_info['pos'][0] + 2, unit_info['pos'][1] + 2] += robot_rubble_identied  # complete space
 
-        ############################################################# get factory pos
+        ############################################################# get factory pos ##################################
         players_f_dict = {}
-        players_f_water_dict = {}
-        players_f_metal_dict = {}
-        players_f_ice_dict = {}
-        players_f_ore_dict = {}
         oppo_players_f_dict = {}
         for p_id, p_info in raw_obs["factories"].items():
             players_f_dict[p_id] = []
-            players_f_water_dict[p_id] = []
-            players_f_metal_dict[p_id] = []
-            players_f_ice_dict[p_id] = []
-            players_f_ore_dict[p_id] = []
             for i, (f_id, f_info) in enumerate(p_info.items()):
                 players_f_dict[p_id].append(f_info['pos'])
-                players_f_water_dict[p_id].append(f_info['cargo']['water'])
-                players_f_metal_dict[p_id].append(f_info['cargo']['metal'])
-                players_f_ice_dict[p_id].append(f_info['cargo']['ice'])
-                players_f_ore_dict[p_id].append(f_info['cargo']['ore'])
                 for pid in player_set:
                     if pid != p_id:
                         if pid not in oppo_players_f_dict.keys():
@@ -81,12 +89,7 @@ class MaObsTransorUnit(ObsSpaceUnit):
                 #################################################### get near f_pos oppo_f_pos ice ore
 
                 f_oppo_min_rela_pos, _ = self._get_min_rela_pos(unit_info['pos'], oppo_players_f_dict[player_id])
-                if target_task == 'water':
-                    target_min_rela_pos, _ = self._get_min_rela_pos(unit_info['pos'], ice_locs)
-                elif target_task == 'metal':
-                    target_min_rela_pos, _ = self._get_min_rela_pos(unit_info['pos'], ore_locs)
-                else:
-                    target_min_rela_pos = -1  # dig for plant, no implement
+
                 ############################################################## near space
 
                 near_space = space_info[
@@ -100,17 +103,12 @@ class MaObsTransorUnit(ObsSpaceUnit):
                 # 2,3,4 power/ice/ore
                 ret[player_id][unit_id][2:5] = [unit_info['power'], unit_info['cargo']['ice'],
                                                 unit_info['cargo']['ore']]
+
+                # 5~29
                 # near_space, the centr tile have the self robot
                 ret[player_id][unit_id][self.near_space_start: self.near_space_start + self.near_space] = near_space
                 ret[player_id][unit_id][int((self.near_space_start + self.near_space_start + self.near_space) // 2)] \
                     -= robot_rubble_identied
-
-                # add target factory
-                ret[player_id][unit_id][self.target_factory_pos_start:self.target_factory_pos_start + self.target_factory_pos] \
-                    = target_factory_pos[0] - unit_info['pos'][0], target_factory_pos[1] - unit_info['pos'][1]
-
-                # add target tile
-                ret[player_id][unit_id][self.target_pos_start:self.target_pos_start + self.target_pos] = target_min_rela_pos
 
                 # add near oppo factory
                 ret[player_id][unit_id][self.nearest_oppo_factory_pos_start:self.nearest_oppo_factory_pos_start + self.nearest_oppo_factory_pos] = f_oppo_min_rela_pos
@@ -159,90 +157,17 @@ class MaObsTransorFactory(ObsSpaceFactory):
 
     # we make this method static so the submission/evaluation code can use this as well
     def sg_to_ma(self, raw_obs: Dict[str, Any]):
-        player_set = set(raw_obs["factories"].keys())
-        space_info = np.ones([self.env_cfg.map_size + 4, self.env_cfg.map_size + 4]) * self.env_cfg.MAX_RUBBLE
-        space_info[2:self.env_cfg.map_size + 2, 2:self.env_cfg.map_size + 2] = raw_obs["board"]["rubble"]  # rubble map
-        ice_locs = np.argwhere(raw_obs["board"]["ice"] == 1)
-        ore_locs = np.argwhere(raw_obs["board"]["ore"] == 1)
-        robot_rubble_identied = self.env_cfg.MAX_RUBBLE * 2
-        ################################################################### fill the robot map
-        for player_id, player_info in raw_obs['units'].items():
-            for unit_id, unit_info in player_info.items():
-                space_info[
-                    unit_info['pos'][0] + 2, unit_info['pos'][1] + 2] += robot_rubble_identied  # complete space
-
-        ############################################################# get factory pos
-        players_f_dict = {}
-        players_f_water_dict = {}
-        players_f_metal_dict = {}
-        players_f_ice_dict = {}
-        players_f_ore_dict = {}
-        oppo_players_f_dict = {}
-        for p_id, p_info in raw_obs["factories"].items():
-            players_f_dict[p_id] = []
-            players_f_water_dict[p_id] = []
-            players_f_metal_dict[p_id] = []
-            players_f_ice_dict[p_id] = []
-            players_f_ore_dict[p_id] = []
-            for i, (f_id, f_info) in enumerate(p_info.items()):
-                players_f_dict[p_id].append(f_info['pos'])
-                players_f_water_dict[p_id].append(f_info['cargo']['water'])
-                players_f_metal_dict[p_id].append(f_info['cargo']['metal'])
-                players_f_ice_dict[p_id].append(f_info['cargo']['ice'])
-                players_f_ore_dict[p_id].append(f_info['cargo']['ore'])
-                for pid in player_set:
-                    if pid != p_id:
-                        if pid not in oppo_players_f_dict.keys():
-                            oppo_players_f_dict[pid] = []
-                        oppo_players_f_dict[pid].append(f_info['pos'])
-        #########################################################################
         ret = {}
-        for player_id, player_info in raw_obs['units'].items():
-            ret[player_id] = {}
-            for unit_id, unit_info in player_info.items():
-                ret[player_id][unit_id] = [-100 for _ in range(0, self.total_dims)]
-                if len(players_f_dict['player_0']) == 0 or len(players_f_dict['player_1']) == 0:
-                    continue
-                #################################################### get near f_pos oppo_f_pos ice ore
-
-                f_oppo_min_rela_pos, _ = self._get_min_rela_pos(unit_info['pos'], oppo_players_f_dict[player_id])
-                if target_task == 'water':
-                    target_min_rela_pos, _ = self._get_min_rela_pos(unit_info['pos'], ice_locs)
-                elif target_task == 'metal':
-                    target_min_rela_pos, _ = self._get_min_rela_pos(unit_info['pos'], ore_locs)
-                else:
-                    target_min_rela_pos = -1  # dig for plant, no implement
-                ############################################################## near space
-
-                near_space = space_info[
-                             unit_info['pos'][0] + 2 - 2:unit_info['pos'][0] + 2 + 3,
-                             unit_info['pos'][1] + 2 - 2:unit_info['pos'][1] + 2 + 3
-                             ].reshape(-1)
-                ############################################################# start build obs feature
-
-                # 0,1 pos
-                ret[player_id][unit_id][0:2] = unit_info['pos']
-                # 2,3,4 power/ice/ore
-                ret[player_id][unit_id][2:5] = [unit_info['power'], unit_info['cargo']['ice'],
-                                                unit_info['cargo']['ore']]
-                # near_space, the centr tile have the self robot
-                ret[player_id][unit_id][self.near_space_start: self.near_space_start + self.near_space] = near_space
-                ret[player_id][unit_id][int((self.near_space_start + self.near_space_start + self.near_space) // 2)] \
-                    -= robot_rubble_identied
-
-                # add target factory
-                ret[player_id][unit_id][self.target_factory_pos_start:self.target_factory_pos_start + self.target_factory_pos] \
-                    = target_factory_pos[0] - unit_info['pos'][0], target_factory_pos[1] - unit_info['pos'][1]
-
-                # add target tile
-                ret[player_id][unit_id][self.target_pos_start:self.target_pos_start + self.target_pos] = target_min_rela_pos
-
-                # add near oppo factory
-                ret[player_id][unit_id][self.nearest_oppo_factory_pos_start:self.nearest_oppo_factory_pos_start + self.nearest_oppo_factory_pos] = f_oppo_min_rela_pos
-
-                # add time info
-                ret[player_id][unit_id][self.day_or_night_start] = \
-                    (raw_obs['real_env_steps'] % self.env_cfg.DAY_LENGTH) / self.env_cfg.DAY_LENGTH
+        for p_id, pf_info in raw_obs['factories'].items():
+            ret[p_id] = {}
+            for f_id, f_info in pf_info.items():
+                ret[p_id][f_id] = [-100 for _ in range(0, self.total_dims)]
+                ret[p_id][f_id][self.pos_dim_start:self.pos_dim_start + self.pos_dim] = f_info['pos']
+                ret[p_id][f_id][self.water_dim_start] = f_info['cargo']['water']
+                ret[p_id][f_id][self.metal_dim_start] = f_info['cargo']['metal']
+                ret[p_id][f_id][self.ice_dim_start] = f_info['cargo']['ice']
+                ret[p_id][f_id][self.ore_dim_start] = f_info['cargo']['ore']
+                ret[p_id][f_id][self.power_dim_start] = f_info['power']
 
         if self.if_mask:
             return ret, dict([
@@ -250,10 +175,10 @@ class MaObsTransorFactory(ObsSpaceFactory):
                     p_id,
                     dict([
                         (
-                            u_id,
-                            (np.array(u_info) / self.normer * self.mask).tolist()
+                            f_id,
+                            (np.array(f_info) / self.normer * self.mask).tolist()
                         )
-                        for u_id, u_info in p_info.items()
+                        for f_id, f_info in p_info.items()
                     ])
                 )
                 for p_id, p_info in ret.items()
@@ -264,10 +189,10 @@ class MaObsTransorFactory(ObsSpaceFactory):
                     p_id,
                     dict([
                         (
-                            u_id,
-                            (np.array(u_info) / self.normer).tolist()
+                            f_id,
+                            (np.array(f_info) / self.normer).tolist()
                         )
-                        for u_id, u_info in p_info.items()
+                        for f_id, f_info in p_info.items()
                     ])
                 )
                 for p_id, p_info in ret.items()

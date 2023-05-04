@@ -45,20 +45,6 @@ class MaActTransorUnit(ActSpaceUnit):
     def _get_dig_action(self, id):
         return np.array([3, 0, 0, 0, 0, 1])
 
-    def _can_water(self, water):
-        if water > 150:
-            return True
-        return False
-
-    def _can_build(self, power, metal):
-        if power > 500 and metal > 100:
-            return True
-        return False
-
-    def _can_build_light(self, power, metal):
-        if power > 50 and metal > 10:
-            return True
-        return False
 
     def ma_to_sg(self, actions: Dict[str, npt.NDArray], obs_info, player):
 
@@ -89,22 +75,41 @@ class MaActTransorUnit(ActSpaceUnit):
             if not no_op:
                 raw_action[unit_id] = action_queue
 
-        factories = obs_info["factories"][player]
-
-        # build a single heavy
-        for f_id in factories.keys():
-            if self._can_build(factories[f_id]['power'], factories[f_id]['cargo']['metal']):
-                raw_action[f_id] = 1
-                if obs_info["real_env_steps"] > 5:
-                    print('########################### build a HEAVY')
-            else:
-                if self._can_water(factories[f_id]['cargo']['water']):
-                    # print('$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$ can water ')
-                    raw_action[f_id] = 2
-
         return raw_action
 
 
 class MaActTransorFactory(ActSpaceFactory):
-    def __init__(self):
-        pass
+    def __init__(self, env, env_cfg: EnvConfig) -> None:
+        super().__init__(env_cfg)
+        self.env = env
+        self.action_space = spaces.Discrete(self.total_act_dims)
+
+    def _is_build_light_action(self, id):
+        return id < self.build_light_high
+
+    def _is_build_heavy_action(self, id):
+        return id < self.build_heavy_high
+
+    def _is_water_lichen_action(self, id):
+        return id < self.water_lichen_high
+
+    def _can_water(self, water):
+        if water > 150:
+            return True
+        return False
+
+    def _can_build(self, power, metal):
+        if power > 500 and metal > 100:
+            return True
+        return False
+
+    def ma_to_sg(self, actions: Dict[str, npt.NDArray], obs_info, player):
+        raw_action = dict()
+        for f_id,choice in actions.items():
+            if self._is_build_light_action(choice):
+                raw_action[f_id] = 0
+            elif self._is_build_heavy_action(choice):
+                raw_action[f_id] = 1
+            elif self._is_water_lichen_action(choice):
+                raw_action[f_id] = 2
+        return raw_action
