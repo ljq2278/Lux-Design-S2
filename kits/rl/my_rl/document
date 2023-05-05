@@ -1,3 +1,118 @@
+env introudution
+
+the base steps:
+	learning to get to the resouce tile [checked]
+	learning to dig [checked]
+	learning to return with cargo []
+	learning to transfer on factory []
+	
+the harder steps:	
+	learning to avoid collidation []
+	learning to dig for plant at the proper time
+
+
+
+the base ppo:
+	it can learn to dig, to return, to transfer
+
+the base obs feature project and action, reward design:
+	
+	action: it should able to complete the base work, and no future task ability to simply the task(it just a begin)
+	move_act_dims = 4  # 0~3
+	transfer_ice_act_dims = 1  # 4
+	transfer_ore_act_dims = 1  # 5
+	pickup_act_dims = 1  # 6
+	dig_act_dims = 1  # 7
+	no_op_dims = 1  # 8
+	
+	obs space:
+	pos_dim_start = 0
+	pos_dim = 2
+	power_dim_start = pos_dim_start + pos_dim  # 2
+	power_dim = 1
+	cargo_dim_start = power_dim_start + power_dim  # 3
+	cargo_dim = 2
+	near_space_start = cargo_dim_start + cargo_dim  # 5
+	near_space = 5 * 5
+	nearest_ice_pos_start = near_space_start + near_space  # 30
+	nearest_ice_pos = 2
+	nearest_ore_pos_start = nearest_ice_pos_start + nearest_ice_pos  # 32
+	nearest_ore_pos = 2
+	nearest_factory_pos_start = nearest_ore_pos_start + nearest_ore_pos  # 34
+	nearest_factory_pos = 2
+	nearest_oppo_factory_pos_start = nearest_factory_pos_start + nearest_factory_pos  # 36
+	nearest_oppo_factory_pos = 2
+	nearest_factory_water_start = nearest_oppo_factory_pos_start + nearest_oppo_factory_pos  # 38
+	nearest_factory_water = 1
+	day_or_night_start = nearest_factory_water_start + nearest_factory_water  # 39
+	day_or_night = 1
+	has_ice_start = day_or_night_start + day_or_night  # 40
+	has_ice = 1
+	has_ore_start = has_ice_start + has_ice  # 41
+	has_ore = 1
+
+	density reward:
+	self.reward_collect = {
+            'leave the way home with cargo': 0,
+            'on the way home with cargo': 0,
+            'leave the way ice with low cargo': 0,
+            'on the way ice with low cargo': 0,
+            'leave the way ore with low cargo': 0,
+            'on the way ore with low cargo': 0,
+            'get to ice tile': 0,
+            'get to ore tile': 0,
+            'prepare for dig': 0,
+            'dig out rubble on ice': 0,
+            'dig ice success': 0,
+            'dig out rubble on ore': 0,
+            'dig ore success': 0,
+            'want to leave factory with cargo': 0,
+            'return factory with ices': 0,
+            'return factory with ores': 0,
+            'transfer ice success': 0,
+            'transfer ore success': 0,
+            'low power charged': 0,
+        }
+
+failed on ddpg:
+	maddpg used reason
+		failed reason
+			it is for continous action space!
+			can not use epsilon-greedy exploitation
+			the training speed
+			where it stuck (can get the mine, but hard to decide to go home)
+
+using ac(do from simper)
+	update to a3c
+	hard to converage, do some work for it
+		more feature engine(normlize, gauss kernel distance feature), and design a more easy to learn network(lr + dnn)
+		decline the max step in one game
+		mask the future avalid feature
+		learning to mine near
+		try TD N (not yet)
+	result: near the same with ddpg, stuck on return home.
+
+
+analysis:
+	the most likely stuck reason is that there is a local optimal point around the ice mine. the dig action when on the ice should have been learn well for to get the ice, it must have learnt dig rubble on the ice(converage). they are the same action(so may be can seperate the dig action to different kind). So when dig out the rubble, it naturely would select the dig again for reward, while the return home selection would never be tried(the log also show this).
+
+so we have to return to PPO, for it have can learn from the past. what we should do is that we abauntant the dig-dig reward  
+
+
+
+may be we can use a hrichle struction
+the main brain we decide the reward to the subbrain. for example, if the main brain think I need
+more metal, it will give a hihger a factor on ore reward to robot for digging
+
+
+if the tf-n better than td-1 in A-C struction?
+
+
+using ppo:
+	success !
+	gradual the release the time max steps, the obs masks
+
+
 a tow layer system.
 
 the factory layer:

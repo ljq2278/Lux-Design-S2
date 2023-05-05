@@ -21,7 +21,7 @@ class Factory_Agent():
         uid_target = {}
         if f_obs[ObsSpaceFactory.metal_dim_start] >= 100 and f_obs[ObsSpaceFactory.power_dim_start] >= 500:
             action = 1
-        if f_obs[ObsSpaceFactory.water_dim_start] < 50:
+        if f_obs[ObsSpaceFactory.water_dim_start] < 1000:
             for i, uid in enumerate(uids):
                 uid_target[uid] = list(self.order_pos[f_id]['ice'][i])+list(f_obs[ObsSpaceFactory.pos_dim_start:ObsSpaceFactory.pos_dim_start + ObsSpaceFactory.pos_dim]) + ['ice']
         else:

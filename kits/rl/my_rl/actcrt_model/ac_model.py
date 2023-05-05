@@ -3,6 +3,7 @@ import torch.nn.functional as F
 from torch import nn, Tensor
 from torch.optim import Adam
 from torch.distributions import Categorical
+from wrappers.obs_space_levels import ObsSpaceUnit
 
 
 class ActMLPNetwork(nn.Module):
@@ -11,8 +12,8 @@ class ActMLPNetwork(nn.Module):
         self.sfmx = nn.Softmax(dim=-1)
         self.deep_net = nn.Sequential(
             nn.Linear(in_dim, hidden_dim),
-            non_linear,
-            nn.Linear(hidden_dim, hidden_dim),
+            # non_linear,
+            # nn.Linear(hidden_dim, hidden_dim),
             non_linear,
             nn.Linear(hidden_dim, out_dim),
         )
@@ -22,8 +23,8 @@ class ActMLPNetwork(nn.Module):
 
     def forward(self, x):
         # output = F.gumbel_softmax(self.simple_net(x) + self.deep_net(x), tau=2)
-        output = self.sfmx(self.deep_net(x))
-        # output = F.gumbel_softmax(self.deep_net(x), tau=5)
+        output = self.sfmx(self.simple_net(x) + self.deep_net(x))
+        # output = F.gumbel_softmax(self.deep_net(x), tau=2)
         return output
 
 
@@ -35,29 +36,34 @@ class CriMLPNetwork(nn.Module):
         self.scales = nn.Parameter(torch.Tensor(5))
         torch.nn.init.ones_(self.scales)
         self.simple_net = nn.Sequential(
-            nn.Linear(7, 1),
+            nn.Linear(6, 1),
         )
         self.deep_net = nn.Sequential(
             nn.Linear(in_dim, hidden_dim),
-            non_linear,
-            nn.Linear(hidden_dim, hidden_dim),
+            # non_linear,
+            # nn.Linear(hidden_dim, hidden_dim),
             non_linear,
             nn.Linear(hidden_dim, 1),
         )
 
     def forward(self, x):
-        v_ice = torch.exp(
-            -(x[:, 30:31] ** 2 + x[:, 31:32] ** 2) / (2 * self.p_d[0] ** 2))
-        v_ore = torch.exp(
-            -(x[:, 32:33] ** 2 + x[:, 33:34] ** 2) / (2 * self.p_d[1] ** 2))
+        # v_ice = torch.exp(
+        #     -(x[:, ObsSpaceUnit.:31] ** 2 + x[:, 31:32] ** 2) / (2 * self.p_d[0] ** 2))
+        # v_ore = torch.exp(
+        #     -(x[:, 32:33] ** 2 + x[:, 33:34] ** 2) / (2 * self.p_d[1] ** 2))
+        v_target = torch.exp(
+            -(x[:, ObsSpaceUnit.target_pos_start:ObsSpaceUnit.target_pos_start + 1] ** 2 +
+              x[:, ObsSpaceUnit.target_pos_start + 1:ObsSpaceUnit.target_pos_start + 2] ** 2) / (2 * self.p_d[2] ** 2))
         v_factory = torch.exp(
-            -(x[:, 34:35] ** 2 + x[:, 35:36] ** 2) / (2 * self.p_d[2] ** 2))
+            -(x[:, ObsSpaceUnit.target_factory_pos_start:ObsSpaceUnit.target_factory_pos_start + 1] ** 2 +
+              x[:, ObsSpaceUnit.target_factory_pos_start + 1:ObsSpaceUnit.target_factory_pos_start + 2] ** 2) / (2 * self.p_d[2] ** 2))
+
         # v_factory = self.p_s * torch.exp(
         #     -((x[30] - self.p_e[0]) ** 2 + (x[31] - self.p_e[1]) ** 2) / (2 * self.p_d ** 2))
-        # simple_input = torch.concat([x[:, 2:3], x[:, 3:4], x[:, 4:5], x[:, 38:39], v_ice, v_ore, v_factory], dim=1)
-        # ret = self.simple_net(simple_input) + self.deep_net(x)
+        simple_input = torch.concat([x[:, 2:3], x[:, 3:4], x[:, 4:5], v_factory, v_target, x[:, ObsSpaceUnit.task_type_start:ObsSpaceUnit.task_type_start + 1]], dim=1)
+        ret = self.simple_net(simple_input) + self.deep_net(x)
         # input = torch.concat([x, v_ice, v_ore, v_factory], dim=1)
-        ret = self.deep_net(x)
+        # ret = self.deep_net(x)
         return ret
 
 

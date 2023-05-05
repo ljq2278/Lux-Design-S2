@@ -101,9 +101,9 @@ class MaRwdTransorUnit():
                             rewards[unit_id] += rwd
                             self.reward_collect['get to target'] += 1
 
-                    if metrics[unit_id]['on_target'] and metrics[unit_id]['next_on_target']:
+                    if metrics[unit_id]['on_target'] and metrics[unit_id]['next_on_target']:  ################################################################ dig reward
                         if metrics[unit_id]['rubble_changed'] < 0:
-                            rwd = 1
+                            rwd = 1.5
                             rewards[unit_id] += rwd
                             self.reward_collect['dig out rubble on target'] += 1
                         elif metrics[unit_id][metrics[unit_id]['task_type'] + '_changed'] > 0:
@@ -113,12 +113,12 @@ class MaRwdTransorUnit():
                             self.reward_collect['dig target'] += 1
 
                     if self.density and metrics[unit_id]['dis_to_factory_changed'] < 0 and metrics[unit_id][metrics[unit_id]['task_type']] > 0:  ########### on the way home with target
-                        factor = 0.2
+                        factor = 0.1
                         rwd = metrics[unit_id][metrics[unit_id]['task_type']] * factor
                         rewards[unit_id] += rwd
                         self.reward_collect['on the way home with target'] += 1
                         if metrics[unit_id]['if_next_in_factory']:
-                            factor = 0.2
+                            factor = 0.1
                             rwd = metrics[unit_id][metrics[unit_id]['task_type']] * factor
                             rewards[unit_id] += rwd
                             self.reward_collect['return factory with target'] += 1

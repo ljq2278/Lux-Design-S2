@@ -47,7 +47,7 @@ class ObsSpaceUnit:
                              [1 for _ in range(0, 2)] +
                              [0.5 if i != 12 else 1 for i in range(0, 25)] +
                              [1, 1, 1, 1, 1, 1, 1] +
-                             [0 for _ in range(0, 1)])
+                             [1 for _ in range(0, 1)])
         return
     @staticmethod
     def task_type_to_int(task_type):
