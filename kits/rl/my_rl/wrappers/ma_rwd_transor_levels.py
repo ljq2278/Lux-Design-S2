@@ -89,33 +89,38 @@ class MaRwdTransorUnit():
                 metrics[unit_id]['curr_tile_rubble'] = obs[unit_id][int((ObsSpaceUnit.near_space_start + ObsSpaceUnit.near_space_start + ObsSpaceUnit.near_space) // 2)]
                 metrics[unit_id]['next_curr_tile_rubble'] = next_obs[unit_id][int((ObsSpaceUnit.near_space_start + ObsSpaceUnit.near_space_start + ObsSpaceUnit.near_space) // 2)]
                 metrics[unit_id]['rubble_changed'] = metrics[unit_id]['next_curr_tile_rubble'] - metrics[unit_id]['curr_tile_rubble']
-
+                if self.debug:
+                    print('#################################################### debug start #########################################################################################################')
                 if metrics[unit_id]['task_type'] == 'ice' or metrics[unit_id]['task_type'] == 'ore':
                     rewards[unit_id] += metrics[unit_id]['transfered']
                     if self.density and metrics[unit_id]['dis_to_target_changed'] < 0 and metrics[unit_id][metrics[unit_id]['task_type']] == 0:  ############## on the way target
                         rwd = 1
                         rewards[unit_id] += rwd
                         self.reward_collect['on the way target'] += 1
-                        # if metrics[unit_id]['next_dis_to_target'] == 0:
-                        #     rwd = 1
-                        #     rewards[unit_id] += rwd
-                        #     self.reward_collect['get to target'] += 1
+                        if self.debug:
+                            print('on the way target')
 
                     if self.density and metrics[unit_id]['dis_to_target_changed'] > 0 and metrics[unit_id][metrics[unit_id]['task_type']] == 0:  ############## leave the way target
                         rwd = -1.1
                         rewards[unit_id] += rwd
                         self.reward_collect['leave the way target'] += 1
+                        if self.debug:
+                            print('leave the way target')
 
                     if metrics[unit_id]['on_target'] and metrics[unit_id]['next_on_target'] and metrics[unit_id][metrics[unit_id]['task_type']] < 100:  ########### dig reward
                         if metrics[unit_id]['rubble_changed'] < 0:
                             rwd = 1.5
                             rewards[unit_id] += rwd
                             self.reward_collect['dig out rubble on target'] += 1
+                            if self.debug:
+                                print('dig out rubble on target')
                         elif metrics[unit_id][metrics[unit_id]['task_type'] + '_changed'] > 0:
                             factor = 0.1
                             rwd = metrics[unit_id][metrics[unit_id]['task_type'] + '_changed'] * factor
                             rewards[unit_id] += rwd
                             self.reward_collect['dig target'] += 1
+                            if self.debug:
+                                print('dig target')
 
                     if self.density and metrics[unit_id]['dis_to_factory_changed'] < 0 and \
                             metrics[unit_id][metrics[unit_id]['task_type']] > 0 and not metrics[unit_id]['if_in_factory']:  ########### on the way home with target
@@ -123,11 +128,8 @@ class MaRwdTransorUnit():
                         rwd = metrics[unit_id][metrics[unit_id]['task_type']] * factor
                         rewards[unit_id] += rwd
                         self.reward_collect['on the way home with target'] += 1
-                        # if metrics[unit_id]['if_next_in_factory']:
-                        #     factor = 0.1
-                        #     rwd = metrics[unit_id][metrics[unit_id]['task_type']] * factor
-                        #     rewards[unit_id] += rwd
-                        #     self.reward_collect['return factory with target'] += 1
+                        if self.debug:
+                            print('on the way home with target')
 
                     if self.density and metrics[unit_id]['dis_to_factory_changed'] > 0 and \
                             metrics[unit_id][metrics[unit_id]['task_type']] > 0 and metrics[unit_id]['if_in_factory']:  ########### leave the way home with target
@@ -135,17 +137,19 @@ class MaRwdTransorUnit():
                         rwd = metrics[unit_id][metrics[unit_id]['task_type']] * factor
                         rewards[unit_id] += rwd
                         self.reward_collect['leave the way home with target'] += 1
+                        if self.debug:
+                            print('leave the way home with target')
 
-                    # if self.reward_collect['on the way home with target']>0 and self.reward_collect['dig target']==0:
-                    #     tt = 1
                     if metrics[unit_id]['if_in_factory']:  ######################################################################################################### transfer target
                         if metrics[unit_id][metrics[unit_id]['task_type'] + '_changed'] < 0:
-                            next_obs[unit_id][ObsSpaceUnit.transfered_start] += -metrics[unit_id][metrics[unit_id]['task_type'] + '_changed']
                             factor = 1
                             rwd = -metrics[unit_id][metrics[unit_id]['task_type'] + '_changed'] * factor
                             rewards[unit_id] += rwd
                             self.reward_collect['transfer target'] += 1
-                            metrics[unit_id]['transfered'] += metrics[unit_id][metrics[unit_id]['task_type'] + '_changed']
+                            metrics[unit_id]['transfered'] += -metrics[unit_id][metrics[unit_id]['task_type'] + '_changed']
+                            next_obs[unit_id][ObsSpaceUnit.transfered_start] += -metrics[unit_id][metrics[unit_id]['task_type'] + '_changed']
+                            if self.debug:
+                                print('transfered')
                             if metrics[unit_id]['task_type'] == 'ice':
                                 self.reward_collect['transfer ice'] += 1
                             elif metrics[unit_id]['task_type'] == 'ore':
@@ -158,13 +162,12 @@ class MaRwdTransorUnit():
                     self.reward_collect['low power charged'] += 1
 
                 if self.debug:
-                    print('#################################################### debug start #########################################################################################################')
                     print(unit_id)
                     print(obs[unit_id])
                     print(next_obs[unit_id])
                     print(act[unit_id])
                     print(rewards[unit_id])
-                    print(self.reward_collect)
+                    # print(self.reward_collect)
                     print('###################################################### debug end #########################################################################################################')
         return rewards, next_obs
 

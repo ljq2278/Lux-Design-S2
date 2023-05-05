@@ -36,7 +36,7 @@ class MaObsTransorUnit(ObsSpaceUnit):
         for pid, pu_info in unit_obs.items():
             for u_id, u_target in pu_info.items():
                 for f_id, f_resource in f_resource_dict[pid].items():
-                    if (f_resource['pos'][0] - unit_obs[pid][u_id][0]) ** 2 + (f_resource['pos'][1] - unit_obs[pid][u_id][1]) ** 2 < \
+                    if f_id in factory_task[pid].keys() and (f_resource['pos'][0] - unit_obs[pid][u_id][0]) ** 2 + (f_resource['pos'][1] - unit_obs[pid][u_id][1]) ** 2 < \
                             unit_obs[pid][u_id][self.target_factory_pos_start] ** 2 + unit_obs[pid][u_id][self.target_factory_pos_start + 1] ** 2:  # the unit listen to the proximal factory
                         unit_obs[pid][u_id][self.task_type_start] = ObsSpaceUnit.task_type_to_int(factory_task[pid][f_id])
                         unit_obs[pid][u_id][self.target_pos_start:self.target_pos_start + 2] = \
