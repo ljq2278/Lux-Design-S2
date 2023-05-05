@@ -30,7 +30,10 @@ class ObsSpaceUnit:
     task_type_start = day_or_night_start + day_or_night  # 37    <=0: no task; 1: ice 2: ore 3: dig for plant
     task_type = 1
 
-    total_dims = task_type_start + task_type  # total 38 dim
+    transfered_start = task_type_start + task_type  # 38
+    transfered = 1
+
+    total_dims = transfered_start + transfered  # total 39 dim
 
     def __init__(self, env_cfg):
         self.env_cfg = env_cfg
@@ -39,16 +42,17 @@ class ObsSpaceUnit:
                                [self.env_cfg.ROBOTS['HEAVY'].CARGO_SPACE / 100 for _ in range(0, 2)] +
                                [self.env_cfg.MAX_RUBBLE for _ in range(0, 25)] +
                                [self.env_cfg.map_size / 10 for _ in range(0, 6)] +
-                               [1 for _ in range(0, 1)] +
-                               [1 for _ in range(0, 1)])
+                               [1 for _ in range(0, 2)] +
+                               [50 for _ in range(0, 1)], dtype=float)
 
-        self.mask = np.array([0 for _ in range(0, 2)] +
-                             [1 for _ in range(0, 1)] +
-                             [1 for _ in range(0, 2)] +
-                             [0.5 if i != 12 else 1 for i in range(0, 25)] +
-                             [1, 1, 1, 1, 1, 1, 1] +
-                             [1 for _ in range(0, 1)])
+        # self.mask = np.array([0 for _ in range(0, 2)] +
+        #                      [1 for _ in range(0, 1)] +
+        #                      [1 for _ in range(0, 2)] +
+        #                      [0.5 if i != 12 else 1 for i in range(0, 25)] +
+        #                      [1, 1, 1, 1, 1, 1, 1] +
+        #                      [1 for _ in range(0, 2)], dtype=float)
         return
+
     @staticmethod
     def task_type_to_int(task_type):
         if task_type == 'ice':
@@ -70,6 +74,7 @@ class ObsSpaceUnit:
             return 'rubble'
         else:
             return 'except'
+
 
 class ObsSpaceFactory:
     pos_dim_start = 0  # 0

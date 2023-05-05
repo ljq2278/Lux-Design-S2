@@ -32,7 +32,7 @@ class MaObsTransorUnit(ObsSpaceUnit):
                     min_ind = i
         return min_rela_pos, min_ind
 
-    def change_uobs_with_order(self, unit_obs, unit_norm_obs, order_to_uid):
+    def change_uobs_with_order(self, unit_obs, order_to_uid):
         for pid, p_info in order_to_uid.items():
             for f_id, u_target in p_info.items():
                 for u_id, target in u_target.items():
@@ -43,22 +43,14 @@ class MaObsTransorUnit(ObsSpaceUnit):
                             unit_obs[pid][u_id][self.task_type_start] = ObsSpaceUnit.task_type_to_int(task_type)
                             unit_obs[pid][u_id][self.target_pos_start:self.target_pos_start + 2] = [t_x - unit_obs[pid][u_id][0], t_y - unit_obs[pid][u_id][1]]
                             unit_obs[pid][u_id][self.target_factory_pos_start:self.target_factory_pos_start + 2] = [f_x - unit_obs[pid][u_id][0], f_y - unit_obs[pid][u_id][1]]
-                            unit_norm_obs[pid][u_id][self.task_type_start] = ObsSpaceUnit.task_type_to_int(task_type) / self.normer[self.task_type_start] * self.mask[self.task_type_start]
-                            unit_norm_obs[pid][u_id][self.target_pos_start:self.target_pos_start + 2] = \
-                                np.array([t_x - unit_obs[pid][u_id][0], t_y - unit_obs[pid][u_id][1]]) / self.normer[self.target_pos_start:self.target_pos_start + 2] \
-                                * self.mask[self.target_pos_start:self.target_pos_start + 2]
-                            unit_norm_obs[pid][u_id][self.target_factory_pos_start:self.target_factory_pos_start + 2] = \
-                                np.array([f_x - unit_obs[pid][u_id][0], f_y - unit_obs[pid][u_id][1]]) / self.normer[self.target_factory_pos_start:self.target_factory_pos_start + 2] \
-                                * self.mask[self.target_factory_pos_start:self.target_factory_pos_start + 2]
-        return unit_obs, unit_norm_obs
+        return unit_obs
+
 
     # we make this method static so the submission/evaluation code can use this as well
-    def sg_to_ma(self, raw_obs: Dict[str, Any]):
+    def sg_to_ma(self, raw_obs: Dict[str, Any], last_obs):
         player_set = set(raw_obs["factories"].keys())
         space_info = np.ones([self.env_cfg.map_size + 4, self.env_cfg.map_size + 4]) * self.env_cfg.MAX_RUBBLE
         space_info[2:self.env_cfg.map_size + 2, 2:self.env_cfg.map_size + 2] = raw_obs["board"]["rubble"]  # rubble map
-        ice_locs = np.argwhere(raw_obs["board"]["ice"] == 1)
-        ore_locs = np.argwhere(raw_obs["board"]["ore"] == 1)
         robot_rubble_identied = self.env_cfg.MAX_RUBBLE * 2
         ################################################################### fill the robot map
         for player_id, player_info in raw_obs['units'].items():
@@ -92,10 +84,7 @@ class MaObsTransorUnit(ObsSpaceUnit):
 
                 ############################################################## near space
 
-                near_space = space_info[
-                             unit_info['pos'][0] + 2 - 2:unit_info['pos'][0] + 2 + 3,
-                             unit_info['pos'][1] + 2 - 2:unit_info['pos'][1] + 2 + 3
-                             ].reshape(-1)
+                near_space = space_info[unit_info['pos'][0] + 2 - 2:unit_info['pos'][0] + 2 + 3,unit_info['pos'][1] + 2 - 2:unit_info['pos'][1] + 2 + 3].reshape(-1)
                 ############################################################# start build obs feature
 
                 # 0,1 pos
@@ -113,38 +102,16 @@ class MaObsTransorUnit(ObsSpaceUnit):
                 # add near oppo factory
                 ret[player_id][unit_id][self.nearest_oppo_factory_pos_start:self.nearest_oppo_factory_pos_start + self.nearest_oppo_factory_pos] = f_oppo_min_rela_pos
 
+                # add transfer factory
+                if last_obs is not None and unit_id in last_obs[player_id].keys():
+                    ret[player_id][unit_id][self.transfered_start] = last_obs[player_id][unit_id][self.transfered_start]
+                else:
+                    ret[player_id][unit_id][self.transfered_start] = 0
                 # add time info
                 ret[player_id][unit_id][self.day_or_night_start] = \
                     (raw_obs['real_env_steps'] % self.env_cfg.DAY_LENGTH) / self.env_cfg.DAY_LENGTH
 
-        if self.if_mask:
-            return ret, dict([
-                (
-                    p_id,
-                    dict([
-                        (
-                            u_id,
-                            (np.array(u_info) / self.normer * self.mask).tolist()
-                        )
-                        for u_id, u_info in p_info.items()
-                    ])
-                )
-                for p_id, p_info in ret.items()
-            ])
-        else:
-            return ret, dict([
-                (
-                    p_id,
-                    dict([
-                        (
-                            u_id,
-                            (np.array(u_info) / self.normer).tolist()
-                        )
-                        for u_id, u_info in p_info.items()
-                    ])
-                )
-                for p_id, p_info in ret.items()
-            ])
+        return ret
 
 
 class MaObsTransorFactory(ObsSpaceFactory):
@@ -168,32 +135,4 @@ class MaObsTransorFactory(ObsSpaceFactory):
                 ret[p_id][f_id][self.ice_dim_start] = f_info['cargo']['ice']
                 ret[p_id][f_id][self.ore_dim_start] = f_info['cargo']['ore']
                 ret[p_id][f_id][self.power_dim_start] = f_info['power']
-
-        if self.if_mask:
-            return ret, dict([
-                (
-                    p_id,
-                    dict([
-                        (
-                            f_id,
-                            (np.array(f_info) / self.normer * self.mask).tolist()
-                        )
-                        for f_id, f_info in p_info.items()
-                    ])
-                )
-                for p_id, p_info in ret.items()
-            ])
-        else:
-            return ret, dict([
-                (
-                    p_id,
-                    dict([
-                        (
-                            f_id,
-                            (np.array(f_info) / self.normer).tolist()
-                        )
-                        for f_id, f_info in p_info.items()
-                    ])
-                )
-                for p_id, p_info in ret.items()
-            ])
+        return ret

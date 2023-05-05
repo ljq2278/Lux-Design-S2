@@ -37,7 +37,7 @@ class MaRwdTransorUnit():
             return True
         return False
 
-    def sg_to_ma(self, ori_reward, act, obs, next_obs, done, ice_map=None, ore_map=None, raw_obs=None, typ='HEAVY'):
+    def sg_to_ma(self, ori_reward, act, obs, next_obs, done,  typ='HEAVY'):
         rewards = {}
         metrics = {}
         unit_ids = list(set(obs.keys()).union(set(next_obs.keys())))
@@ -126,6 +126,7 @@ class MaRwdTransorUnit():
                     #     tt = 1
                     if metrics[unit_id]['if_in_factory']:  ########################################################################### transfer target
                         if metrics[unit_id][metrics[unit_id]['task_type'] + '_changed'] < 0:
+                            next_obs[unit_id][ObsSpaceUnit.transfered_start] = -metrics[unit_id][metrics[unit_id]['task_type'] + '_changed']
                             factor = 1
                             rwd = -metrics[unit_id][metrics[unit_id]['task_type'] + '_changed'] * factor
                             rewards[unit_id] += rwd
@@ -150,7 +151,7 @@ class MaRwdTransorUnit():
                     print(rewards[unit_id])
                     print(self.reward_collect)
                     print('###################################################### debug end #############################################################')
-        return rewards
+        return rewards, next_obs
 
 
 class MaRwdTransorFactory():

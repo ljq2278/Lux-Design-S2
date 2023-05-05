@@ -14,17 +14,17 @@ from ppo.UnitBuffer import Buffer
 
 
 class PPO_Online_Agent:
-    def __init__(self, state_dim, action_dim):
-        self.policy = ActorCritic(state_dim, action_dim)
+    def __init__(self, state_dim, action_dim, env_cfg):
+        self.policy = ActorCritic(state_dim, action_dim, env_cfg)
 
     def update(self, new_params):
         self.policy.load_state_dict(new_params)
 
 
 class PPO_Offline_Agent:
-    def __init__(self, state_dim, action_dim, lr_actor, lr_critic, eps_clip, save_dir='./'):
+    def __init__(self, state_dim, action_dim, env_cfg, lr_actor, lr_critic, eps_clip, save_dir='./'):
         self.eps_clip = eps_clip
-        self.policy = ActorCritic(state_dim, action_dim)
+        self.policy = ActorCritic(state_dim, action_dim, env_cfg)
         self.optimizer = torch.optim.Adam([
             {'params': self.policy.actor.parameters(), 'lr': lr_actor},
             {'params': self.policy.critic.parameters(), 'lr': lr_critic}
