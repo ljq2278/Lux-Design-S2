@@ -19,7 +19,7 @@ from ppo.UnitAgent import PPO_Offline_Agent
 from ppo.UnitAgent import PPO_Online_Agent
 from ppo.UnitBuffer import Buffer
 from ppo.FactoryAgent import Factory_Agent
-
+import cv2
 
 class GlobalAgent(EarlyRuleAgent, PPO):
     def __init__(self, player: str, env_cfg: EnvConfig, unit_agent, factory_agent):
@@ -32,10 +32,10 @@ print_interv = 10
 actor_lr = 0.0004
 critic_lr = 0.001
 eps_clip = 0.2
-K_epochs = 20
+K_epochs = 0
 episode_num = 3000000
 gamma = 0.98
-sub_proc_count = 6
+sub_proc_count = 1
 exp = 'paral_ppo2'
 want_load_model = True
 max_episode_length = 200
@@ -55,7 +55,7 @@ def sub_run(replay_queue: multiprocessing.Queue, param_queue: multiprocessing.Qu
     maActTransorFactory = MaActTransorFactory(env, env_cfg)
     maObsTransorUnit = MaObsTransorUnit(env, env_cfg, if_mask=True)
     maObsTransorFactory = MaObsTransorFactory(env, env_cfg, if_mask=True)
-    maRwdTransorUnit = MaRwdTransorUnit(env, env_cfg, debug=False, density=density_rwd)
+    maRwdTransorUnit = MaRwdTransorUnit(env, env_cfg, debug=True, density=density_rwd)
     maRwdTransorFactory = MaRwdTransorFactory(env, env_cfg, debug=False, density=density_rwd)
     agent_cont = 2
     unit_online_agent = PPO_Online_Agent(dim_info_unit[0], dim_info_unit[1], env_cfg)
@@ -69,13 +69,14 @@ def sub_run(replay_queue: multiprocessing.Queue, param_queue: multiprocessing.Qu
     survive_step = 0
     unit_buffer = Buffer()
     tmp_buffer_unit = {}  # record every unit datas
-    for episode in range(episode_num):
+    for episode in range(1):
         np.random.seed()
         seed = np.random.randint(0, 100000000)
         raw_obs = env.reset(seed=seed)
         obs_unit = maObsTransorUnit.sg_to_ma(raw_obs['player_0'], None)
         obs_factory = maObsTransorFactory.sg_to_ma(raw_obs['player_0'])
         done = {'player_0': False, 'player_1': False}
+        imgs = []
         ################################ interact with the env for an episode ###################################
         while raw_obs['player_0']["real_env_steps"] < 0 or sum(done.values()) < len(done):
             if raw_obs['player_0']["real_env_steps"] < 0:
@@ -125,6 +126,7 @@ def sub_run(replay_queue: multiprocessing.Queue, param_queue: multiprocessing.Qu
                     for u_id, u_info in raw_action_unit[p_id].items():
                         raw_action[p_id][u_id] = u_info
                 raw_next_obs, raw_reward, done, info = env.step(raw_action)
+                imgs += [env.render("rgb_array", width=640, height=640)]
                 ############################### get next obs factory ######################################
                 next_obs_factory = maObsTransorFactory.sg_to_ma(raw_next_obs['player_0'])
                 ############################### get custom reward factory ######################################
@@ -183,7 +185,12 @@ def sub_run(replay_queue: multiprocessing.Queue, param_queue: multiprocessing.Qu
                 obs_unit = next_obs_unit
         ############################### episode data record  #################################
         survive_step += raw_obs["player_0"]["real_env_steps"]
-
+        for img in imgs:
+            cv2.imshow("Window", img)
+            cv2.moveWindow('Window', 100, 100)
+            cv2.waitKey(10000)
+            cv2.destroyAllWindows()
+            break
         ##################### after a game, use MC the reward and get Advantage and tranport #####################
         for u_id, behaviors in tmp_buffer_unit.items():
             unit_buffer.add_examples(*list(zip(*behaviors)))
@@ -230,10 +237,6 @@ def offline_learn(replay_queue: multiprocessing.Queue, param_queue_list, pid):
             train_data.clear()
             for param_queue in param_queue_list:
                 param_queue.put(new_params)
-            if online_agent_update_time % 10 == 0:
-                print('save model, online agent update time ', online_agent_update_time)
-                ppo_offline_agent.save()
-
 
 if __name__ == "__main__":
     replay_queue = multiprocessing.Queue()

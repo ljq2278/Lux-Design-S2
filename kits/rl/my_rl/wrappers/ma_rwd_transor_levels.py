@@ -91,7 +91,7 @@ class MaRwdTransorUnit():
                 metrics[unit_id]['rubble_changed'] = metrics[unit_id]['next_curr_tile_rubble'] - metrics[unit_id]['curr_tile_rubble']
 
                 if metrics[unit_id]['task_type'] == 'ice' or metrics[unit_id]['task_type'] == 'ore':
-                    rewards[unit_id] += metrics[unit_id]['transfered'] / 10
+                    rewards[unit_id] += metrics[unit_id]['transfered']
                     if self.density and metrics[unit_id]['dis_to_target_changed'] < 0 and metrics[unit_id][metrics[unit_id]['task_type']] == 0:  ############## on the way target
                         rwd = 1
                         rewards[unit_id] += rwd
@@ -158,13 +158,14 @@ class MaRwdTransorUnit():
                     self.reward_collect['low power charged'] += 1
 
                 if self.debug:
-                    print('#################################################### debug start ############################################################')
+                    print('#################################################### debug start #########################################################################################################')
+                    print(unit_id)
                     print(obs[unit_id])
                     print(next_obs[unit_id])
                     print(act[unit_id])
                     print(rewards[unit_id])
                     print(self.reward_collect)
-                    print('###################################################### debug end #############################################################')
+                    print('###################################################### debug end #########################################################################################################')
         return rewards, next_obs
 
 

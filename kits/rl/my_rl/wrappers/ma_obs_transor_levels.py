@@ -32,19 +32,18 @@ class MaObsTransorUnit(ObsSpaceUnit):
                     min_ind = i
         return min_rela_pos, min_ind
 
-    def change_uobs_with_order(self, unit_obs, order_to_uid):
-        for pid, p_info in order_to_uid.items():
-            for f_id, u_target in p_info.items():
-                for u_id, target in u_target.items():
-                    if u_id in unit_obs[pid].keys():
-                        t_x, t_y, f_x, f_y, task_type = target
-                        if (f_x - unit_obs[pid][u_id][0]) ** 2 + (f_y - unit_obs[pid][u_id][1]) ** 2 < \
-                                unit_obs[pid][u_id][self.target_factory_pos_start] ** 2 + unit_obs[pid][u_id][self.target_factory_pos_start + 1] ** 2:  # the unit listen to the proximal factory
-                            unit_obs[pid][u_id][self.task_type_start] = ObsSpaceUnit.task_type_to_int(task_type)
-                            unit_obs[pid][u_id][self.target_pos_start:self.target_pos_start + 2] = [t_x - unit_obs[pid][u_id][0], t_y - unit_obs[pid][u_id][1]]
-                            unit_obs[pid][u_id][self.target_factory_pos_start:self.target_factory_pos_start + 2] = [f_x - unit_obs[pid][u_id][0], f_y - unit_obs[pid][u_id][1]]
+    def change_uobs_with_order(self, unit_obs, factory_task, f_resource_dict):
+        for pid, pu_info in unit_obs.items():
+            for u_id, u_target in pu_info.items():
+                for f_id, f_resource in f_resource_dict[pid].items():
+                    if (f_resource['pos'][0] - unit_obs[pid][u_id][0]) ** 2 + (f_resource['pos'][1] - unit_obs[pid][u_id][1]) ** 2 < \
+                            unit_obs[pid][u_id][self.target_factory_pos_start] ** 2 + unit_obs[pid][u_id][self.target_factory_pos_start + 1] ** 2:  # the unit listen to the proximal factory
+                        unit_obs[pid][u_id][self.task_type_start] = ObsSpaceUnit.task_type_to_int(factory_task[pid][f_id])
+                        unit_obs[pid][u_id][self.target_pos_start:self.target_pos_start + 2] = \
+                            [f_resource[factory_task[pid][f_id]][0][0] - unit_obs[pid][u_id][0], f_resource[factory_task[pid][f_id]][0][1] - unit_obs[pid][u_id][1]]
+                        unit_obs[pid][u_id][self.target_factory_pos_start:self.target_factory_pos_start + 2] = \
+                            [f_resource['pos'][0] - unit_obs[pid][u_id][0], f_resource['pos'][1] - unit_obs[pid][u_id][1]]
         return unit_obs
-
 
     # we make this method static so the submission/evaluation code can use this as well
     def sg_to_ma(self, raw_obs: Dict[str, Any], last_obs):
@@ -84,7 +83,7 @@ class MaObsTransorUnit(ObsSpaceUnit):
 
                 ############################################################## near space
 
-                near_space = space_info[unit_info['pos'][0] + 2 - 2:unit_info['pos'][0] + 2 + 3,unit_info['pos'][1] + 2 - 2:unit_info['pos'][1] + 2 + 3].reshape(-1)
+                near_space = space_info[unit_info['pos'][0] + 2 - 2:unit_info['pos'][0] + 2 + 3, unit_info['pos'][1] + 2 - 2:unit_info['pos'][1] + 2 + 3].reshape(-1)
                 ############################################################# start build obs feature
 
                 # 0,1 pos
