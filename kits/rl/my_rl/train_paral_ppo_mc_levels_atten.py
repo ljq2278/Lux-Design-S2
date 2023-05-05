@@ -28,11 +28,11 @@ class GlobalAgent(EarlyRuleAgent, PPO):
 
 
 env_id = "LuxAI_S2-v0"
-print_interv = 10
+print_interv = 1
 actor_lr = 0.0004
 critic_lr = 0.001
 eps_clip = 0.2
-K_epochs = 20
+K_epochs = 10
 episode_num = 3000000
 gamma = 0.98
 sub_proc_count = 6
@@ -192,7 +192,9 @@ def sub_run(replay_queue: multiprocessing.Queue, param_queue: multiprocessing.Qu
         replay_queue.put(
             [unit_buffer.states, unit_buffer.actions, unit_buffer.action_logprobs,
              unit_buffer.state_vals, unit_buffer.rewards, unit_buffer.dones, unit_buffer.advantages])
+        print('get param start: ', p_id)
         new_params = param_queue.get()
+        print('get param end: ', p_id)
         unit_online_agent.update(new_params)
         unit_buffer.clear()
         tmp_buffer_unit.clear()
@@ -230,7 +232,7 @@ def offline_learn(replay_queue: multiprocessing.Queue, param_queue_list, pid):
             train_data.clear()
             for param_queue in param_queue_list:
                 param_queue.put(new_params)
-            if online_agent_update_time % 10 == 0:
+            if online_agent_update_time % 1 == 0:
                 print('save model, online agent update time ', online_agent_update_time)
                 ppo_offline_agent.save()
 

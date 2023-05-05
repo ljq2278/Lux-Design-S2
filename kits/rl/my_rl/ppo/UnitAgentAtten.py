@@ -12,7 +12,6 @@ from actcrt_model.ac_attention_model import ActorCritic
 from ppo.UnitBuffer import Buffer
 
 
-
 class PPO_Online_Agent:
     def __init__(self, state_dim, action_dim, env_cfg):
         self.policy = ActorCritic(state_dim, action_dim, env_cfg)
@@ -35,8 +34,9 @@ class PPO_Offline_Agent:
     def update_and_get_new_param(self, train_data, K_epochs):
         # Monte Carlo estimate of returns
         # Optimize policy for K epochs
-        for _ in range(K_epochs):
-            for pid_data in train_data:
+        for j in range(K_epochs):
+            print('K_epochs: ', j)
+            for i, pid_data in enumerate(train_data):
                 # Evaluating old actions and values
                 old_states, old_actions, old_logprobs, old_state_vals, old_rewards, old_done, advantages = \
                     [torch.Tensor(np.array(x)) for x in pid_data]
