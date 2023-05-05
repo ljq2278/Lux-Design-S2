@@ -18,7 +18,7 @@ class ActMLPNetwork(nn.Module):
         self.mn = mn
         self.mx = mx
         self.embeddings = nn.ModuleList([nn.Embedding(num_bins, embedding_dim) for _ in range(in_dim)])
-        self.attn_net = nn.MultiheadAttention(embed_dim=embedding_dim, num_heads=6)
+        self.attn_net = nn.MultiheadAttention(embed_dim=embedding_dim, num_heads=4)
         self.linear = nn.Linear(in_dim * embedding_dim, out_dim)
         self.sfmx = nn.Softmax(dim=-1)
 
