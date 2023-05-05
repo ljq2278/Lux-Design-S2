@@ -38,7 +38,7 @@ gamma = 0.98
 sub_proc_count = 5
 exp = 'paral_ppo2'
 want_load_model = True
-max_episode_length = 20
+max_episode_length = 200
 agent_debug = False
 density_rwd = True
 
@@ -116,7 +116,7 @@ def sub_run(replay_queue: multiprocessing.Queue, param_queue: multiprocessing.Qu
                     for u_id, u_obs in norm_obs_unit[g_agent.player].items():
                         a, b, c = unit_online_agent.policy.act([u_obs])
                         action_unit[g_agent.player][u_id], action_logprob_unit[g_agent.player][u_id], state_val_unit[g_agent.player][u_id] = a[0], b[0], c[0][0]
-                    raw_action_unit[g_agent.player] = maActTransorUnit.ma_to_sg(action_unit[g_agent.player], raw_obs[g_agent.player], g_agent.player)
+                    raw_action_unit[g_agent.player] = maActTransorUnit.ma_to_sg(action_unit[g_agent.player], obs_unit[g_agent.player])
                 ############################### get action to env result ###############################
                 for p_id, p_info in raw_action_factory.items():
                     raw_action[p_id] = {}

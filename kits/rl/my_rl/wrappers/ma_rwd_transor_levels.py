@@ -25,6 +25,8 @@ class MaRwdTransorUnit():
             'on the way home with target': 0,
             'return factory with target': 0,
             'transfer target': 0,
+            'transfer ice': 0,
+            'transfer ore': 0,
             'low power charged': 0,
         }
         return
@@ -50,6 +52,7 @@ class MaRwdTransorUnit():
             elif unit_id not in obs.keys():  # it is new born
                 pass
             else:
+                metrics[unit_id]['transfered'] = 0
 
                 metrics[unit_id]['if_in_factory'] = self._if_in_factory(obs[unit_id])
                 metrics[unit_id]['if_next_in_factory'] = self._if_in_factory(next_obs[unit_id])
@@ -88,6 +91,7 @@ class MaRwdTransorUnit():
                 metrics[unit_id]['rubble_changed'] = metrics[unit_id]['next_curr_tile_rubble'] - metrics[unit_id]['curr_tile_rubble']
 
                 if metrics[unit_id]['task_type'] == 'ice' or metrics[unit_id]['task_type'] == 'ore':
+                    rewards[unit_id] += metrics[unit_id]['transfered']
                     if self.density and metrics[unit_id]['dis_to_target_changed'] < 0 and metrics[unit_id][metrics[unit_id]['task_type']] == 0:  ############## on the way target
                         rwd = 1
                         rewards[unit_id] += rwd
@@ -97,30 +101,40 @@ class MaRwdTransorUnit():
                             rewards[unit_id] += rwd
                             self.reward_collect['get to target'] += 1
 
-                    if metrics[unit_id]['on_target']:
+                    if metrics[unit_id]['on_target'] and metrics[unit_id]['next_on_target']:
                         if metrics[unit_id]['rubble_changed'] < 0:
                             rwd = 1
                             rewards[unit_id] += rwd
                             self.reward_collect['dig out rubble on target'] += 1
                         elif metrics[unit_id][metrics[unit_id]['task_type'] + '_changed'] > 0:
-                            rwd = metrics[unit_id][metrics[unit_id]['task_type'] + '_changed']
+                            factor = 0.1
+                            rwd = metrics[unit_id][metrics[unit_id]['task_type'] + '_changed'] * factor
                             rewards[unit_id] += rwd
                             self.reward_collect['dig target'] += 1
 
                     if self.density and metrics[unit_id]['dis_to_factory_changed'] < 0 and metrics[unit_id][metrics[unit_id]['task_type']] > 0:  ########### on the way home with target
-                        rwd = metrics[unit_id][metrics[unit_id]['task_type']]
+                        factor = 0.2
+                        rwd = metrics[unit_id][metrics[unit_id]['task_type']] * factor
                         rewards[unit_id] += rwd
                         self.reward_collect['on the way home with target'] += 1
                         if metrics[unit_id]['if_next_in_factory']:
-                            rwd = metrics[unit_id][metrics[unit_id]['task_type']]
+                            factor = 0.2
+                            rwd = metrics[unit_id][metrics[unit_id]['task_type']] * factor
                             rewards[unit_id] += rwd
                             self.reward_collect['return factory with target'] += 1
-
+                    # if self.reward_collect['on the way home with target']>0 and self.reward_collect['dig target']==0:
+                    #     tt = 1
                     if metrics[unit_id]['if_in_factory']:  ########################################################################### transfer target
                         if metrics[unit_id][metrics[unit_id]['task_type'] + '_changed'] < 0:
-                            rwd = -metrics[unit_id][metrics[unit_id]['task_type'] + '_changed'] * 2
+                            factor = 1
+                            rwd = -metrics[unit_id][metrics[unit_id]['task_type'] + '_changed'] * factor
                             rewards[unit_id] += rwd
                             self.reward_collect['transfer target'] += 1
+                            metrics[unit_id]['transfered'] += metrics[unit_id][metrics[unit_id]['task_type'] + '_changed']
+                            if metrics[unit_id]['task_type'] == 'ice':
+                                self.reward_collect['transfer ice'] += 1
+                            elif metrics[unit_id]['task_type'] == 'ore':
+                                self.reward_collect['transfer ore'] += 1
                 else:
                     pass
                 if self.density and metrics[unit_id]['power_changed'] > 0 and metrics[unit_id]['power'] < self.env_cfg.ROBOTS[typ].BATTERY_CAPACITY * 0.2:  ############ low power charge reward

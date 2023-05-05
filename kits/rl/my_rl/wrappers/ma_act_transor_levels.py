@@ -6,6 +6,7 @@ import numpy.typing as npt
 from gym import spaces
 from lux.config import EnvConfig
 from wrappers.act_space_levels import ActSpaceUnit, ActSpaceFactory
+from wrappers.obs_space_levels import ObsSpaceUnit
 
 
 class MaActTransorUnit(ActSpaceUnit):
@@ -21,17 +22,19 @@ class MaActTransorUnit(ActSpaceUnit):
         # move direction is id + 1 since we don't allow move center here
         return np.array([0, id + 1, 0, 0, 0, 1])
 
-    def _is_transfer_ice_action(self, id):
-        return id < self.transfer_ice_dim_high
+    def _is_transfer_target_action(self, id):
+        return id < self.transfer_target_dim_high
 
-    def _is_transfer_ore_action(self, id):
-        return id < self.transfer_ore_dim_high
-
-    def _get_transfer_ice_action(self, id):
-        return np.array([1, 0, 0, self.env_cfg.max_transfer_amount, 0, 1])
-
-    def _get_transfer_ore_action(self, id):
-        return np.array([1, 0, 1, self.env_cfg.max_transfer_amount, 0, 1])
+    def _get_transfer_target_action(self, task_type):
+        if task_type == 'ice':
+            return np.array([1, 0, 0, self.env_cfg.max_transfer_amount, 0, 1])
+        elif task_type == 'ore':
+            return np.array([1, 0, 1, self.env_cfg.max_transfer_amount, 0, 1])
+        else:
+            if np.random.random() < 0.5:
+                return np.array([1, 0, 0, self.env_cfg.max_transfer_amount, 0, 1])
+            else:
+                return np.array([1, 0, 1, self.env_cfg.max_transfer_amount, 0, 1])
 
     def _is_pickup_action(self, id):
         return id < self.pickup_dim_high
@@ -45,22 +48,18 @@ class MaActTransorUnit(ActSpaceUnit):
     def _get_dig_action(self, id):
         return np.array([3, 0, 0, 0, 0, 1])
 
-
-    def ma_to_sg(self, actions: Dict[str, npt.NDArray], obs_info, player):
+    def ma_to_sg(self, actions: Dict[str, npt.NDArray], obs_unit):
 
         raw_action = dict()
-        units = obs_info["units"][player]
+        # units = obs_unit.keys()
         for unit_id, choice in actions.items():
-            unit = units[unit_id]
-            # choice = action
+            # unit = units[unit_id]
             action_queue = []
             no_op = False
             if self._is_move_action(choice):
                 action_queue = [self._get_move_action(choice)]
-            elif self._is_transfer_ice_action(choice):
-                action_queue = [self._get_transfer_ice_action(choice)]
-            elif self._is_transfer_ore_action(choice):
-                action_queue = [self._get_transfer_ore_action(choice)]
+            elif self._is_transfer_target_action(choice):
+                action_queue = [self._get_transfer_target_action(ObsSpaceUnit.int_to_task_type(obs_unit[unit_id][ObsSpaceUnit.task_type_start]))]
             elif self._is_pickup_action(choice):
                 action_queue = [self._get_pickup_action(choice)]
             elif self._is_dig_action(choice):
@@ -68,10 +67,10 @@ class MaActTransorUnit(ActSpaceUnit):
             else:
                 # action is a no_op, so we don't update the action queue
                 no_op = True
-            if len(unit["action_queue"]) > 0 and len(action_queue) > 0:
-                same_actions = (unit["action_queue"][0] == action_queue[0]).all()
-                if same_actions:
-                    no_op = True
+            # if len(unit["action_queue"]) > 0 and len(action_queue) > 0:
+            #     same_actions = (unit["action_queue"][0] == action_queue[0]).all()
+            #     if same_actions:
+            #         no_op = True
             if not no_op:
                 raw_action[unit_id] = action_queue
 
@@ -105,7 +104,7 @@ class MaActTransorFactory(ActSpaceFactory):
 
     def ma_to_sg(self, actions: Dict[str, npt.NDArray], obs_info, player):
         raw_action = dict()
-        for f_id,choice in actions.items():
+        for f_id, choice in actions.items():
             if self._is_build_light_action(choice):
                 raw_action[f_id] = 0
             elif self._is_build_heavy_action(choice):
