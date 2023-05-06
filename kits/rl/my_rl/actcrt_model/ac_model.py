@@ -24,7 +24,7 @@ class ActMLPNetwork(nn.Module):
 
     def forward(self, x):
         x = (x / self.obsSpaceUnit.normer).float()
-        output = F.gumbel_softmax(self.simple_net(x) + self.deep_net(x), tau=2)
+        output = F.gumbel_softmax(self.simple_net(x) + self.deep_net(x), tau=8)
         # output = self.sfmx(self.simple_net(x) + self.deep_net(x))
         # output = F.gumbel_softmax(self.deep_net(x), tau=2)
         return output
@@ -84,28 +84,14 @@ class ActorCritic(nn.Module):
         super(ActorCritic, self).__init__()
         self.actor = ActMLPNetwork(state_dim, action_dim, env_cfg)
         self.critic = CriMLPNetwork(state_dim, action_dim, env_cfg)
-        # self.actor = nn.Sequential(
-        #     nn.Linear(state_dim, 64),
-        #     nn.Tanh(),
-        #     nn.Linear(64, 64),
-        #     nn.Tanh(),
-        #     nn.Linear(64, action_dim),
-        #     nn.Softmax(dim=-1)
-        # )
-        # # critic
-        # self.critic = nn.Sequential(
-        #     nn.Linear(state_dim, 64),
-        #     nn.Tanh(),
-        #     nn.Linear(64, 64),
-        #     nn.Tanh(),
-        #     nn.Linear(64, 1)
-        # )
 
     def forward(self):
         raise NotImplementedError
 
     def act(self, state):
         state = torch.FloatTensor(state)
+        # inds = torch.where(state[:, ObsSpaceUnit.task_type_start] == 2.0)[0]
+        # state[inds, ObsSpaceUnit.task_type_start] = 1.0
         action_probs = self.actor(state)
         dist = Categorical(action_probs)
         action = dist.sample()
@@ -114,8 +100,8 @@ class ActorCritic(nn.Module):
         return action.tolist(), action_logprob.tolist(), state_val.tolist()
 
     def evaluate(self, state, action):
-        # state = torch.FloatTensor(state)
-        # action = torch.FloatTensor(action)
+        # inds = torch.where(state[:, ObsSpaceUnit.task_type_start] == 2.0)[0]
+        # state[inds, ObsSpaceUnit.task_type_start] = 1.0
         action_probs = self.actor(state)
         dist = Categorical(action_probs)
         action_logprobs = dist.log_prob(action)

@@ -38,7 +38,7 @@ gamma = 0.98
 sub_proc_count = 6
 exp = 'paral_ppo2'
 want_load_model = True
-max_episode_length = 200
+max_episode_length = 1000
 agent_debug = False
 density_rwd = True
 
@@ -85,11 +85,18 @@ def sub_run(replay_queue: multiprocessing.Queue, param_queue: multiprocessing.Qu
                 raw_next_obs, raw_reward, done, info = env.step(raw_action)
                 raw_obs = raw_next_obs
             else:
+                rubble_locs = np.argwhere(raw_obs['player_0']["board"]["rubble"] > 0)
                 if raw_obs['player_0']["real_env_steps"] == 0:
+                    for p_id, fp_info in env.state.factories.items():
+                        for f_id in fp_info.keys():
+                            # set factories to have 1000 water to check the ore dig ability
+                            env.state.factories[p_id][f_id].cargo.water = 500
                     obs_factory = maObsTransorFactory.sg_to_ma(raw_obs['player_0'])
                     ice_locs = np.argwhere(raw_obs['player_0']["board"]["ice"] == 1)
                     ore_locs = np.argwhere(raw_obs['player_0']["board"]["ore"] == 1)
-                    factory_agent.order_resource_pos(raw_obs['player_0']['factories'], ice_locs, ore_locs)
+                    factory_agent.order_resource_pos(raw_obs['player_0']['factories'], ice_locs, ore_locs, rubble_locs)
+                else:
+                    factory_agent.update_rubble_pos(raw_obs['player_0']['factories'], rubble_locs)
                 globale_step += 1
                 raw_action = {}
                 ############################### get action and raw_action factory ###############################

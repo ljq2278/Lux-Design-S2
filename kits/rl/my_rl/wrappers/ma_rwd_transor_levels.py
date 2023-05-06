@@ -22,6 +22,9 @@ class MaRwdTransorUnit():
             'leave the way target': 0,
             'dig out rubble on target': 0,
             'dig target': 0,
+            'on the way rubble': 0,
+            'leave the way rubble': 0,
+            'dig out target rubble': 0,
             'on the way home with target': 0,
             'leave the way home with target': 0,
             'transfer target': 0,
@@ -91,8 +94,32 @@ class MaRwdTransorUnit():
                 metrics[unit_id]['rubble_changed'] = metrics[unit_id]['next_curr_tile_rubble'] - metrics[unit_id]['curr_tile_rubble']
                 if self.debug:
                     print('#################################################### debug start #########################################################################################################')
-                if metrics[unit_id]['task_type'] == 'ice' or metrics[unit_id]['task_type'] == 'ore':
-                    rewards[unit_id] += metrics[unit_id]['transfered']
+                rewards[unit_id] += metrics[unit_id]['transfered'] / 10
+                if metrics[unit_id]['task_type'] == 'rubble':
+                    if self.density and metrics[unit_id]['dis_to_target_changed'] < 0:  ###################################################################### on the way rubble
+                        rwd = 1
+                        rewards[unit_id] += rwd
+                        self.reward_collect['on the way rubble'] += 1
+                        if self.debug:
+                            print('on the way rubble')
+
+                    if self.density and metrics[unit_id]['dis_to_target_changed'] > 0:  ###################################################################### leave the way rubble
+                        rwd = -1.1
+                        rewards[unit_id] += rwd
+                        self.reward_collect['leave the way rubble'] += 1
+                        if self.debug:
+                            print('leave the way rubble')
+
+                    if metrics[unit_id]['on_target'] and metrics[unit_id]['next_on_target']:  ################################################################### dig rubble reward
+                        if metrics[unit_id]['rubble_changed'] < 0:
+                            rwd = -metrics[unit_id]['rubble_changed']
+                            rewards[unit_id] += rwd
+                            self.reward_collect['dig out target rubble'] += 1
+                            if self.debug:
+                                print('dig out target rubble')
+
+                elif metrics[unit_id]['task_type'] == 'ice' or metrics[unit_id]['task_type'] == 'ore':
+
                     if self.density and metrics[unit_id]['dis_to_target_changed'] < 0 and metrics[unit_id][metrics[unit_id]['task_type']] == 0:  ############## on the way target
                         rwd = 1
                         rewards[unit_id] += rwd
@@ -107,7 +134,7 @@ class MaRwdTransorUnit():
                         if self.debug:
                             print('leave the way target')
 
-                    if metrics[unit_id]['on_target'] and metrics[unit_id]['next_on_target'] and metrics[unit_id][metrics[unit_id]['task_type']] < 100:  ########### dig reward
+                    if metrics[unit_id]['on_target'] and metrics[unit_id]['next_on_target'] and metrics[unit_id][metrics[unit_id]['task_type']] < 200:  ########### dig reward
                         if metrics[unit_id]['rubble_changed'] < 0:
                             rwd = 1.5
                             rewards[unit_id] += rwd
