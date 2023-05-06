@@ -113,6 +113,7 @@ class MaRwdTransorUnit():
                     if metrics[unit_id]['on_target'] and metrics[unit_id]['next_on_target']:  ################################################################### dig rubble reward
                         if metrics[unit_id]['rubble_changed'] < 0:
                             rwd = -metrics[unit_id]['rubble_changed']
+                            next_obs[unit_id][ObsSpaceUnit.transfered_start] += -metrics[unit_id]['rubble_changed']
                             metrics[unit_id]['transfered'] += -metrics[unit_id]['rubble_changed']
                             rewards[unit_id] += rwd
                             self.reward_collect['dig out target rubble'] += 1

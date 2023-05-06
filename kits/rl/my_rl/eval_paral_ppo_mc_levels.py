@@ -38,7 +38,7 @@ gamma = 0.98
 sub_proc_count = 1
 exp = 'paral_ppo2'
 want_load_model = True
-max_episode_length = 200
+max_episode_length = 1000
 agent_debug = False
 density_rwd = True
 
@@ -86,11 +86,18 @@ def sub_run(replay_queue: multiprocessing.Queue, param_queue: multiprocessing.Qu
                 raw_next_obs, raw_reward, done, info = env.step(raw_action)
                 raw_obs = raw_next_obs
             else:
+                rubble_locs = np.argwhere(raw_obs['player_0']["board"]["rubble"] > 0)
                 if raw_obs['player_0']["real_env_steps"] == 0:
+                    for p_id, fp_info in env.state.factories.items():
+                        for f_id in fp_info.keys():
+                            # set factories to have 1000 water to check the ore dig ability
+                            env.state.factories[p_id][f_id].cargo.water = 500
                     obs_factory = maObsTransorFactory.sg_to_ma(raw_obs['player_0'])
                     ice_locs = np.argwhere(raw_obs['player_0']["board"]["ice"] == 1)
                     ore_locs = np.argwhere(raw_obs['player_0']["board"]["ore"] == 1)
-                    factory_agent.order_resource_pos(raw_obs['player_0']['factories'], ice_locs, ore_locs)
+                    factory_agent.order_resource_pos(raw_obs['player_0']['factories'], ice_locs, ore_locs, rubble_locs)
+                else:
+                    factory_agent.update_rubble_pos(raw_obs['player_0']['factories'], rubble_locs)
                 globale_step += 1
                 raw_action = {}
                 ############################### get action and raw_action factory ###############################
@@ -101,7 +108,7 @@ def sub_run(replay_queue: multiprocessing.Queue, param_queue: multiprocessing.Qu
                     action_factory[g_agent.player] = {}
                     factory_task[g_agent.player] = {}
                     for f_id, f_obs in obs_factory[g_agent.player].items():
-                        action_factory[g_agent.player][f_id], factory_task[g_agent.player][f_id] = factory_agent.act(f_obs)
+                        action_factory[g_agent.player][f_id], factory_task[g_agent.player][f_id] = factory_agent.act(f_obs, raw_obs['player_0']["real_env_steps"])
                     raw_action_factory[g_agent.player] = maActTransorFactory.ma_to_sg(action_factory[g_agent.player], raw_obs[g_agent.player], g_agent.player)
                 ################################ change the unit obs #############################################################################
                 obs_unit = maObsTransorUnit.change_uobs_with_order(obs_unit, factory_task, factory_agent.order_pos)
@@ -211,10 +218,13 @@ def sub_run(replay_queue: multiprocessing.Queue, param_queue: multiprocessing.Qu
             message += f'avg survive step: {survive_step / print_interv}'
             print(message)
             print(raw_obs["player_0"]["real_env_steps"], maRwdTransorUnit.reward_collect)
+            print(raw_obs["player_0"]["real_env_steps"], maRwdTransorFactory.reward_collect)
             sum_rwd = 0
             survive_step = 0
             for k, v in maRwdTransorUnit.reward_collect.items():
                 maRwdTransorUnit.reward_collect[k] = 0
+            for k, v in maRwdTransorFactory.reward_collect.items():
+                maRwdTransorFactory.reward_collect[k] = 0
 
 
 def offline_learn(replay_queue: multiprocessing.Queue, param_queue_list, pid):
