@@ -24,12 +24,12 @@ class MaRwdTransorUnit():
             'dig target': 0,
             'on the way rubble': 0,
             'leave the way rubble': 0,
-            'dig out target rubble': 0,
             'on the way home with target': 0,
             'leave the way home with target': 0,
             'transfer target': 0,
             'transfer ice': 0,
             'transfer ore': 0,
+            'dig out target rubble': 0,
             'low power charged': 0,
         }
         return
@@ -113,6 +113,7 @@ class MaRwdTransorUnit():
                     if metrics[unit_id]['on_target'] and metrics[unit_id]['next_on_target']:  ################################################################### dig rubble reward
                         if metrics[unit_id]['rubble_changed'] < 0:
                             rwd = -metrics[unit_id]['rubble_changed']
+                            metrics[unit_id]['transfered'] += -metrics[unit_id]['rubble_changed']
                             rewards[unit_id] += rwd
                             self.reward_collect['dig out target rubble'] += 1
                             if self.debug:

@@ -107,7 +107,7 @@ def sub_run(replay_queue: multiprocessing.Queue, param_queue: multiprocessing.Qu
                     action_factory[g_agent.player] = {}
                     factory_task[g_agent.player] = {}
                     for f_id, f_obs in obs_factory[g_agent.player].items():
-                        action_factory[g_agent.player][f_id], factory_task[g_agent.player][f_id] = factory_agent.act(f_obs)
+                        action_factory[g_agent.player][f_id], factory_task[g_agent.player][f_id] = factory_agent.act(f_obs, raw_obs['player_0']["real_env_steps"])
                     raw_action_factory[g_agent.player] = maActTransorFactory.ma_to_sg(action_factory[g_agent.player], raw_obs[g_agent.player], g_agent.player)
                 ################################ change the unit obs #############################################################################
                 obs_unit = maObsTransorUnit.change_uobs_with_order(obs_unit, factory_task, factory_agent.order_pos)
@@ -211,10 +211,13 @@ def sub_run(replay_queue: multiprocessing.Queue, param_queue: multiprocessing.Qu
             message += f'avg survive step: {survive_step / print_interv}'
             print(message)
             print(raw_obs["player_0"]["real_env_steps"], maRwdTransorUnit.reward_collect)
+            print(raw_obs["player_0"]["real_env_steps"], maRwdTransorFactory.reward_collect)
             sum_rwd = 0
             survive_step = 0
             for k, v in maRwdTransorUnit.reward_collect.items():
                 maRwdTransorUnit.reward_collect[k] = 0
+            for k, v in maRwdTransorFactory.reward_collect.items():
+                maRwdTransorFactory.reward_collect[k] = 0
 
 
 def offline_learn(replay_queue: multiprocessing.Queue, param_queue_list, pid):
@@ -231,6 +234,8 @@ def offline_learn(replay_queue: multiprocessing.Queue, param_queue_list, pid):
         if replay_queue.qsize() == len(param_queue_list):
             while replay_queue.qsize() != 0:
                 data = replay_queue.get()
+                if len(data[0]) == 0:
+                    print('data can not be null !')
                 train_data.append(data)
             new_params = ppo_offline_agent.update_and_get_new_param(train_data, K_epochs)
             online_agent_update_time += 1
