@@ -33,16 +33,21 @@ class MaObsTransorUnit(ObsSpaceUnit):
         return min_rela_pos, min_ind
 
     def change_uobs_with_order(self, unit_obs, factory_task, f_resource_dict):
+        pos_set = set()
         for pid, pu_info in unit_obs.items():
             for u_id, u_target in pu_info.items():
+                robot_pos = unit_obs[pid][u_id]
                 for f_id, f_resource in f_resource_dict[pid].items():
                     if f_id in factory_task[pid].keys() and (f_resource['pos'][0] - unit_obs[pid][u_id][0]) ** 2 + (f_resource['pos'][1] - unit_obs[pid][u_id][1]) ** 2 < \
                             unit_obs[pid][u_id][self.target_factory_pos_start] ** 2 + unit_obs[pid][u_id][self.target_factory_pos_start + 1] ** 2:  # the unit listen to the proximal factory
                         unit_obs[pid][u_id][self.task_type_start] = ObsSpaceUnit.task_type_to_int(factory_task[pid][f_id])
-                        unit_obs[pid][u_id][self.target_pos_start:self.target_pos_start + 2] = \
-                            [f_resource[factory_task[pid][f_id]][0][0] - unit_obs[pid][u_id][0], f_resource[factory_task[pid][f_id]][0][1] - unit_obs[pid][u_id][1]]
-                        unit_obs[pid][u_id][self.target_factory_pos_start:self.target_factory_pos_start + 2] = \
-                            [f_resource['pos'][0] - unit_obs[pid][u_id][0], f_resource['pos'][1] - unit_obs[pid][u_id][1]]
+                        f_pos = f_resource['pos']
+                        unit_obs[pid][u_id][self.target_factory_pos_start:self.target_factory_pos_start + 2] = [f_pos[0] - robot_pos[0], f_pos[1] - robot_pos[1]]
+                        for i, t_pos in enumerate(f_resource[factory_task[pid][f_id]]):
+                            if str(t_pos[0]) + '_' + str(t_pos[1]) not in pos_set:
+                                unit_obs[pid][u_id][self.target_pos_start:self.target_pos_start + 2] = [t_pos[0] - robot_pos[0], t_pos[1] - robot_pos[1]]
+                                pos_set.add(str(t_pos[0]) + '_' + str(t_pos[1]))
+                                break
         return unit_obs
 
     # we make this method static so the submission/evaluation code can use this as well

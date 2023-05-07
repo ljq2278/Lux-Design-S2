@@ -56,7 +56,7 @@ def sub_run(replay_queue: multiprocessing.Queue, param_queue: multiprocessing.Qu
     maObsTransorUnit = MaObsTransorUnit(env, env_cfg, if_mask=True)
     maObsTransorFactory = MaObsTransorFactory(env, env_cfg, if_mask=True)
     maRwdTransorUnit = MaRwdTransorUnit(env, env_cfg, debug=True, density=density_rwd)
-    maRwdTransorFactory = MaRwdTransorFactory(env, env_cfg, debug=False, density=density_rwd)
+    maRwdTransorFactory = MaRwdTransorFactory(env, env_cfg, debug=True, density=density_rwd)
     agent_cont = 2
     unit_online_agent = PPO_Online_Agent(dim_info_unit[0], dim_info_unit[1], env_cfg)
     factory_agent = Factory_Agent()
@@ -91,7 +91,9 @@ def sub_run(replay_queue: multiprocessing.Queue, param_queue: multiprocessing.Qu
                     for p_id, fp_info in env.state.factories.items():
                         for f_id in fp_info.keys():
                             # set factories to have 1000 water to check the ore dig ability
-                            env.state.factories[p_id][f_id].cargo.water = 500
+                            env.state.factories[p_id][f_id].cargo.water = 300
+                            env.state.factories[p_id][f_id].cargo.metal = 500
+                            env.state.factories[p_id][f_id].power = 10000
                     obs_factory = maObsTransorFactory.sg_to_ma(raw_obs['player_0'])
                     ice_locs = np.argwhere(raw_obs['player_0']["board"]["ice"] == 1)
                     ore_locs = np.argwhere(raw_obs['player_0']["board"]["ore"] == 1)
@@ -195,9 +197,9 @@ def sub_run(replay_queue: multiprocessing.Queue, param_queue: multiprocessing.Qu
         for img in imgs:
             cv2.imshow("Window", img)
             cv2.moveWindow('Window', 100, 100)
-            cv2.waitKey(10000)
+            cv2.waitKey(800)
             cv2.destroyAllWindows()
-            break
+            # break
         ##################### after a game, use MC the reward and get Advantage and tranport #####################
         for u_id, behaviors in tmp_buffer_unit.items():
             unit_buffer.add_examples(*list(zip(*behaviors)))

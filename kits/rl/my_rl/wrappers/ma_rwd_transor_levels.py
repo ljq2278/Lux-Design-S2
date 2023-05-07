@@ -7,6 +7,7 @@ from gym import spaces
 # import matplotlib.pyplot as plt
 from lux.config import EnvConfig
 from wrappers.obs_space_levels import ObsSpaceUnit, ObsSpaceFactory
+from wrappers.act_space_levels import ActSpaceUnit, ActSpaceFactory
 
 
 class MaRwdTransorUnit():
@@ -26,6 +27,7 @@ class MaRwdTransorUnit():
             'leave the way rubble': 0,
             'on the way home with target': 0,
             'leave the way home with target': 0,
+            'collision happen': 0,
             'transfer target': 0,
             'transfer ice': 0,
             'transfer ore': 0,
@@ -51,7 +53,7 @@ class MaRwdTransorUnit():
                 continue
             metrics[unit_id] = {}
             if unit_id not in next_obs.keys():  # it collide
-                rewards[unit_id] -= 10
+                rewards[unit_id] -= 100
             elif unit_id not in obs.keys():  # it is new born
                 pass
             else:
@@ -93,8 +95,19 @@ class MaRwdTransorUnit():
                 metrics[unit_id]['next_curr_tile_rubble'] = next_obs[unit_id][int((ObsSpaceUnit.near_space_start + ObsSpaceUnit.near_space_start + ObsSpaceUnit.near_space) // 2)]
                 metrics[unit_id]['rubble_changed'] = metrics[unit_id]['next_curr_tile_rubble'] - metrics[unit_id]['curr_tile_rubble']
                 if self.debug:
-                    print('#################################################### debug start #########################################################################################################')
+                    print('############################################### unit debug start #########################################################################################################')
+                    print(metrics[unit_id]['rubble_changed'], self.env_cfg.MAX_RUBBLE)
                 rewards[unit_id] += metrics[unit_id]['transfered'] / 10
+
+                if 0 <= act[unit_id] < ActSpaceUnit.move_dim_high:
+                    if ObsSpaceUnit.move_target_rubble(obs[unit_id], act[unit_id]) > self.env_cfg.MAX_RUBBLE:  ############################################### collision happen
+                        rwd = -60
+                        rewards[unit_id] += rwd
+                        next_obs[unit_id][ObsSpaceUnit.transfered_start] += rwd
+                        self.reward_collect['collision happen'] += 1
+                        if self.debug:
+                            print('collision happen')
+
                 if metrics[unit_id]['task_type'] == 'rubble':
                     if self.density and metrics[unit_id]['dis_to_target_changed'] < 0:  ###################################################################### on the way rubble
                         rwd = 1
@@ -195,9 +208,13 @@ class MaRwdTransorUnit():
                     print(obs[unit_id])
                     print(next_obs[unit_id])
                     print(act[unit_id])
+                    print(np.array(obs[unit_id][ObsSpaceUnit.near_space_start:ObsSpaceUnit.near_space_start + ObsSpaceUnit.near_space])
+                          .reshape([int(np.sqrt(ObsSpaceUnit.near_space)), int(np.sqrt(ObsSpaceUnit.near_space))]))
+                    print(np.array(next_obs[unit_id][ObsSpaceUnit.near_space_start:ObsSpaceUnit.near_space_start + ObsSpaceUnit.near_space])
+                          .reshape([int(np.sqrt(ObsSpaceUnit.near_space)), int(np.sqrt(ObsSpaceUnit.near_space))]))
                     print(rewards[unit_id])
                     # print(self.reward_collect)
-                    print('###################################################### debug end #########################################################################################################')
+                    print('################################################ unit debug end #########################################################################################################')
         return rewards, next_obs
 
 
@@ -242,19 +259,28 @@ class MaRwdTransorFactory():
                 metrics[f_id]['ore'] = obs[f_id][ObsSpaceFactory.ore_dim_start]
                 metrics[f_id]['next_ore'] = next_obs[f_id][ObsSpaceFactory.ore_dim_start]
                 metrics[f_id]['ore_changed'] = metrics[f_id]['next_ore'] - metrics[f_id]['ore']
-
                 if self.debug:
-                    print(obs[f_id])
-                    print(next_obs[f_id])
-
+                    print('############################################## factory debug start ########################################################################################################')
                 if metrics[f_id]['ice_changed'] > 0:  ########################################## ice add
                     rwd = metrics[f_id]['ice_changed']
                     rewards[f_id] += rwd
                     self.reward_collect['ice add'] += 1
+                    if self.debug:
+                        print('ice add')
 
                 if metrics[f_id]['ore_changed'] > 0:  ########################################## ore add
                     rwd = metrics[f_id]['ore_changed']
                     rewards[f_id] += rwd
                     self.reward_collect['ore add'] += 1
+                    if self.debug:
+                        print('ore add')
 
+                if act[f_id] == ActSpaceFactory.build_heavy_high - 1:  ######################## add heavy
+                    rwd = 100
+                    rewards[f_id] += rwd
+                    self.reward_collect['heavy robot made'] += 1
+                    if self.debug:
+                        print('heavy robot made')
+                if self.debug:
+                    print('############################################ factory debug end #########################################################################################################')
         return rewards

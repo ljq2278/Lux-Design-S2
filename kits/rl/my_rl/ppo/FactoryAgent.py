@@ -25,7 +25,7 @@ class Factory_Agent():
                 self.order_pos[p_id][f_id]['rubble'] = sorted(rubble_pos_list, key=lambda x: (x[0] - pos[0]) ** 2 + (x[1] - pos[1]) ** 2)
 
     def act(self, f_obs, step):
-        action = 3
+        action = 2
         task = 'ice'
         if f_obs[ObsSpaceFactory.metal_dim_start] >= 100 and f_obs[ObsSpaceFactory.power_dim_start] >= 500 and step % 5 == 0:
             action = 1

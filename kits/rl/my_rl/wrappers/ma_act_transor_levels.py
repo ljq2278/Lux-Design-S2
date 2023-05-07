@@ -18,6 +18,12 @@ class MaActTransorUnit(ActSpaceUnit):
     def _is_move_action(self, id):
         return id < self.move_dim_high
 
+    def _can_move(self, id, obs):
+        t_rubble = ObsSpaceUnit.move_target_rubble(obs, id) % 200
+        if obs[ObsSpaceUnit.power_dim_start] < 20 + 1 * t_rubble + 10:
+            return False
+        return True
+
     def _get_move_action(self, id):
         # move direction is id + 1 since we don't allow move center here
         return np.array([0, id + 1, 0, 0, 0, 1])
@@ -40,10 +46,15 @@ class MaActTransorUnit(ActSpaceUnit):
         return id < self.pickup_dim_high
 
     def _get_pickup_action(self, id):
-        return np.array([2, 0, 4, self.env_cfg.max_transfer_amount, 0, 1])
+        return np.array([2, 0, 4, self.env_cfg.max_transfer_amount // 5, 0, 1])
 
     def _is_dig_action(self, id):
         return id < self.dig_dim_high
+
+    def _can_dig(self, obs):
+        if obs[ObsSpaceUnit.power_dim_start] < 60 + 10:
+            return False
+        return True
 
     def _get_dig_action(self, id):
         return np.array([3, 0, 0, 0, 0, 1])
@@ -57,13 +68,19 @@ class MaActTransorUnit(ActSpaceUnit):
             action_queue = []
             no_op = False
             if self._is_move_action(choice):
-                action_queue = [self._get_move_action(choice)]
+                if self._can_move(choice, obs_unit[unit_id]):
+                    action_queue = [self._get_move_action(choice)]
+                else:
+                    no_op = True
             elif self._is_transfer_target_action(choice):
                 action_queue = [self._get_transfer_target_action(ObsSpaceUnit.int_to_task_type(obs_unit[unit_id][ObsSpaceUnit.task_type_start]))]
             elif self._is_pickup_action(choice):
                 action_queue = [self._get_pickup_action(choice)]
             elif self._is_dig_action(choice):
-                action_queue = [self._get_dig_action(choice)]
+                if self._can_dig(obs_unit[unit_id]):
+                    action_queue = [self._get_dig_action(choice)]
+                else:
+                    no_op = True
             else:
                 # action is a no_op, so we don't update the action queue
                 no_op = True
@@ -93,12 +110,12 @@ class MaActTransorFactory(ActSpaceFactory):
         return id < self.water_lichen_high
 
     def _can_water(self, water):
-        if water > 150:
+        if water >= 150:
             return True
         return False
 
     def _can_build(self, power, metal):
-        if power > 500 and metal > 100:
+        if power >= 500 and metal >= 100:
             return True
         return False
 

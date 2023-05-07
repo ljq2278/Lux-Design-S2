@@ -75,6 +75,17 @@ class ObsSpaceUnit:
         else:
             return 'except'
 
+    @staticmethod
+    def move_target_rubble(obs, act_id):
+        if act_id == 3:
+            return obs[ObsSpaceUnit.near_space_start + int(ObsSpaceUnit.near_space // 2) - int(np.sqrt(ObsSpaceUnit.near_space))]
+        elif act_id == 2:
+            return obs[ObsSpaceUnit.near_space_start + int(ObsSpaceUnit.near_space // 2) + 1]
+        elif act_id == 1:
+            return obs[ObsSpaceUnit.near_space_start + int(ObsSpaceUnit.near_space // 2) + int(np.sqrt(ObsSpaceUnit.near_space))]
+        elif act_id == 0:
+            return obs[ObsSpaceUnit.near_space_start + int(ObsSpaceUnit.near_space // 2) - 1]
+
 
 class ObsSpaceFactory:
     pos_dim_start = 0  # 0
