@@ -232,11 +232,11 @@ class MaRwdTransorFactory():
             'ore add': 0,
             'heavy robot made': 0,
             'light robot made': 0,
-            'lichen add': 0,
+            'water lichen': 0,
         }
         return
 
-    def sg_to_ma(self, ori_reward, act, obs, next_obs, done, ice_map=None, ore_map=None, raw_obs=None, typ='HEAVY', target='ice'):
+    def sg_to_ma(self, ori_reward, act, obs, next_obs, done, factory_info, ice_map=None, ore_map=None, raw_obs=None, typ='HEAVY', target='ice'):
         rewards = {}
         metrics = {}
         factory_ids = list(set(obs.keys()).union(set(next_obs.keys())))
@@ -261,6 +261,13 @@ class MaRwdTransorFactory():
                 metrics[f_id]['ore_changed'] = metrics[f_id]['next_ore'] - metrics[f_id]['ore']
                 if self.debug:
                     print('############################################## factory debug start ########################################################################################################')
+                if act[f_id] == ActSpaceFactory.water_lichen_high - 1: ####################### water lichen
+                    rwd = len(factory_info[f_id].connected_lichen_positions)
+                    rewards[f_id] += rwd
+                    self.reward_collect['water lichen'] += len(factory_info[f_id].connected_lichen_positions)
+                    if self.debug:
+                        print('water lichen')
+
                 if metrics[f_id]['ice_changed'] > 0:  ########################################## ice add
                     rwd = metrics[f_id]['ice_changed']
                     rewards[f_id] += rwd

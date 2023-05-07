@@ -144,7 +144,8 @@ def sub_run(replay_queue: multiprocessing.Queue, param_queue: multiprocessing.Qu
                         action_factory[g_agent.player],
                         obs_factory[g_agent.player],
                         next_obs_factory[g_agent.player],
-                        done[g_agent.player]
+                        done[g_agent.player],
+                        env.state.factories[g_agent.player]
                     )
                     for f_id, f_info in obs_factory[g_agent.player].items():
                         if f_id not in next_obs_factory[g_agent.player].keys() or done[g_agent.player]:
