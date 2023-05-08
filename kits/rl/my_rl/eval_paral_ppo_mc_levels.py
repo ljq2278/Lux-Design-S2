@@ -78,8 +78,8 @@ def sub_run(replay_queue: multiprocessing.Queue, param_queue: multiprocessing.Qu
         obs_unit = maObsTransorUnit.sg_to_ma(raw_obs['player_0'], None)
         obs_factory = maObsTransorFactory.sg_to_ma(raw_obs['player_0'])
         done = {'player_0': False, 'player_1': False}
-        imgs = []
-        steps = []
+        imgs = {}
+        img_actions = {}
         ################################ interact with the env for an episode ###################################
         while raw_obs['player_0']["real_env_steps"] < 0 or sum(done.values()) < len(done):
             if raw_obs['player_0']["real_env_steps"] < 0:
@@ -94,7 +94,7 @@ def sub_run(replay_queue: multiprocessing.Queue, param_queue: multiprocessing.Qu
                     for p_id, fp_info in env.state.factories.items():
                         for f_id in fp_info.keys():
                             # set factories to have 1000 water to check the ore dig ability
-                            env.state.factories[p_id][f_id].cargo.water = 50
+                            env.state.factories[p_id][f_id].cargo.water = 150
                             # env.state.factories[p_id][f_id].cargo.metal = 500
                             # env.state.factories[p_id][f_id].power = 10000
                     obs_factory = maObsTransorFactory.sg_to_ma(raw_obs['player_0'])
@@ -138,8 +138,11 @@ def sub_run(replay_queue: multiprocessing.Queue, param_queue: multiprocessing.Qu
                     for u_id, u_info in raw_action_unit[p_id].items():
                         raw_action[p_id][u_id] = u_info
                 raw_next_obs, raw_reward, done, info = env.step(raw_action)
-                imgs += [env.render("rgb_array", width=640, height=640)]
-                steps.append(raw_obs['player_0']["real_env_steps"])
+                img = env.render("rgb_array", width=640, height=640)
+                imgs[raw_obs['player_0']["real_env_steps"]] = img
+                cv2.imwrite(os.environ['HOME']+'/imgs/'+str(raw_obs['player_0']["real_env_steps"])+'.jpg', img)
+                print(raw_obs['player_0']["real_env_steps"], raw_action)
+                img_actions[raw_obs['player_0']["real_env_steps"]] = raw_action
                 ############################### get next obs factory ######################################
                 next_obs_factory = maObsTransorFactory.sg_to_ma(raw_next_obs['player_0'])
                 ############################### get custom reward factory ######################################
@@ -208,10 +211,10 @@ def sub_run(replay_queue: multiprocessing.Queue, param_queue: multiprocessing.Qu
                 obs_unit = next_obs_unit
         ############################### episode data record  #################################
         survive_step += raw_obs["player_0"]["real_env_steps"]
-        for i, img in enumerate(imgs):
-            cv2.imshow('step: ' + str(steps[i]), img)
-            cv2.moveWindow('step: ' + str(steps[i]), 100, 100)
-            cv2.waitKey(800)
+        for stp, img in imgs.items():
+            cv2.imshow('step: ' + str(stp), img)
+            cv2.moveWindow('step: ' + str(stp), 100, 100)
+            cv2.waitKey(200)
             cv2.destroyAllWindows()
             # break
         ##################### after a game, use MC the reward and get Advantage and tranport #####################

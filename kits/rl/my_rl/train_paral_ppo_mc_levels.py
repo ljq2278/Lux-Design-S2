@@ -40,9 +40,10 @@ gamma = 0.98
 sub_proc_count = 6
 exp = 'paral_ppo2'
 want_load_model = True
-max_episode_length = 1000
+max_episode_length = 500
 agent_debug = False
 density_rwd = True
+episode_start = 770
 
 dim_info_unit = [MaObsTransorUnit.total_dims, MaActTransorUnit.total_act_dims]  # obs and act dims
 base_res_dir = os.environ['HOME'] + '/train_res/' + exp
@@ -73,7 +74,7 @@ def sub_run(replay_queue: multiprocessing.Queue, param_queue: multiprocessing.Qu
     survive_step = 0
     unit_buffer = Buffer()
     tmp_buffer_unit = {}  # record every unit datas
-    for episode in range(episode_num):
+    for episode in range(episode_start, episode_num):
         np.random.seed()
         seed = np.random.randint(0, 100000000)
         raw_obs = env.reset(seed=seed)

@@ -30,14 +30,16 @@ class Factory_Agent():
         ###################################### the action choice ########################################
         if f_obs[ObsSpaceFactory.metal_dim_start] >= 100 and f_obs[ObsSpaceFactory.power_dim_start] >= 500 and step % 5 == 0:
             action = 1
-        elif step > 800:
+        elif step > 400:
             action = 2
         ######################################### the demand ##################################################
-        if f_obs[ObsSpaceFactory.water_dim_start] < 500:
+        # if f_obs[ObsSpaceFactory.water_dim_start] < 150:
+        if step < 200 or step > 400:
             task = 'ice'
             # for i, uid in enumerate(uids):
             #     uid_target[uid] = list(self.order_pos[f_id]['ice'][i])+list(f_obs[ObsSpaceFactory.pos_dim_start:ObsSpaceFactory.pos_dim_start + ObsSpaceFactory.pos_dim]) + ['ice']
-        elif f_obs[ObsSpaceFactory.water_dim_start] > 600:
+        # elif f_obs[ObsSpaceFactory.water_dim_start] > 400:
+        elif step > 350:
             task = 'rubble'
             # for i, uid in enumerate(uids):
             #     uid_target[uid] = list(self.order_pos[f_id]['ore'][i])+list(f_obs[ObsSpaceFactory.pos_dim_start:ObsSpaceFactory.pos_dim_start + ObsSpaceFactory.pos_dim]) + ['ore']
