@@ -12,8 +12,14 @@ class ObsSpaceUnit:
     ore_dim_start = ice_dim_start + ice_dim  # 4
     ore_dim = 1
 
+    # the 0,4,20,24,12 is is_in_target/is_at_home/target_dist/home_dist/target_home_water
     near_space_start = ore_dim_start + ore_dim  # 5
     near_space = 5 * 5
+    is_in_target = near_space_start + 0
+    is_at_home = near_space_start + 4
+    target_dist = near_space_start + 20
+    home_dist = near_space_start + 24
+    # target_home_water = near_space_start + 12
 
     target_pos_start = near_space_start + near_space  # 30
     target_pos = 2
@@ -44,6 +50,14 @@ class ObsSpaceUnit:
                                [self.env_cfg.map_size / 10 for _ in range(0, 6)] +
                                [1 for _ in range(0, 2)] +
                                [50 for _ in range(0, 1)], dtype=float)
+        self.normer[ObsSpaceUnit.is_in_target] = 1
+        self.normer[ObsSpaceUnit.is_at_home] = 1
+        self.normer[ObsSpaceUnit.target_dist] = 1
+        self.normer[ObsSpaceUnit.home_dist] = 1
+        # self.normer[ObsSpaceUnit.target_pos_start] = 1
+        # self.normer[ObsSpaceUnit.target_pos_start + 1] = 1
+        # self.normer[ObsSpaceUnit.target_factory_pos_start] = 1
+        # self.normer[ObsSpaceUnit.target_factory_pos_start + 1] = 1
 
         # self.mask = np.array([0 for _ in range(0, 2)] +
         #                      [1 for _ in range(0, 1)] +

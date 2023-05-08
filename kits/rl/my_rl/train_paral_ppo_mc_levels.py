@@ -4,7 +4,7 @@ Implementation of RL agent. Note that luxai_s2 and stable_baselines3 are package
 import multiprocessing
 import copy
 import os.path as osp
-
+from torch.utils.tensorboard import SummaryWriter
 import gym
 import numpy as np
 import luxai_s2
@@ -19,6 +19,8 @@ from ppo.UnitAgent import PPO_Offline_Agent
 from ppo.UnitAgent import PPO_Online_Agent
 from ppo.UnitBuffer import Buffer
 from ppo.FactoryAgent import Factory_Agent
+
+from luxai_s2.map.position import Position
 
 
 class GlobalAgent(EarlyRuleAgent, PPO):
@@ -45,8 +47,10 @@ density_rwd = True
 dim_info_unit = [MaObsTransorUnit.total_dims, MaActTransorUnit.total_act_dims]  # obs and act dims
 base_res_dir = os.environ['HOME'] + '/train_res/' + exp
 
+writer = SummaryWriter(os.environ['HOME'] + '/logs/' + exp)
 
-def sub_run(replay_queue: multiprocessing.Queue, param_queue: multiprocessing.Queue, p_id):
+
+def sub_run(replay_queue: multiprocessing.Queue, param_queue: multiprocessing.Queue, process_id):
     # unit_agent = unit_agent.value
     env = gym.make(env_id, verbose=0, collect_stats=True, MAX_FACTORIES=2)
     env_cfg = env.env_cfg
@@ -90,9 +94,9 @@ def sub_run(replay_queue: multiprocessing.Queue, param_queue: multiprocessing.Qu
                     for p_id, fp_info in env.state.factories.items():
                         for f_id in fp_info.keys():
                             # set factories to have 1000 water to check the ore dig ability
-                            env.state.factories[p_id][f_id].cargo.water = 300
-                            env.state.factories[p_id][f_id].cargo.metal = 500
-                            env.state.factories[p_id][f_id].power = 10000
+                            env.state.factories[p_id][f_id].cargo.water = 150
+                            # env.state.factories[p_id][f_id].cargo.metal = 500
+                            # env.state.factories[p_id][f_id].power = 10000
                     obs_factory = maObsTransorFactory.sg_to_ma(raw_obs['player_0'])
                     ice_locs = np.argwhere(raw_obs['player_0']["board"]["ice"] == 1)
                     ore_locs = np.argwhere(raw_obs['player_0']["board"]["ore"] == 1)
@@ -217,6 +221,9 @@ def sub_run(replay_queue: multiprocessing.Queue, param_queue: multiprocessing.Qu
             print(raw_obs["player_0"]["real_env_steps"], maRwdTransorFactory.reward_collect)
             sum_rwd = 0
             survive_step = 0
+            if process_id == 0:
+                writer.add_scalars('unit_rewards', maRwdTransorUnit.reward_collect, episode)
+                writer.add_scalars('factory_rewards', maRwdTransorFactory.reward_collect, episode)
             for k, v in maRwdTransorUnit.reward_collect.items():
                 maRwdTransorUnit.reward_collect[k] = 0
             for k, v in maRwdTransorFactory.reward_collect.items():

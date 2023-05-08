@@ -20,6 +20,8 @@ from ppo.UnitAgent import PPO_Online_Agent
 from ppo.UnitBuffer import Buffer
 from ppo.FactoryAgent import Factory_Agent
 import cv2
+from wrappers.obs_space_levels import ObsSpaceUnit, ObsSpaceFactory
+
 
 class GlobalAgent(EarlyRuleAgent, PPO):
     def __init__(self, player: str, env_cfg: EnvConfig, unit_agent, factory_agent):
@@ -77,6 +79,7 @@ def sub_run(replay_queue: multiprocessing.Queue, param_queue: multiprocessing.Qu
         obs_factory = maObsTransorFactory.sg_to_ma(raw_obs['player_0'])
         done = {'player_0': False, 'player_1': False}
         imgs = []
+        steps = []
         ################################ interact with the env for an episode ###################################
         while raw_obs['player_0']["real_env_steps"] < 0 or sum(done.values()) < len(done):
             if raw_obs['player_0']["real_env_steps"] < 0:
@@ -91,9 +94,9 @@ def sub_run(replay_queue: multiprocessing.Queue, param_queue: multiprocessing.Qu
                     for p_id, fp_info in env.state.factories.items():
                         for f_id in fp_info.keys():
                             # set factories to have 1000 water to check the ore dig ability
-                            env.state.factories[p_id][f_id].cargo.water = 300
-                            env.state.factories[p_id][f_id].cargo.metal = 500
-                            env.state.factories[p_id][f_id].power = 10000
+                            env.state.factories[p_id][f_id].cargo.water = 50
+                            # env.state.factories[p_id][f_id].cargo.metal = 500
+                            # env.state.factories[p_id][f_id].power = 10000
                     obs_factory = maObsTransorFactory.sg_to_ma(raw_obs['player_0'])
                     ice_locs = np.argwhere(raw_obs['player_0']["board"]["ice"] == 1)
                     ore_locs = np.argwhere(raw_obs['player_0']["board"]["ore"] == 1)
@@ -136,6 +139,7 @@ def sub_run(replay_queue: multiprocessing.Queue, param_queue: multiprocessing.Qu
                         raw_action[p_id][u_id] = u_info
                 raw_next_obs, raw_reward, done, info = env.step(raw_action)
                 imgs += [env.render("rgb_array", width=640, height=640)]
+                steps.append(raw_obs['player_0']["real_env_steps"])
                 ############################### get next obs factory ######################################
                 next_obs_factory = maObsTransorFactory.sg_to_ma(raw_next_obs['player_0'])
                 ############################### get custom reward factory ######################################
@@ -190,14 +194,23 @@ def sub_run(replay_queue: multiprocessing.Queue, param_queue: multiprocessing.Qu
                             d_unit
                         ])
                 ############################### prepare to the next step #################################
+                # for g_agent in globalAgents:
+                #     for u_id, u_obs in next_obs_unit[g_agent.player].items():
+                #         if abs(u_obs[ObsSpaceUnit.target_dist]) + abs(u_obs[ObsSpaceUnit.home_dist]) > 20 and raw_obs['player_0']["real_env_steps"] > 1:
+                #             print(u_id, obs_unit[g_agent.player][u_id])
+                #             print(u_id, u_obs)
+                #             cv2.imshow(str(seed), imgs[-1])
+                #             cv2.moveWindow(str(seed), 100, 100)
+                #             cv2.waitKey(80000)
+                #             cv2.destroyAllWindows()
                 raw_obs = raw_next_obs
                 obs_factory = next_obs_factory
                 obs_unit = next_obs_unit
         ############################### episode data record  #################################
         survive_step += raw_obs["player_0"]["real_env_steps"]
-        for img in imgs:
-            cv2.imshow("Window", img)
-            cv2.moveWindow('Window', 100, 100)
+        for i, img in enumerate(imgs):
+            cv2.imshow('step: ' + str(steps[i]), img)
+            cv2.moveWindow('step: ' + str(steps[i]), 100, 100)
             cv2.waitKey(800)
             cv2.destroyAllWindows()
             # break
@@ -250,6 +263,7 @@ def offline_learn(replay_queue: multiprocessing.Queue, param_queue_list, pid):
             train_data.clear()
             for param_queue in param_queue_list:
                 param_queue.put(new_params)
+
 
 if __name__ == "__main__":
     replay_queue = multiprocessing.Queue()

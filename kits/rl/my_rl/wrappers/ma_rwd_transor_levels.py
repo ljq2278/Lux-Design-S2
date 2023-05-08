@@ -36,11 +36,11 @@ class MaRwdTransorUnit():
         }
         return
 
-    def _if_in_factory(self, unit_info):
-        if abs(unit_info[ObsSpaceUnit.target_factory_pos_start]) <= 1 \
-                and abs(unit_info[ObsSpaceUnit.target_factory_pos_start + 1]) <= 1:
-            return True
-        return False
+    # def _if_in_factory(self, unit_info):
+    #     if abs(unit_info[ObsSpaceUnit.target_factory_pos_start]) <= 1 \
+    #             and abs(unit_info[ObsSpaceUnit.target_factory_pos_start + 1]) <= 1:
+    #         return True
+    #     return False
 
     def sg_to_ma(self, ori_reward, act, obs, next_obs, done, typ='HEAVY'):
         rewards = {}
@@ -59,11 +59,11 @@ class MaRwdTransorUnit():
             else:
                 metrics[unit_id]['transfered'] = next_obs[unit_id][ObsSpaceUnit.transfered_start]
 
-                metrics[unit_id]['if_in_factory'] = self._if_in_factory(obs[unit_id])
-                metrics[unit_id]['if_next_in_factory'] = self._if_in_factory(next_obs[unit_id])
+                metrics[unit_id]['if_in_factory'] = bool(obs[unit_id][ObsSpaceUnit.is_at_home])
+                metrics[unit_id]['if_next_in_factory'] = bool(next_obs[unit_id][ObsSpaceUnit.is_at_home])
 
-                metrics[unit_id]['on_target'] = bool(abs(obs[unit_id][ObsSpaceUnit.target_pos_start]) + abs(obs[unit_id][ObsSpaceUnit.target_pos_start + 1]) == 0)
-                metrics[unit_id]['next_on_target'] = bool(abs(next_obs[unit_id][ObsSpaceUnit.target_pos_start]) + abs(next_obs[unit_id][ObsSpaceUnit.target_pos_start + 1]) == 0)
+                metrics[unit_id]['on_target'] = bool(obs[unit_id][ObsSpaceUnit.is_in_target])
+                metrics[unit_id]['next_on_target'] = bool(next_obs[unit_id][ObsSpaceUnit.is_in_target])
 
                 metrics[unit_id]['task_type'] = ObsSpaceUnit.int_to_task_type(obs[unit_id][ObsSpaceUnit.task_type_start])
 
@@ -83,12 +83,12 @@ class MaRwdTransorUnit():
                 metrics[unit_id]['next_power'] = next_obs[unit_id][ObsSpaceUnit.power_dim_start]
                 metrics[unit_id]['power_changed'] = metrics[unit_id]['next_power'] - metrics[unit_id]['power']
 
-                metrics[unit_id]['dis_to_factory'] = obs[unit_id][ObsSpaceUnit.target_factory_pos_start] ** 2 + obs[unit_id][ObsSpaceUnit.target_factory_pos_start + 1] ** 2
-                metrics[unit_id]['next_dis_to_factory'] = next_obs[unit_id][ObsSpaceUnit.target_factory_pos_start] ** 2 + next_obs[unit_id][ObsSpaceUnit.target_factory_pos_start + 1] ** 2
+                metrics[unit_id]['dis_to_factory'] = obs[unit_id][ObsSpaceUnit.home_dist]
+                metrics[unit_id]['next_dis_to_factory'] = next_obs[unit_id][ObsSpaceUnit.home_dist]
                 metrics[unit_id]['dis_to_factory_changed'] = metrics[unit_id]['next_dis_to_factory'] - metrics[unit_id]['dis_to_factory']
 
-                metrics[unit_id]['dis_to_target'] = obs[unit_id][ObsSpaceUnit.target_pos_start] ** 2 + obs[unit_id][ObsSpaceUnit.target_pos_start + 1] ** 2
-                metrics[unit_id]['next_dis_to_target'] = next_obs[unit_id][ObsSpaceUnit.target_pos_start] ** 2 + next_obs[unit_id][ObsSpaceUnit.target_pos_start + 1] ** 2
+                metrics[unit_id]['dis_to_target'] = obs[unit_id][ObsSpaceUnit.target_dist]
+                metrics[unit_id]['next_dis_to_target'] = next_obs[unit_id][ObsSpaceUnit.target_dist]
                 metrics[unit_id]['dis_to_target_changed'] = metrics[unit_id]['next_dis_to_target'] - metrics[unit_id]['dis_to_target']
 
                 metrics[unit_id]['curr_tile_rubble'] = obs[unit_id][int((ObsSpaceUnit.near_space_start + ObsSpaceUnit.near_space_start + ObsSpaceUnit.near_space) // 2)]
