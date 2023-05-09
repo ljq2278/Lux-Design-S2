@@ -43,7 +43,7 @@ want_load_model = True
 max_episode_length = 550
 agent_debug = False
 density_rwd = True
-episode_start = 2950
+episode_start = 3414
 
 dim_info_unit = [MaObsTransorUnit.total_dims, MaActTransorUnit.total_act_dims]  # obs and act dims
 base_res_dir = os.environ['HOME'] + '/train_res/' + exp

@@ -32,15 +32,15 @@ class MaActTransorUnit(ActSpaceUnit):
         return id < self.transfer_target_dim_high
 
     def _get_transfer_target_action(self, task_type):
-        if task_type == 'ice':
+        # if task_type == 'ice':
+        #     return np.array([1, 0, 0, self.env_cfg.max_transfer_amount, 0, 1])
+        # elif task_type == 'ore':
+        #     return np.array([1, 0, 1, self.env_cfg.max_transfer_amount, 0, 1])
+        # else:
+        if np.random.random() < 0.5:
             return np.array([1, 0, 0, self.env_cfg.max_transfer_amount, 0, 1])
-        elif task_type == 'ore':
-            return np.array([1, 0, 1, self.env_cfg.max_transfer_amount, 0, 1])
         else:
-            if np.random.random() < 0.5:
-                return np.array([1, 0, 0, self.env_cfg.max_transfer_amount, 0, 1])
-            else:
-                return np.array([1, 0, 1, self.env_cfg.max_transfer_amount, 0, 1])
+            return np.array([1, 0, 1, self.env_cfg.max_transfer_amount, 0, 1])
 
     def _is_pickup_action(self, id):
         return id < self.pickup_dim_high
@@ -73,9 +73,15 @@ class MaActTransorUnit(ActSpaceUnit):
                 else:
                     no_op = True
             elif self._is_transfer_target_action(choice):
-                action_queue = [self._get_transfer_target_action(ObsSpaceUnit.int_to_task_type(obs_unit[unit_id][ObsSpaceUnit.task_type_start]))]
+                if obs_unit[unit_id][ObsSpaceUnit.is_at_home] == 1:
+                    action_queue = [self._get_transfer_target_action(ObsSpaceUnit.int_to_task_type(obs_unit[unit_id][ObsSpaceUnit.task_type_start]))]
+                else:
+                    no_op = True
             elif self._is_pickup_action(choice):
-                action_queue = [self._get_pickup_action(choice)]
+                if obs_unit[unit_id][ObsSpaceUnit.is_at_home] == 1:
+                    action_queue = [self._get_pickup_action(choice)]
+                else:
+                    no_op = True
             elif self._is_dig_action(choice):
                 if self._can_dig(obs_unit[unit_id]):
                     action_queue = [self._get_dig_action(choice)]

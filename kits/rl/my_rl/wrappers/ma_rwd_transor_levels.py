@@ -96,7 +96,7 @@ class MaRwdTransorUnit():
                 metrics[unit_id]['rubble_changed'] = metrics[unit_id]['next_curr_tile_rubble'] - metrics[unit_id]['curr_tile_rubble']
                 if self.debug:
                     print('############################################### unit debug start #########################################################################################################')
-                    print(metrics[unit_id]['rubble_changed'], self.env_cfg.MAX_RUBBLE)
+                    # print(metrics[unit_id]['rubble_changed'], self.env_cfg.MAX_RUBBLE)
                 rewards[unit_id] += metrics[unit_id]['transfered'] / 10
 
                 if 0 <= act[unit_id] < ActSpaceUnit.move_dim_high:
