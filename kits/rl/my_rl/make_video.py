@@ -2,7 +2,7 @@ import cv2
 import os
 
 image_folder = os.environ['HOME'] + '/imgs/'
-video_name = 'eval.avi'
+video_name = image_folder+'eval2.avi'
 
 images = [img for img in os.listdir(image_folder) if img.endswith(".jpg")]
 
