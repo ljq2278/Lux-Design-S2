@@ -6,6 +6,8 @@ import numpy.typing as npt
 from gym import spaces
 from lux.config import EnvConfig
 from wrappers.obs_space_levels import ObsSpaceUnit, ObsSpaceFactory
+from wrappers.act_space_levels import ActSpaceUnit, ActSpaceFactory
+from ppo.FactoryAgent import Factory_Agent
 
 
 class MaObsTransorUnit(ObsSpaceUnit):
@@ -32,32 +34,37 @@ class MaObsTransorUnit(ObsSpaceUnit):
                     min_ind = i
         return min_rela_pos, min_ind
 
-    def change_uobs_with_order(self, unit_obs, factory_task, f_resource_dict):
+    def change_uobs_with_order(self, unit_obs, factory_task_prob, f_resource_dict, episode_step):
+        # factory_task_prob: pid->uid->task_type->prob
         pos_set = set()
         for pid, pu_info in unit_obs.items():
             for u_id, u_target in pu_info.items():
-                robot_pos = unit_obs[pid][u_id]
-                target_f_id = None
-                target_f_resource = None
-                for f_id, f_resource in f_resource_dict[pid].items():
-                    if f_id in factory_task[pid].keys() and (f_resource['pos'][0] - unit_obs[pid][u_id][0]) ** 2 + (f_resource['pos'][1] - unit_obs[pid][u_id][1]) ** 2 < \
-                            unit_obs[pid][u_id][self.target_factory_pos_start] ** 2 + unit_obs[pid][u_id][self.target_factory_pos_start + 1] ** 2:  # the unit listen to the proximal factory
-                        target_f_id = f_id
-                        target_f_resource = f_resource
-                        unit_obs[pid][u_id][self.task_type_start] = ObsSpaceUnit.task_type_to_int(factory_task[pid][target_f_id])
-                        f_pos = f_resource['pos']
-                        unit_obs[pid][u_id][self.target_factory_pos_start:self.target_factory_pos_start + 2] = [f_pos[0] - robot_pos[0], f_pos[1] - robot_pos[1]]
-                if target_f_id is not None:
-                    for i, t_pos in enumerate(target_f_resource[factory_task[pid][target_f_id]]):
-                        if str(t_pos[0]) + '_' + str(t_pos[1]) not in pos_set:
-                            unit_obs[pid][u_id][self.target_pos_start:self.target_pos_start + 2] = [t_pos[0] - robot_pos[0], t_pos[1] - robot_pos[1]]
-                            unit_obs[pid][u_id][self.target_dist] = abs(unit_obs[pid][u_id][self.target_pos_start]) + abs(unit_obs[pid][u_id][self.target_pos_start + 1])
-                            unit_obs[pid][u_id][self.home_dist] = abs(unit_obs[pid][u_id][self.target_factory_pos_start]) + abs(unit_obs[pid][u_id][self.target_factory_pos_start + 1])
-                            unit_obs[pid][u_id][self.is_in_target] = 1 if (unit_obs[pid][u_id][self.target_pos_start] == 0 and unit_obs[pid][u_id][self.target_pos_start + 1] == 0) else 0
-                            unit_obs[pid][u_id][self.is_at_home] = 1 if (
-                                    abs(unit_obs[pid][u_id][self.target_factory_pos_start]) <= 1 and abs(unit_obs[pid][u_id][self.target_factory_pos_start + 1]) <= 1) else 0
-                            pos_set.add(str(t_pos[0]) + '_' + str(t_pos[1]))
-                            break
+                if episode_step % 20 == 0 or unit_obs[pid][u_id][self.target_factory_pos_start] == -100:
+                    unit_obs[pid][u_id][self.target_factory_pos_start], unit_obs[pid][u_id][self.target_factory_pos_start + 1] = -100, -100
+                    robot_pos = unit_obs[pid][u_id]
+                    target_f_id = None
+                    target_f_resource = None
+                    target_task = None
+                    for f_id, f_resource in f_resource_dict[pid].items():
+                        if f_id in factory_task_prob[pid].keys() and (f_resource['pos'][0] - unit_obs[pid][u_id][0]) ** 2 + (f_resource['pos'][1] - unit_obs[pid][u_id][1]) ** 2 < \
+                                unit_obs[pid][u_id][self.target_factory_pos_start] ** 2 + unit_obs[pid][u_id][self.target_factory_pos_start + 1] ** 2:  # the unit listen to the proximal factory
+                            target_f_id = f_id
+                            target_f_resource = f_resource
+                            target_task = Factory_Agent.sample_from_task_prob(factory_task_prob[pid][target_f_id])
+                            unit_obs[pid][u_id][self.task_type_start] = ObsSpaceUnit.task_type_to_int(target_task)
+                            f_pos = f_resource['pos']
+                            unit_obs[pid][u_id][self.target_factory_pos_start:self.target_factory_pos_start + 2] = [f_pos[0] - robot_pos[0], f_pos[1] - robot_pos[1]]
+                    if target_f_id is not None:
+                        for i, t_pos in enumerate(target_f_resource[target_task]):
+                            if str(t_pos[0]) + '_' + str(t_pos[1]) not in pos_set:
+                                unit_obs[pid][u_id][self.target_pos_start:self.target_pos_start + 2] = [t_pos[0] - robot_pos[0], t_pos[1] - robot_pos[1]]
+                                unit_obs[pid][u_id][self.target_dist] = abs(unit_obs[pid][u_id][self.target_pos_start]) + abs(unit_obs[pid][u_id][self.target_pos_start + 1])
+                                unit_obs[pid][u_id][self.home_dist] = abs(unit_obs[pid][u_id][self.target_factory_pos_start]) + abs(unit_obs[pid][u_id][self.target_factory_pos_start + 1])
+                                unit_obs[pid][u_id][self.is_in_target] = 1 if (unit_obs[pid][u_id][self.target_pos_start] == 0 and unit_obs[pid][u_id][self.target_pos_start + 1] == 0) else 0
+                                unit_obs[pid][u_id][self.is_at_home] = 1 if (
+                                        abs(unit_obs[pid][u_id][self.target_factory_pos_start]) <= 1 and abs(unit_obs[pid][u_id][self.target_factory_pos_start + 1]) <= 1) else 0
+                                pos_set.add(str(t_pos[0]) + '_' + str(t_pos[1]))
+                                break
         return unit_obs
 
     # we make this method static so the submission/evaluation code can use this as well
@@ -124,6 +131,19 @@ class MaObsTransorUnit(ObsSpaceUnit):
                 # add time info
                 ret[player_id][unit_id][self.day_or_night_start] = \
                     (raw_obs['real_env_steps'] % self.env_cfg.DAY_LENGTH) / self.env_cfg.DAY_LENGTH
+
+                # default is the last target
+                if unit_id in last_obs[player_id].keys():
+                    movement = np.array([ret[player_id][unit_id][0] - last_obs[player_id][unit_id][0], ret[player_id][unit_id][1] - last_obs[player_id][unit_id][1]])
+                    ret[player_id][unit_id][self.task_type_start] = last_obs[player_id][unit_id][self.task_type_start]
+                    ret[player_id][unit_id][self.target_factory_pos_start:self.target_factory_pos_start + 2] =\
+                        last_obs[player_id][unit_id][self.target_factory_pos_start:self.target_factory_pos_start + 2] - movement
+                    ret[player_id][unit_id][self.target_pos_start: self.target_pos_start + 2] = last_obs[player_id][unit_id][self.target_pos_start: self.target_pos_start + 2] - movement
+                    ret[player_id][unit_id][self.target_dist] = abs(ret[player_id][unit_id][self.target_pos_start]) + abs(ret[player_id][unit_id][self.target_pos_start + 1])
+                    ret[player_id][unit_id][self.home_dist] = abs(ret[player_id][unit_id][self.target_factory_pos_start]) + abs(ret[player_id][unit_id][self.target_factory_pos_start + 1])
+                    ret[player_id][unit_id][self.is_in_target] = 1 if (ret[player_id][unit_id][self.target_pos_start] == 0 and ret[player_id][unit_id][self.target_pos_start + 1] == 0) else 0
+                    ret[player_id][unit_id][self.is_at_home] = 1 if (
+                            abs(ret[player_id][unit_id][self.target_factory_pos_start]) <= 1 and abs(ret[player_id][unit_id][self.target_factory_pos_start + 1]) <= 1) else 0
 
         return ret
 

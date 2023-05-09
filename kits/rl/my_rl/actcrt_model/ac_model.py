@@ -24,6 +24,9 @@ class ActMLPNetwork(nn.Module):
 
     def forward(self, x):
         x = (x / self.obsSpaceUnit.normer).float()
+        x[:, ObsSpaceUnit.ice_dim_start] = x[:, ObsSpaceUnit.ice_dim_start]+x[:, ObsSpaceUnit.ore_dim_start]
+        x[:, ObsSpaceUnit.ore_dim_start] = 0
+        x[x[:, ObsSpaceUnit.task_type_start] == 2.0, ObsSpaceUnit.task_type_start] = 1
         norm_target_factory = torch.abs(x[:, ObsSpaceUnit.target_factory_pos_start:ObsSpaceUnit.target_factory_pos_start + 1]) \
                               + torch.abs(x[:, ObsSpaceUnit.target_factory_pos_start + 1:ObsSpaceUnit.target_factory_pos_start + 2]) + 1
         norm_target = torch.abs(x[:, ObsSpaceUnit.target_pos_start:ObsSpaceUnit.target_pos_start + 1]) \
@@ -59,6 +62,9 @@ class CriMLPNetwork(nn.Module):
 
     def forward(self, x):
         x = (x / self.obsSpaceUnit.normer).float()
+        x[:, ObsSpaceUnit.ice_dim_start] = x[:, ObsSpaceUnit.ice_dim_start]+x[:, ObsSpaceUnit.ore_dim_start]
+        x[:, ObsSpaceUnit.ore_dim_start] = 0
+        x[x[:, ObsSpaceUnit.task_type_start] == 2.0, ObsSpaceUnit.task_type_start] = 1
         norm_target_factory = torch.abs(x[:, ObsSpaceUnit.target_factory_pos_start:ObsSpaceUnit.target_factory_pos_start + 1]) \
                               + torch.abs(x[:, ObsSpaceUnit.target_factory_pos_start + 1:ObsSpaceUnit.target_factory_pos_start + 2]) + 1
         norm_target = torch.abs(x[:, ObsSpaceUnit.target_pos_start:ObsSpaceUnit.target_pos_start + 1]) \

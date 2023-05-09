@@ -38,12 +38,12 @@ K_epochs = 20
 episode_num = 3000000
 gamma = 0.98
 sub_proc_count = 6
-exp = 'paral_ppo2'
+exp = 'paral_ppo3'
 want_load_model = True
 max_episode_length = 550
 agent_debug = False
 density_rwd = True
-episode_start = 2890
+episode_start = 2950
 
 dim_info_unit = [MaObsTransorUnit.total_dims, MaActTransorUnit.total_act_dims]  # obs and act dims
 base_res_dir = os.environ['HOME'] + '/train_res/' + exp
@@ -109,15 +109,13 @@ def sub_run(replay_queue: multiprocessing.Queue, param_queue: multiprocessing.Qu
                 ############################### get action and raw_action factory ###############################
                 action_factory = {}
                 raw_action_factory = {}
-                factory_task = {}
+                factory_task_prob = {}
                 for g_agent in globalAgents:
                     action_factory[g_agent.player] = {}
-                    factory_task[g_agent.player] = {}
+                    factory_task_prob[g_agent.player] = {}
                     for f_id, f_obs in obs_factory[g_agent.player].items():
-                        action_factory[g_agent.player][f_id], factory_task[g_agent.player][f_id] = factory_agent.act(f_obs, raw_obs['player_0']["real_env_steps"])
+                        action_factory[g_agent.player][f_id], factory_task_prob[g_agent.player][f_id] = factory_agent.act(f_obs, raw_obs['player_0']["real_env_steps"])
                     raw_action_factory[g_agent.player] = maActTransorFactory.ma_to_sg(action_factory[g_agent.player], raw_obs[g_agent.player], g_agent.player)
-                ################################ change the unit obs #############################################################################
-                obs_unit = maObsTransorUnit.change_uobs_with_order(obs_unit, factory_task, factory_agent.order_pos)
                 ############################### get action and raw_action unit ###################################################################
                 action_unit = {}
                 action_logprob_unit = {}
@@ -162,8 +160,8 @@ def sub_run(replay_queue: multiprocessing.Queue, param_queue: multiprocessing.Qu
                         # if we want do some factory action samples record
                 ############################### get next obs unit ######################################
                 next_obs_unit = maObsTransorUnit.sg_to_ma(raw_next_obs['player_0'], obs_unit)
-                ################################ change the unit obs #############################################################################
-                next_obs_unit = maObsTransorUnit.change_uobs_with_order(next_obs_unit, factory_task, factory_agent.order_pos)
+                ################################ every n step, change the unit obs ######################################################################
+                next_obs_unit = maObsTransorUnit.change_uobs_with_order(next_obs_unit, factory_task_prob, factory_agent.order_pos, raw_obs['player_0']["real_env_steps"])
                 ############################### get custom reward unit ######################################
                 reward_unit = {}
                 for g_agent in globalAgents:
