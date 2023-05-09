@@ -40,7 +40,7 @@ gamma = 0.98
 sub_proc_count = 1
 exp = 'paral_ppo2'
 want_load_model = True
-max_episode_length = 1000
+max_episode_length = 550
 agent_debug = False
 density_rwd = True
 
@@ -95,7 +95,7 @@ def sub_run(replay_queue: multiprocessing.Queue, param_queue: multiprocessing.Qu
                         for f_id in fp_info.keys():
                             # set factories to have 1000 water to check the ore dig ability
                             env.state.factories[p_id][f_id].cargo.water = 150
-                            # env.state.factories[p_id][f_id].cargo.metal = 500
+                            env.state.factories[p_id][f_id].cargo.metal = 200
                             # env.state.factories[p_id][f_id].power = 10000
                     obs_factory = maObsTransorFactory.sg_to_ma(raw_obs['player_0'])
                     ice_locs = np.argwhere(raw_obs['player_0']["board"]["ice"] == 1)
