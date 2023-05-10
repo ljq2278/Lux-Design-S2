@@ -83,7 +83,8 @@ def sub_run(replay_queue: multiprocessing.Queue, param_queue: multiprocessing.Qu
         seed = np.random.randint(0, 100000000)
         raw_obs = env.reset(seed=seed)
         obs_unit = maObsTransorUnit.sg_to_ma(raw_obs['player_0'], None)
-        obs_factory = maObsTransorFactory.sg_to_ma(raw_obs['player_0'], env.state.factories, max_episode_length - raw_obs['player_0']["real_env_steps"])
+        obs_factory = maObsTransorFactory.sg_to_ma(raw_obs['player_0'], env.state.factories, max_episode_length - raw_obs['player_0']["real_env_steps"],
+                                                   factory_online_agent.heavy_build, factory_online_agent.task_probs)
         done = {'player_0': False, 'player_1': False}
         imgs = {}
         img_actions = {}
@@ -107,7 +108,8 @@ def sub_run(replay_queue: multiprocessing.Queue, param_queue: multiprocessing.Qu
                             env.state.factories[p_id][f_id].cargo.water = 150
                             env.state.factories[p_id][f_id].cargo.metal = 200
                             # env.state.factories[p_id][f_id].power = 10000
-                    obs_factory = maObsTransorFactory.sg_to_ma(raw_obs['player_0'], env.state.factories, max_episode_length - raw_obs['player_0']["real_env_steps"])
+                    obs_factory = maObsTransorFactory.sg_to_ma(raw_obs['player_0'], env.state.factories, max_episode_length - raw_obs['player_0']["real_env_steps"],
+                                                               factory_online_agent.heavy_build, factory_online_agent.task_probs)
                     ice_locs = np.argwhere(raw_obs['player_0']["board"]["ice"] == 1)
                     ore_locs = np.argwhere(raw_obs['player_0']["board"]["ore"] == 1)
                     factory_online_agent.order_resource_pos(raw_obs['player_0']['factories'], ice_locs, ore_locs, rubble_locs)
@@ -162,7 +164,8 @@ def sub_run(replay_queue: multiprocessing.Queue, param_queue: multiprocessing.Qu
                 img_actions[raw_obs['player_0']["real_env_steps"]] = deltaDemand_factory
                 img_obss[raw_obs['player_0']["real_env_steps"]] = obs_factory
                 ############################### get next obs factory ######################################
-                next_obs_factory = maObsTransorFactory.sg_to_ma(raw_next_obs['player_0'], env.state.factories, max_episode_length - raw_obs['player_0']["real_env_steps"])
+                next_obs_factory = maObsTransorFactory.sg_to_ma(raw_next_obs['player_0'], env.state.factories, max_episode_length - raw_obs['player_0']["real_env_steps"],
+                                                                factory_online_agent.heavy_build, factory_online_agent.task_probs)
                 ############################### get custom reward factory ######################################
                 reward_factory = {}
                 real_reward_factory = {}
@@ -170,6 +173,7 @@ def sub_run(replay_queue: multiprocessing.Queue, param_queue: multiprocessing.Qu
                     reward_factory[g_agent.player], real_reward_factory[g_agent.player] = maRwdTransorFactory.sg_to_ma(
                         raw_reward[g_agent.player],
                         action_factory[g_agent.player],
+                        deltaDemand_factory[g_agent.player],
                         obs_factory[g_agent.player],
                         next_obs_factory[g_agent.player],
                         done[g_agent.player],

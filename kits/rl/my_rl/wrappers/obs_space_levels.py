@@ -104,16 +104,32 @@ class ObsSpaceFactory:
     ore_dim = 1
     power_dim_start = ore_dim_start + ore_dim  # 6
     power_dim = 1
-    lichen_dim_start = power_dim_start + power_dim  # 6
+    lichen_dim_start = power_dim_start + power_dim  # 7
     lichen_dim = 1
-    left_step_dim_start = lichen_dim_start + lichen_dim  # 7
+    left_step_dim_start = lichen_dim_start + lichen_dim  # 8
     left_step_dim = 1
-    total_dims = left_step_dim_start + left_step_dim  # total 8
+
+    heavy_build_dim_start = left_step_dim_start + left_step_dim  # 9
+    heavy_build_dim = 1
+
+    plant_pos_dim_start = heavy_build_dim_start + heavy_build_dim  # 10
+    plant_pos_dim = 1
+
+    ice_prob_dim_start = plant_pos_dim_start + plant_pos_dim  # 11
+    ice_prob_dim = 1
+
+    ore_prob_dim_start = ice_prob_dim_start + ice_prob_dim  # 12
+    ore_prob_dim = 1
+
+    rub_prob_dim_start = ore_prob_dim_start + ore_prob_dim  # 13
+    rub_prob_dim = 1
+
+    total_dims = rub_prob_dim_start + rub_prob_dim  # total 14
 
     def __init__(self, env_cfg):
         self.env_cfg = env_cfg
         self.normer = np.array(
             [1 for _ in range(0, 2)] +
-            [1 for _ in range(2, 9)]
+            [1 for _ in range(2, self.total_dims)]
         )
         return

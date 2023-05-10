@@ -136,7 +136,7 @@ class MaObsTransorUnit(ObsSpaceUnit):
                 if unit_id in last_obs[player_id].keys():
                     movement = np.array([ret[player_id][unit_id][0] - last_obs[player_id][unit_id][0], ret[player_id][unit_id][1] - last_obs[player_id][unit_id][1]])
                     ret[player_id][unit_id][self.task_type_start] = last_obs[player_id][unit_id][self.task_type_start]
-                    ret[player_id][unit_id][self.target_factory_pos_start:self.target_factory_pos_start + 2] =\
+                    ret[player_id][unit_id][self.target_factory_pos_start:self.target_factory_pos_start + 2] = \
                         last_obs[player_id][unit_id][self.target_factory_pos_start:self.target_factory_pos_start + 2] - movement
                     ret[player_id][unit_id][self.target_pos_start: self.target_pos_start + 2] = last_obs[player_id][unit_id][self.target_pos_start: self.target_pos_start + 2] - movement
                     ret[player_id][unit_id][self.target_dist] = abs(ret[player_id][unit_id][self.target_pos_start]) + abs(ret[player_id][unit_id][self.target_pos_start + 1])
@@ -157,7 +157,7 @@ class MaObsTransorFactory(ObsSpaceFactory):
         self.observation_space = spaces.Box(-999, 999, shape=(self.total_dims,))
 
     # we make this method static so the submission/evaluation code can use this as well
-    def sg_to_ma(self, raw_obs: Dict[str, Any], factories_info, left_step):
+    def sg_to_ma(self, raw_obs: Dict[str, Any], factories_info, left_step, heavy_build, task_prob):
         ret = {}
         for p_id, pf_info in raw_obs['factories'].items():
             ret[p_id] = {}
@@ -171,4 +171,9 @@ class MaObsTransorFactory(ObsSpaceFactory):
                 ret[p_id][f_id][self.power_dim_start] = f_info['power']
                 ret[p_id][f_id][self.left_step_dim_start] = left_step
                 ret[p_id][f_id][self.lichen_dim_start] = len(factories_info[p_id][f_id].grow_lichen_positions)
+                ret[p_id][f_id][self.heavy_build_dim_start] = heavy_build[f_id] if f_id in heavy_build.keys() else 0
+                ret[p_id][f_id][self.plant_pos_dim_start] = len(factories_info[p_id][f_id].connected_lichen_positions)
+                ret[p_id][f_id][self.ice_prob_dim_start] = task_prob[f_id]['ice'] if f_id in task_prob.keys() else 1
+                ret[p_id][f_id][self.ore_prob_dim_start] = task_prob[f_id]['ore'] if f_id in task_prob.keys() else 0
+                ret[p_id][f_id][self.rub_prob_dim_start] = task_prob[f_id]['rubble'] if f_id in task_prob.keys() else 0
         return ret

@@ -15,6 +15,7 @@ class F_PPO_Online_Agent:
     def __init__(self, state_dim, action_dim, env_cfg):
         self.policy = ActorCritic(state_dim, action_dim, env_cfg)
         self.task_probs = {}
+        self.heavy_build = {}
 
     def update(self, new_params):
         self.policy.load_state_dict(new_params)
@@ -52,6 +53,9 @@ class F_PPO_Online_Agent:
         ###################################### the action choice ########################################
         if f_obs[ObsSpaceFactory.metal_dim_start] >= 100 and f_obs[ObsSpaceFactory.power_dim_start] >= 500 and step % 5 == 0:
             action = 1
+            if fid not in self.heavy_build.keys():
+                self.heavy_build[fid] = 0
+            self.heavy_build[fid] += 1
         elif step > 450:
             action = 2
         ######################################### the demand ##################################################
@@ -66,6 +70,7 @@ class F_PPO_Online_Agent:
 
     def reset(self):
         self.task_probs = {}
+        self.heavy_build = {}
 
 
 class F_PPO_Offline_Agent:

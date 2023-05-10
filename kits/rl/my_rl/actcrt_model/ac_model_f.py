@@ -7,7 +7,7 @@ from wrappers.obs_space_levels import ObsSpaceFactory
 
 
 class ActMLPNetwork(nn.Module):
-    def __init__(self, in_dim, out_dim, env_cfg, hidden_dim=16, non_linear=nn.Tanh()):
+    def __init__(self, in_dim, out_dim, env_cfg, hidden_dim=32, non_linear=nn.Tanh()):
         super(ActMLPNetwork, self).__init__()
         self.obsSpaceFactory = ObsSpaceFactory(env_cfg)
         self.sfmx = nn.Softmax(dim=-1)
@@ -27,7 +27,7 @@ class ActMLPNetwork(nn.Module):
 
 
 class CriMLPNetwork(nn.Module):
-    def __init__(self, in_dim, out_dim, env_cfg, hidden_dim=16, non_linear=nn.Tanh()):
+    def __init__(self, in_dim, out_dim, env_cfg, hidden_dim=32, non_linear=nn.Tanh()):
         super(CriMLPNetwork, self).__init__()
         self.obsSpaceFactory = ObsSpaceFactory(env_cfg)
         self.deep_net = nn.Sequential(

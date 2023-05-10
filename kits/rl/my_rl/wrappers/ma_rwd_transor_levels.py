@@ -7,7 +7,7 @@ from gym import spaces
 # import matplotlib.pyplot as plt
 from lux.config import EnvConfig
 from wrappers.obs_space_levels import ObsSpaceUnit, ObsSpaceFactory
-from wrappers.act_space_levels import ActSpaceUnit, ActSpaceFactory
+from wrappers.act_space_levels import ActSpaceUnit, ActSpaceFactory, ActSpaceFactoryDemand
 
 
 class MaRwdTransorUnit():
@@ -237,7 +237,7 @@ class MaRwdTransorFactory():
         }
         return
 
-    def sg_to_ma(self, ori_reward, act, obs, next_obs, done, factory_info, factory_task_prob, ice_map=None, ore_map=None, raw_obs=None, typ='HEAVY', target='ice'):
+    def sg_to_ma(self, ori_reward, act, deltaDemand, obs, next_obs, done, factory_info, factory_task_prob, ice_map=None, ore_map=None, raw_obs=None, typ='HEAVY', target='ice'):
         rewards = {}
         real_reward = {}
         metrics = {}
@@ -298,9 +298,12 @@ class MaRwdTransorFactory():
                         print('heavy robot made')
                 if self.debug:
                     print(f_id)
+                    print('pos_dim', 'water_dim', 'metal_dim', 'ice_dim', 'ore_dim', 'power_dim', 'lichen_dim',
+                          'left_step_dim', 'heavy_build_dim', 'plant_pos_dim', 'ice_prob_dim', 'ore_prob_dim', 'rub_prob_dim', )
                     print(obs[f_id])
                     print(next_obs[f_id])
                     print(act[f_id])
+                    print(ActSpaceFactoryDemand.demand_id_to_increment(deltaDemand[f_id]))
                     print(factory_task_prob[f_id])
                     print(rewards[f_id])
                     print('############################################ factory debug end #########################################################################################################')
