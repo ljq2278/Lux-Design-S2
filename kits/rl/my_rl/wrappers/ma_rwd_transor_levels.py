@@ -248,12 +248,15 @@ class MaRwdTransorFactory():
             if done:
                 # print(obs[f_id][ObsSpaceFactory.left_step_dim_start])
                 rewards[f_id] -= 100
-                if obs[f_id][ObsSpaceFactory.left_step_dim_start] == 2:
+                if obs[f_id][ObsSpaceFactory.left_step_dim_start] == 2: ######################################################### normal end
                     real_reward[f_id] += obs[f_id][ObsSpaceFactory.lichen_dim_start]
                     self.reward_collect['lichen remain'] += obs[f_id][ObsSpaceFactory.lichen_dim_start]
+                elif obs[f_id][ObsSpaceFactory.water_dim_start] == 0: ############################################### special for the tie ending which no get to the end
+                    real_reward[f_id] -= obs[f_id][ObsSpaceFactory.left_step_dim_start]
+                    self.reward_collect['lichen remain'] -= obs[f_id][ObsSpaceFactory.left_step_dim_start]
                 continue
             metrics[f_id] = {}
-            if f_id not in next_obs.keys():  # it collide
+            if f_id not in next_obs.keys():  ######################################################## it collide
                 rewards[f_id] -= 10
                 real_reward[f_id] -= obs[f_id][ObsSpaceFactory.left_step_dim_start]
                 self.reward_collect['lichen remain'] -= obs[f_id][ObsSpaceFactory.left_step_dim_start]

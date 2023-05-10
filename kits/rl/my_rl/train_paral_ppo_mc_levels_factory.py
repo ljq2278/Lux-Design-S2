@@ -44,7 +44,7 @@ want_load_model = False
 max_episode_length = 500
 agent_debug = False
 density_rwd = True
-episode_start = 4870
+episode_start = 5530
 
 dim_info_unit = [ObsSpaceUnit.total_dims, ActSpaceUnit.total_act_dims]  # obs and act dims
 dim_info_factory = [ObsSpaceFactory.total_dims, ActSpaceFactoryDemand.total_act_dims]  # obs and act dims
@@ -189,7 +189,7 @@ def sub_run(replay_queue: multiprocessing.Queue, param_queue: multiprocessing.Qu
                 ############################### get next obs unit ######################################
                 next_obs_unit = maObsTransorUnit.sg_to_ma(raw_next_obs['player_0'], obs_unit)
                 ################################ every n step, change the unit obs ######################################################################
-                next_obs_unit = maObsTransorUnit.change_uobs_with_order(next_obs_unit, factory_task_prob, factory_online_agent.order_pos, raw_obs['player_0']["real_env_steps"])
+                next_obs_unit = maObsTransorUnit.change_uobs_with_order(next_obs_unit, factory_task_prob, factory_online_agent.order_pos, raw_obs['player_0']["real_env_steps"], env.state.board.rubble)
                 ############################### get custom reward unit ######################################
                 reward_unit = {}
                 for g_agent in globalAgents:

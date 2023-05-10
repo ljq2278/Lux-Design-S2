@@ -34,12 +34,16 @@ class MaObsTransorUnit(ObsSpaceUnit):
                     min_ind = i
         return min_rela_pos, min_ind
 
-    def change_uobs_with_order(self, unit_obs, factory_task_prob, f_resource_dict, episode_step):
+    def change_uobs_with_order(self, unit_obs, factory_task_prob, f_resource_dict, episode_step, rubble_board):
         # factory_task_prob: pid->uid->task_type->prob
         pos_set = set()
         for pid, pu_info in unit_obs.items():
             for u_id, u_target in pu_info.items():
-                if episode_step % 20 == 0 or unit_obs[pid][u_id][self.target_factory_pos_start] == -100:
+                target_x, target_y = unit_obs[pid][u_id][0] + unit_obs[pid][u_id][self.target_pos_start], unit_obs[pid][u_id][1] + unit_obs[pid][u_id][self.target_pos_start + 1]
+                ################################################################################################################## reselect the target when dig resource after a peride or the init or target rubble dig out
+                if (unit_obs[pid][u_id][self.task_type_start] <= 2 and episode_step % 20 == 0) \
+                        or (unit_obs[pid][u_id][self.task_type_start] == -100) or \
+                        (unit_obs[pid][u_id][self.task_type_start] == 3 and rubble_board[target_x, target_y] == 0):
                     unit_obs[pid][u_id][self.target_factory_pos_start], unit_obs[pid][u_id][self.target_factory_pos_start + 1] = -100, -100
                     robot_pos = unit_obs[pid][u_id]
                     target_f_id = None

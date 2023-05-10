@@ -9,13 +9,14 @@ from wrappers.obs_space_levels import ObsSpaceFactory
 from wrappers.act_space_levels import ActSpaceFactoryDemand
 from actcrt_model.ac_model_f import ActorCritic
 from ppo.Buffer import Buffer
-
+import copy
 
 class F_PPO_Online_Agent:
     def __init__(self, state_dim, action_dim, env_cfg):
         self.policy = ActorCritic(state_dim, action_dim, env_cfg)
         self.task_probs = {}
         self.heavy_build = {}
+        self.init_task_probs = {'ice': 0.4, 'ore': 0.3, 'rubble': 0.3}
 
     def update(self, new_params):
         self.policy.load_state_dict(new_params)
@@ -56,11 +57,11 @@ class F_PPO_Online_Agent:
             if fid not in self.heavy_build.keys():
                 self.heavy_build[fid] = 0
             self.heavy_build[fid] += 1
-        elif step > 450:
+        elif step >= 439:
             action = 2
         ######################################### the demand ##################################################
         if fid not in self.task_probs.keys():
-            self.task_probs[fid] = {'ice': 1, 'ore': 0, 'rubble': 0}
+            self.task_probs[fid] = copy.deepcopy(self.init_task_probs)
         tmp = {}
         for task, increment in ActSpaceFactoryDemand.demand_id_to_increment(delta_demand[0]).items():
             tmp[task] = self.task_probs[fid][task] + increment

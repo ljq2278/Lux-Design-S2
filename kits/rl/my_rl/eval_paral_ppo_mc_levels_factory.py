@@ -4,7 +4,6 @@ Implementation of RL agent. Note that luxai_s2 and stable_baselines3 are package
 import multiprocessing
 import copy
 import os.path as osp
-from torch.utils.tensorboard import SummaryWriter
 import gym
 import numpy as np
 import luxai_s2
@@ -21,7 +20,6 @@ from ppo.UnitAgent import PPO_Offline_Agent, PPO_Online_Agent
 from ppo.Buffer import Buffer
 from ppo.FactoryPPOAgent import F_PPO_Offline_Agent, F_PPO_Online_Agent
 import cv2
-from luxai_s2.map.position import Position
 
 
 class GlobalAgent(EarlyRuleAgent, PPO):
@@ -49,9 +47,8 @@ dim_info_unit = [ObsSpaceUnit.total_dims, ActSpaceUnit.total_act_dims]  # obs an
 dim_info_factory = [ObsSpaceFactory.total_dims, ActSpaceFactoryDemand.total_act_dims]  # obs and act dims
 base_res_dir = os.environ['HOME'] + '/train_res/' + exp
 
-writer = SummaryWriter(os.environ['HOME'] + '/logs/' + exp)
-
 eval_save_path = os.environ['HOME'] + '/imgs/'
+
 
 def sub_run(replay_queue: multiprocessing.Queue, param_queue: multiprocessing.Queue, process_id):
     # unit_agent = unit_agent.value
@@ -106,7 +103,7 @@ def sub_run(replay_queue: multiprocessing.Queue, param_queue: multiprocessing.Qu
                         for f_id in fp_info.keys():
                             # set factories to have 1000 water to check the ore dig ability
                             env.state.factories[p_id][f_id].cargo.water = 150
-                            env.state.factories[p_id][f_id].cargo.metal = 200
+                            # env.state.factories[p_id][f_id].cargo.metal = 200
                             # env.state.factories[p_id][f_id].power = 10000
                     obs_factory = maObsTransorFactory.sg_to_ma(raw_obs['player_0'], env.state.factories, max_episode_length - raw_obs['player_0']["real_env_steps"],
                                                                factory_online_agent.heavy_build, factory_online_agent.task_probs)
@@ -201,7 +198,7 @@ def sub_run(replay_queue: multiprocessing.Queue, param_queue: multiprocessing.Qu
                 ############################### get next obs unit ######################################
                 next_obs_unit = maObsTransorUnit.sg_to_ma(raw_next_obs['player_0'], obs_unit)
                 ################################ every n step, change the unit obs ######################################################################
-                next_obs_unit = maObsTransorUnit.change_uobs_with_order(next_obs_unit, factory_task_prob, factory_online_agent.order_pos, raw_obs['player_0']["real_env_steps"])
+                next_obs_unit = maObsTransorUnit.change_uobs_with_order(next_obs_unit, factory_task_prob, factory_online_agent.order_pos, raw_obs['player_0']["real_env_steps"], env.state.board.rubble)
                 ############################### get custom reward unit ######################################
                 reward_unit = {}
                 for g_agent in globalAgents:
@@ -248,9 +245,6 @@ def sub_run(replay_queue: multiprocessing.Queue, param_queue: multiprocessing.Qu
             print(raw_obs["player_0"]["real_env_steps"], maRwdTransorFactory.reward_collect)
             sum_rwd = 0
             survive_step = 0
-            if process_id == 0:
-                writer.add_scalars('unit_rewards', maRwdTransorUnit.reward_collect, episode)
-                writer.add_scalars('factory_rewards', maRwdTransorFactory.reward_collect, episode)
             for k, v in maRwdTransorUnit.reward_collect.items():
                 maRwdTransorUnit.reward_collect[k] = 0
             for k, v in maRwdTransorFactory.reward_collect.items():

@@ -35,7 +35,7 @@ class ActMLPNetwork(nn.Module):
             = x[:, ObsSpaceUnit.target_factory_pos_start: ObsSpaceUnit.target_factory_pos_start + 2] / norm_target_factory
         x[:, ObsSpaceUnit.target_pos_start: ObsSpaceUnit.target_pos_start + 2] \
             = x[:, ObsSpaceUnit.target_pos_start: ObsSpaceUnit.target_pos_start + 2] / norm_target
-        output = F.gumbel_softmax(self.simple_net(x) + self.deep_net(x), tau=8)
+        output = F.gumbel_softmax(self.simple_net(x) + self.deep_net(x), tau=1)
         # output = self.sfmx(self.simple_net(x) + self.deep_net(x))
         # output = F.gumbel_softmax(self.deep_net(x), tau=2)
         return output
