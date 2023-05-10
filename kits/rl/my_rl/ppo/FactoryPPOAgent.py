@@ -16,13 +16,13 @@ class F_PPO_Online_Agent:
         self.policy = ActorCritic(state_dim, action_dim, env_cfg)
         self.task_probs = {}
         self.heavy_build = {}
-        self.init_task_probs = {'ice': 0.4, 'ore': 0.3, 'rubble': 0.3}
+        self.order_pos = {}
+        self.init_task_probs = {'ice': 0.8, 'ore': 0.1, 'rubble': 0.1}
 
     def update(self, new_params):
         self.policy.load_state_dict(new_params)
 
     def order_resource_pos(self, pf_info, ice_pos_list, ore_pos_list, rubble_pos_list=None):
-        self.order_pos = {}
         for p_id, f_info in pf_info.items():
             self.order_pos[p_id] = {}
             for f_id, info in f_info.items():

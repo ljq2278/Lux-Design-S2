@@ -124,7 +124,13 @@ class ObsSpaceFactory:
     rub_prob_dim_start = ore_prob_dim_start + ore_prob_dim  # 13
     rub_prob_dim = 1
 
-    total_dims = rub_prob_dim_start + rub_prob_dim  # total 14
+    nearest_rubble_dist_start = rub_prob_dim_start + rub_prob_dim  # 14
+    nearest_rubble_dist = 1
+
+    nearest_rubble_value_start = nearest_rubble_dist_start + nearest_rubble_dist  # 15
+    nearest_rubble_value = 1
+
+    total_dims = nearest_rubble_value_start + nearest_rubble_value  # total 16
 
     def __init__(self, env_cfg):
         self.env_cfg = env_cfg

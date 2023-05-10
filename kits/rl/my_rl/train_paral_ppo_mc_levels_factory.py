@@ -39,7 +39,7 @@ K_epochs = 20
 episode_num = 3000000
 gamma = 0.98
 sub_proc_count = 6
-exp = 'paral_ppo_f'
+exp = 'paral_ppo_f2'
 want_load_model = False
 max_episode_length = 500
 agent_debug = False
@@ -84,7 +84,7 @@ def sub_run(replay_queue: multiprocessing.Queue, param_queue: multiprocessing.Qu
         raw_obs = env.reset(seed=seed)
         obs_unit = maObsTransorUnit.sg_to_ma(raw_obs['player_0'], None)
         obs_factory = maObsTransorFactory.sg_to_ma(raw_obs['player_0'], env.state.factories, max_episode_length - raw_obs['player_0']["real_env_steps"],
-                                                   factory_online_agent.heavy_build, factory_online_agent.task_probs)
+                                                   factory_online_agent.heavy_build, factory_online_agent.task_probs, factory_online_agent.order_pos, env.state.board.rubble)
         done = {'player_0': False, 'player_1': False}
         ################################ interact with the env for an episode ###################################
         while raw_obs['player_0']["real_env_steps"] < 0 or sum(done.values()) < len(done):
@@ -103,11 +103,11 @@ def sub_run(replay_queue: multiprocessing.Queue, param_queue: multiprocessing.Qu
                             env.state.factories[p_id][f_id].cargo.water = 150
                             # env.state.factories[p_id][f_id].cargo.metal = 200
                             # env.state.factories[p_id][f_id].power = 10000
-                    obs_factory = maObsTransorFactory.sg_to_ma(raw_obs['player_0'], env.state.factories, max_episode_length - raw_obs['player_0']["real_env_steps"],
-                                                               factory_online_agent.heavy_build, factory_online_agent.task_probs)
                     ice_locs = np.argwhere(raw_obs['player_0']["board"]["ice"] == 1)
                     ore_locs = np.argwhere(raw_obs['player_0']["board"]["ore"] == 1)
                     factory_online_agent.order_resource_pos(raw_obs['player_0']['factories'], ice_locs, ore_locs, rubble_locs)
+                    obs_factory = maObsTransorFactory.sg_to_ma(raw_obs['player_0'], env.state.factories, max_episode_length - raw_obs['player_0']["real_env_steps"],
+                                                               factory_online_agent.heavy_build, factory_online_agent.task_probs, factory_online_agent.order_pos, env.state.board.rubble)
                 else:
                     factory_online_agent.update_rubble_pos(raw_obs['player_0']['factories'], rubble_locs)
                 globale_step += 1
@@ -153,7 +153,7 @@ def sub_run(replay_queue: multiprocessing.Queue, param_queue: multiprocessing.Qu
                 raw_next_obs, raw_reward, done, info = env.step(raw_action)
                 ############################### get next obs factory ######################################
                 next_obs_factory = maObsTransorFactory.sg_to_ma(raw_next_obs['player_0'], env.state.factories, max_episode_length - raw_obs['player_0']["real_env_steps"],
-                                                                factory_online_agent.heavy_build, factory_online_agent.task_probs)
+                                                                factory_online_agent.heavy_build, factory_online_agent.task_probs, factory_online_agent.order_pos, env.state.board.rubble)
                 ############################### get custom reward factory ######################################
                 reward_factory = {}
                 real_reward_factory = {}

@@ -161,7 +161,7 @@ class MaObsTransorFactory(ObsSpaceFactory):
         self.observation_space = spaces.Box(-999, 999, shape=(self.total_dims,))
 
     # we make this method static so the submission/evaluation code can use this as well
-    def sg_to_ma(self, raw_obs: Dict[str, Any], factories_info, left_step, heavy_build, task_prob):
+    def sg_to_ma(self, raw_obs: Dict[str, Any], factories_info, left_step, heavy_build, task_prob, order_pos, rubble_board):
         ret = {}
         for p_id, pf_info in raw_obs['factories'].items():
             ret[p_id] = {}
@@ -180,4 +180,7 @@ class MaObsTransorFactory(ObsSpaceFactory):
                 ret[p_id][f_id][self.ice_prob_dim_start] = task_prob[f_id]['ice'] if f_id in task_prob.keys() else 1
                 ret[p_id][f_id][self.ore_prob_dim_start] = task_prob[f_id]['ore'] if f_id in task_prob.keys() else 0
                 ret[p_id][f_id][self.rub_prob_dim_start] = task_prob[f_id]['rubble'] if f_id in task_prob.keys() else 0
+                ret[p_id][f_id][self.nearest_rubble_dist_start] = \
+                    abs(order_pos[p_id][f_id]['rubble'][0][0] - ret[p_id][f_id][0]) + abs(order_pos[p_id][f_id]['rubble'][0][1] - ret[p_id][f_id][1]) if f_id in order_pos[p_id].keys() else -1
+                ret[p_id][f_id][self.nearest_rubble_value_start] = rubble_board[order_pos[p_id][f_id]['rubble'][0][0], order_pos[p_id][f_id]['rubble'][0][1]] if f_id in order_pos[p_id].keys() else -1
         return ret

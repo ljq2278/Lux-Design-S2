@@ -248,10 +248,10 @@ class MaRwdTransorFactory():
             if done:
                 # print(obs[f_id][ObsSpaceFactory.left_step_dim_start])
                 rewards[f_id] -= 100
-                if obs[f_id][ObsSpaceFactory.left_step_dim_start] == 2: ######################################################### normal end
+                if obs[f_id][ObsSpaceFactory.left_step_dim_start] == 2:  ######################################################### normal end
                     real_reward[f_id] += obs[f_id][ObsSpaceFactory.lichen_dim_start]
                     self.reward_collect['lichen remain'] += obs[f_id][ObsSpaceFactory.lichen_dim_start]
-                elif obs[f_id][ObsSpaceFactory.water_dim_start] == 0: ############################################### special for the tie ending which no get to the end
+                elif obs[f_id][ObsSpaceFactory.water_dim_start] == 0:  ############################################### special for the tie ending which no get to the end
                     real_reward[f_id] -= obs[f_id][ObsSpaceFactory.left_step_dim_start]
                     self.reward_collect['lichen remain'] -= obs[f_id][ObsSpaceFactory.left_step_dim_start]
                 continue
@@ -302,7 +302,8 @@ class MaRwdTransorFactory():
                 if self.debug:
                     print(f_id)
                     print('pos_dim', 'water_dim', 'metal_dim', 'ice_dim', 'ore_dim', 'power_dim', 'lichen_dim',
-                          'left_step_dim', 'heavy_build_dim', 'plant_pos_dim', 'ice_prob_dim', 'ore_prob_dim', 'rub_prob_dim', )
+                          'left_step_dim', 'heavy_build_dim', 'plant_pos_dim', 'ice_prob_dim', 'ore_prob_dim', 'rub_prob_dim',
+                          'nearest_rubble_dist_start', 'nearest_rubble_value_start')
                     print(obs[f_id])
                     print(next_obs[f_id])
                     print(act[f_id])
