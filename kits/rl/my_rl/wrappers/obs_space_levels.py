@@ -54,17 +54,7 @@ class ObsSpaceUnit:
         self.normer[ObsSpaceUnit.is_at_home] = 1
         self.normer[ObsSpaceUnit.target_dist] = 1
         self.normer[ObsSpaceUnit.home_dist] = 1
-        # self.normer[ObsSpaceUnit.target_pos_start] = 1
-        # self.normer[ObsSpaceUnit.target_pos_start + 1] = 1
-        # self.normer[ObsSpaceUnit.target_factory_pos_start] = 1
-        # self.normer[ObsSpaceUnit.target_factory_pos_start + 1] = 1
 
-        # self.mask = np.array([0 for _ in range(0, 2)] +
-        #                      [1 for _ in range(0, 1)] +
-        #                      [1 for _ in range(0, 2)] +
-        #                      [0.5 if i != 12 else 1 for i in range(0, 25)] +
-        #                      [1, 1, 1, 1, 1, 1, 1] +
-        #                      [1 for _ in range(0, 2)], dtype=float)
         return
 
     @staticmethod
@@ -114,10 +104,16 @@ class ObsSpaceFactory:
     ore_dim = 1
     power_dim_start = ore_dim_start + ore_dim  # 6
     power_dim = 1
-    total_dims = power_dim_start + power_dim  # total 7
+    lichen_dim_start = power_dim_start + power_dim  # 6
+    lichen_dim = 1
+    left_step_dim_start = lichen_dim_start + lichen_dim  # 7
+    left_step_dim = 1
+    total_dims = left_step_dim_start + left_step_dim  # total 8
 
     def __init__(self, env_cfg):
         self.env_cfg = env_cfg
-        self.normer = np.array([1 for _ in range(0, 7)])
-        self.mask = np.array([1 for _ in range(0, 7)])
+        self.normer = np.array(
+            [1 for _ in range(0, 2)] +
+            [1 for _ in range(2, 9)]
+        )
         return

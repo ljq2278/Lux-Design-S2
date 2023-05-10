@@ -233,25 +233,33 @@ class MaRwdTransorFactory():
             'heavy robot made': 0,
             'light robot made': 0,
             'water lichen': 0,
+            'lichen remain': 0,
         }
         return
 
-    def sg_to_ma(self, ori_reward, act, obs, next_obs, done, factory_info, ice_map=None, ore_map=None, raw_obs=None, typ='HEAVY', target='ice'):
+    def sg_to_ma(self, ori_reward, act, obs, next_obs, done, factory_info, factory_task_prob, ice_map=None, ore_map=None, raw_obs=None, typ='HEAVY', target='ice'):
         rewards = {}
+        real_reward = {}
         metrics = {}
         factory_ids = list(set(obs.keys()).union(set(next_obs.keys())))
         for f_id in factory_ids:
             rewards[f_id] = 0
+            real_reward[f_id] = 0
             if done:
+                # print(obs[f_id][ObsSpaceFactory.left_step_dim_start])
                 rewards[f_id] -= 100
+                if obs[f_id][ObsSpaceFactory.left_step_dim_start] == 2:
+                    real_reward[f_id] += obs[f_id][ObsSpaceFactory.lichen_dim_start]
+                    self.reward_collect['lichen remain'] += obs[f_id][ObsSpaceFactory.lichen_dim_start]
                 continue
             metrics[f_id] = {}
             if f_id not in next_obs.keys():  # it collide
                 rewards[f_id] -= 10
+                real_reward[f_id] -= obs[f_id][ObsSpaceFactory.left_step_dim_start]
+                self.reward_collect['lichen remain'] -= obs[f_id][ObsSpaceFactory.left_step_dim_start]
             elif f_id not in obs.keys():  # it is new born
                 pass
             else:
-
                 metrics[f_id]['ice'] = obs[f_id][ObsSpaceFactory.ice_dim_start]
                 metrics[f_id]['next_ice'] = next_obs[f_id][ObsSpaceFactory.ice_dim_start]
                 metrics[f_id]['ice_changed'] = metrics[f_id]['next_ice'] - metrics[f_id]['ice']
@@ -261,7 +269,7 @@ class MaRwdTransorFactory():
                 metrics[f_id]['ore_changed'] = metrics[f_id]['next_ore'] - metrics[f_id]['ore']
                 if self.debug:
                     print('############################################## factory debug start ########################################################################################################')
-                if act[f_id] == ActSpaceFactory.water_lichen_high - 1: ####################### water lichen
+                if act[f_id] == ActSpaceFactory.water_lichen_high - 1:  ####################### water lichen
                     rwd = len(factory_info[f_id].connected_lichen_positions)
                     rewards[f_id] += rwd
                     self.reward_collect['water lichen'] += len(factory_info[f_id].connected_lichen_positions)
@@ -289,5 +297,11 @@ class MaRwdTransorFactory():
                     if self.debug:
                         print('heavy robot made')
                 if self.debug:
+                    print(f_id)
+                    print(obs[f_id])
+                    print(next_obs[f_id])
+                    print(act[f_id])
+                    print(factory_task_prob[f_id])
+                    print(rewards[f_id])
                     print('############################################ factory debug end #########################################################################################################')
-        return rewards
+        return rewards, real_reward

@@ -20,7 +20,7 @@ from wrappers.act_space_levels import ActSpaceFactory, ActSpaceUnit, ActSpaceFac
 from ppo.UnitAgent import PPO_Offline_Agent, PPO_Online_Agent
 from ppo.Buffer import Buffer
 from ppo.FactoryPPOAgent import F_PPO_Offline_Agent, F_PPO_Online_Agent
-
+import cv2
 from luxai_s2.map.position import Position
 
 
@@ -38,13 +38,12 @@ eps_clip = 0.2
 K_epochs = 20
 episode_num = 3000000
 gamma = 0.98
-sub_proc_count = 6
+sub_proc_count = 1
 exp = 'paral_ppo_f'
-want_load_model = False
+want_load_model = True
 max_episode_length = 500
 agent_debug = False
 density_rwd = True
-episode_start = 4870
 
 dim_info_unit = [ObsSpaceUnit.total_dims, ActSpaceUnit.total_act_dims]  # obs and act dims
 dim_info_factory = [ObsSpaceFactory.total_dims, ActSpaceFactoryDemand.total_act_dims]  # obs and act dims
@@ -52,6 +51,7 @@ base_res_dir = os.environ['HOME'] + '/train_res/' + exp
 
 writer = SummaryWriter(os.environ['HOME'] + '/logs/' + exp)
 
+eval_save_path = os.environ['HOME'] + '/imgs/'
 
 def sub_run(replay_queue: multiprocessing.Queue, param_queue: multiprocessing.Queue, process_id):
     # unit_agent = unit_agent.value
@@ -63,7 +63,7 @@ def sub_run(replay_queue: multiprocessing.Queue, param_queue: multiprocessing.Qu
     maObsTransorUnit = MaObsTransorUnit(env, env_cfg, if_mask=True)
     maObsTransorFactory = MaObsTransorFactory(env, env_cfg, if_mask=True)
     maRwdTransorUnit = MaRwdTransorUnit(env, env_cfg, debug=False, density=density_rwd)
-    maRwdTransorFactory = MaRwdTransorFactory(env, env_cfg, debug=False, density=density_rwd)
+    maRwdTransorFactory = MaRwdTransorFactory(env, env_cfg, debug=True, density=density_rwd)
     agent_cont = 2
     unit_online_agent = PPO_Online_Agent(dim_info_unit[0], dim_info_unit[1], env_cfg)
     factory_online_agent = F_PPO_Online_Agent(dim_info_factory[0], dim_info_factory[1], env_cfg)
@@ -78,13 +78,18 @@ def sub_run(replay_queue: multiprocessing.Queue, param_queue: multiprocessing.Qu
     survive_step = 0
     factory_buffer = Buffer()
     tmp_buffer_factory = {}  # record every factory datas
-    for episode in range(episode_start, episode_num):
+    for episode in range(1):
         np.random.seed()
         seed = np.random.randint(0, 100000000)
         raw_obs = env.reset(seed=seed)
         obs_unit = maObsTransorUnit.sg_to_ma(raw_obs['player_0'], None)
         obs_factory = maObsTransorFactory.sg_to_ma(raw_obs['player_0'], env.state.factories, max_episode_length - raw_obs['player_0']["real_env_steps"])
         done = {'player_0': False, 'player_1': False}
+        imgs = {}
+        img_actions = {}
+        img_raw_actions = {}
+        img_obss = {}
+        img_next_obss = {}
         ################################ interact with the env for an episode ###################################
         while raw_obs['player_0']["real_env_steps"] < 0 or sum(done.values()) < len(done):
             if raw_obs['player_0']["real_env_steps"] < 0:
@@ -149,6 +154,13 @@ def sub_run(replay_queue: multiprocessing.Queue, param_queue: multiprocessing.Qu
                     for u_id, u_info in raw_action_unit[p_id].items():
                         raw_action[p_id][u_id] = u_info
                 raw_next_obs, raw_reward, done, info = env.step(raw_action)
+                img = env.render("rgb_array", width=640, height=640)
+                imgs[raw_obs['player_0']["real_env_steps"]] = img
+                cv2.imwrite(eval_save_path + str(raw_obs['player_0']["real_env_steps"]) + '.jpg', img)
+                print(raw_obs['player_0']["real_env_steps"], raw_action)
+                img_raw_actions[raw_obs['player_0']["real_env_steps"]] = raw_action
+                img_actions[raw_obs['player_0']["real_env_steps"]] = deltaDemand_factory
+                img_obss[raw_obs['player_0']["real_env_steps"]] = obs_factory
                 ############################### get next obs factory ######################################
                 next_obs_factory = maObsTransorFactory.sg_to_ma(raw_next_obs['player_0'], env.state.factories, max_episode_length - raw_obs['player_0']["real_env_steps"])
                 ############################### get custom reward factory ######################################
@@ -267,9 +279,6 @@ def offline_learn(replay_queue: multiprocessing.Queue, param_queue_list, pid):
             train_data.clear()
             for param_queue in param_queue_list:
                 param_queue.put(new_params)
-            if online_agent_update_time % 10 == 0:
-                print('save model, online agent update time ', online_agent_update_time)
-                f_ppo_offline_agent.save()
 
 
 if __name__ == "__main__":

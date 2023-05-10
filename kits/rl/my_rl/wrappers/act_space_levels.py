@@ -39,3 +39,45 @@ class ActSpaceFactory:
         self.env_cfg = env_cfg
 
         return
+
+
+class ActSpaceFactoryDemand:
+    incre_ice_decre_ore = 1  # 0
+    incre_ice_decre_rub = 1  # 1
+    incre_ore_decre_ice = 1  # 0
+    incre_ore_decre_rub = 1  # 1
+    incre_rub_decre_ice = 1  # 0
+    incre_rub_decre_ore = 1  # 1
+    keep_the_same = 1
+
+    incre_ice_decre_ore_high = 0 + incre_ice_decre_ore
+    incre_ice_decre_rub_high = incre_ice_decre_ore_high + incre_ice_decre_rub
+    incre_ore_decre_ice_high = incre_ice_decre_rub_high + incre_ore_decre_ice
+    incre_ore_decre_rub_high = incre_ore_decre_ice_high + incre_ore_decre_rub
+    incre_rub_decre_ice_high = incre_ore_decre_rub_high + incre_rub_decre_ice
+    incre_rub_decre_ore_high = incre_rub_decre_ice_high + incre_rub_decre_ore
+    keep_the_same_high = incre_rub_decre_ore_high + keep_the_same
+
+    total_act_dims = keep_the_same_high
+
+    @staticmethod
+    def demand_id_to_increment(ind):
+        if ind < ActSpaceFactoryDemand.incre_ice_decre_ore_high:
+            return {'ice': 0.1, 'ore': -0.1, 'rubble': 0}
+        elif ind < ActSpaceFactoryDemand.incre_ice_decre_rub_high:
+            return {'ice': 0.1, 'ore': 0, 'rubble': -0.1}
+        elif ind < ActSpaceFactoryDemand.incre_ore_decre_ice_high:
+            return {'ice': -0.1, 'ore': 0.1, 'rubble': 0}
+        elif ind < ActSpaceFactoryDemand.incre_ore_decre_rub_high:
+            return {'ice': 0, 'ore': 0.1, 'rubble': -0.1}
+        elif ind < ActSpaceFactoryDemand.incre_rub_decre_ice_high:
+            return {'ice': -0.1, 'ore': 0, 'rubble': 0.1}
+        elif ind < ActSpaceFactoryDemand.incre_rub_decre_ore_high:
+            return {'ice': 0, 'ore': -0.1, 'rubble': 0.1}
+        else:
+            return {'ice': 0, 'ore': 0, 'rubble': 0}
+
+    def __init__(self, env_cfg):
+        self.env_cfg = env_cfg
+
+        return

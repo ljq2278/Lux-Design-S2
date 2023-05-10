@@ -9,7 +9,7 @@ from torch.distributions import Categorical
 import numpy as np
 
 from actcrt_model.ac_model import ActorCritic
-from ppo.UnitBuffer import Buffer
+from ppo.Buffer import Buffer
 
 
 
@@ -66,7 +66,7 @@ class PPO_Offline_Agent:
 
     def load(self):
         """init maddpg using the model saved in `file`"""
-        print('loading model .................')
+        print('loading unit model .................')
         checkpoint = torch.load(os.path.join(self.save_dir, 'model.pt'))
         self.policy.load_state_dict(checkpoint['policy'])
         self.optimizer.load_state_dict(checkpoint['optimizer'])

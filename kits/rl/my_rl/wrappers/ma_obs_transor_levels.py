@@ -157,7 +157,7 @@ class MaObsTransorFactory(ObsSpaceFactory):
         self.observation_space = spaces.Box(-999, 999, shape=(self.total_dims,))
 
     # we make this method static so the submission/evaluation code can use this as well
-    def sg_to_ma(self, raw_obs: Dict[str, Any]):
+    def sg_to_ma(self, raw_obs: Dict[str, Any], factories_info, left_step):
         ret = {}
         for p_id, pf_info in raw_obs['factories'].items():
             ret[p_id] = {}
@@ -169,4 +169,6 @@ class MaObsTransorFactory(ObsSpaceFactory):
                 ret[p_id][f_id][self.ice_dim_start] = f_info['cargo']['ice']
                 ret[p_id][f_id][self.ore_dim_start] = f_info['cargo']['ore']
                 ret[p_id][f_id][self.power_dim_start] = f_info['power']
+                ret[p_id][f_id][self.left_step_dim_start] = left_step
+                ret[p_id][f_id][self.lichen_dim_start] = len(factories_info[p_id][f_id].grow_lichen_positions)
         return ret
