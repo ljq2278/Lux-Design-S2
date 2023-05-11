@@ -257,7 +257,8 @@ class MaRwdTransorFactory():
                     real_reward[f_id] -= obs[f_id][ObsSpaceFactory.left_step_dim_start]
                     # self.reward_collect['lichen remain'] -= obs[f_id][ObsSpaceFactory.left_step_dim_start]
                 self.reward_collect['real reward'] += real_reward[f_id]
-                print(f_id, obs[f_id][ObsSpaceFactory.left_step_dim_start], real_reward[f_id], '??????????????????????????????????????????????????????????')
+                if self.debug:
+                    print(f_id, obs[f_id][ObsSpaceFactory.left_step_dim_start], real_reward[f_id], '??????????????????????????????????????????????????????????')
                 continue
             metrics[f_id] = {}
             if f_id not in next_obs.keys():  ######################################################## it collide
@@ -265,7 +266,8 @@ class MaRwdTransorFactory():
                 real_reward[f_id] -= obs[f_id][ObsSpaceFactory.left_step_dim_start]
                 # self.reward_collect['lichen remain'] -= obs[f_id][ObsSpaceFactory.left_step_dim_start]
                 self.reward_collect['real reward'] += real_reward[f_id]
-                print(f_id, obs[f_id][ObsSpaceFactory.left_step_dim_start], real_reward[f_id], '!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!')
+                if self.debug:
+                    print(f_id, obs[f_id][ObsSpaceFactory.left_step_dim_start], real_reward[f_id], '!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!')
             elif f_id not in obs.keys():  # it is new born
                 pass
             else:
