@@ -58,7 +58,7 @@ class F_PPO_Online_Agent:
             if fid not in self.heavy_build.keys():
                 self.heavy_build[fid] = 0
             self.heavy_build[fid] += 1
-        elif step >= max_episode_length - 62 and f_obs[ObsSpaceFactory.water_dim_start] > 20:
+        elif step >= max_episode_length - 62 and f_obs[ObsSpaceFactory.water_dim_start] - f_obs[ObsSpaceFactory.plant_pos_dim_start] > 20:
             action = 2
         ######################################### the demand ##################################################
         if fid not in self.task_probs.keys():
