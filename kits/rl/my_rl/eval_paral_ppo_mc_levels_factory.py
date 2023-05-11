@@ -130,7 +130,7 @@ def sub_run(replay_queue: multiprocessing.Queue, param_queue: multiprocessing.Qu
                     for f_id, f_obs in obs_factory[g_agent.player].items():
                         action_factory[g_agent.player][f_id], factory_task_prob[g_agent.player][f_id], deltaDemand_factory[g_agent.player][f_id], \
                         deltaDemand_logprob_factory[g_agent.player][f_id], state_val_factory[g_agent.player][f_id] \
-                            = factory_online_agent.act(f_obs, raw_obs['player_0']["real_env_steps"], f_id)
+                            = factory_online_agent.act(f_obs, raw_obs['player_0']["real_env_steps"], f_id, max_episode_length)
                     raw_action_factory[g_agent.player] = maActTransorFactory.ma_to_sg(action_factory[g_agent.player], raw_obs[g_agent.player], g_agent.player)
                 ############################### get action and raw_action unit ###################################################################
                 action_unit = {}
@@ -175,7 +175,8 @@ def sub_run(replay_queue: multiprocessing.Queue, param_queue: multiprocessing.Qu
                         next_obs_factory[g_agent.player],
                         done[g_agent.player],
                         env.state.factories[g_agent.player],
-                        factory_task_prob[g_agent.player]
+                        factory_task_prob[g_agent.player],
+                        raw_obs['player_0']["real_env_steps"]
                     )
                     for f_id, f_info in obs_factory[g_agent.player].items():
                         if f_id not in next_obs_factory[g_agent.player].keys() or done[g_agent.player]:

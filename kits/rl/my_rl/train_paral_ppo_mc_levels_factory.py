@@ -166,7 +166,8 @@ def sub_run(replay_queue: multiprocessing.Queue, param_queue: multiprocessing.Qu
                         next_obs_factory[g_agent.player],
                         done[g_agent.player],
                         env.state.factories[g_agent.player],
-                        factory_task_prob[g_agent.player]
+                        factory_task_prob[g_agent.player],
+                        raw_obs['player_0']["real_env_steps"]
                     )
                     for f_id, f_info in obs_factory[g_agent.player].items():
                         if f_id not in next_obs_factory[g_agent.player].keys() or done[g_agent.player]:

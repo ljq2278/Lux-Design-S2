@@ -238,7 +238,7 @@ class MaRwdTransorFactory():
         }
         return
 
-    def sg_to_ma(self, ori_reward, act, deltaDemand, obs, next_obs, done, factory_info, factory_task_prob, ice_map=None, ore_map=None, raw_obs=None, typ='HEAVY', target='ice'):
+    def sg_to_ma(self, ori_reward, act, deltaDemand, obs, next_obs, done, factory_info, factory_task_prob, raw_real_step, ice_map=None, ore_map=None, raw_obs=None, typ='HEAVY', target='ice'):
         rewards = {}
         real_reward = {}
         metrics = {}
@@ -251,12 +251,13 @@ class MaRwdTransorFactory():
                 rewards[f_id] -= 100
                 # real_reward[f_id] += obs[f_id][ObsSpaceFactory.heavy_build_dim_start] * 10
                 if obs[f_id][ObsSpaceFactory.left_step_dim_start] == 2:  ######################################################### normal end
-                    real_reward[f_id] += obs[f_id][ObsSpaceFactory.lichen_dim_start]
+                    real_reward[f_id] += obs[f_id][ObsSpaceFactory.lichen_dim_start] * 10
                     self.reward_collect['lichen remain'] += obs[f_id][ObsSpaceFactory.lichen_dim_start]
                 elif obs[f_id][ObsSpaceFactory.water_dim_start] == 0:  ############################################### special for the tie ending which no get to the end
                     real_reward[f_id] -= obs[f_id][ObsSpaceFactory.left_step_dim_start]
                     # self.reward_collect['lichen remain'] -= obs[f_id][ObsSpaceFactory.left_step_dim_start]
                 self.reward_collect['real reward'] += real_reward[f_id]
+                print(f_id, obs[f_id][ObsSpaceFactory.left_step_dim_start], real_reward[f_id], '??????????????????????????????????????????????????????????')
                 continue
             metrics[f_id] = {}
             if f_id not in next_obs.keys():  ######################################################## it collide
@@ -264,6 +265,7 @@ class MaRwdTransorFactory():
                 real_reward[f_id] -= obs[f_id][ObsSpaceFactory.left_step_dim_start]
                 # self.reward_collect['lichen remain'] -= obs[f_id][ObsSpaceFactory.left_step_dim_start]
                 self.reward_collect['real reward'] += real_reward[f_id]
+                print(f_id, obs[f_id][ObsSpaceFactory.left_step_dim_start], real_reward[f_id], '!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!')
             elif f_id not in obs.keys():  # it is new born
                 pass
             else:
@@ -304,6 +306,7 @@ class MaRwdTransorFactory():
                     if self.debug:
                         print('heavy robot made')
                 if self.debug:
+                    print(raw_real_step)
                     print(f_id)
                     print('pos_dim', 'water_dim', 'metal_dim', 'ice_dim', 'ore_dim', 'power_dim', 'lichen_dim',
                           'left_step_dim', 'heavy_build_dim', 'plant_pos_dim', 'ice_prob_dim', 'ore_prob_dim', 'rub_prob_dim',
