@@ -234,6 +234,7 @@ class MaRwdTransorFactory():
             'light robot made': 0,
             'water lichen': 0,
             'lichen remain': 0,
+            'real reward': 0
         }
         return
 
