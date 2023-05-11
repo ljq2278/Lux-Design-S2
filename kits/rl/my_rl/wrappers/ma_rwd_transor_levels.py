@@ -254,13 +254,15 @@ class MaRwdTransorFactory():
                     self.reward_collect['lichen remain'] += obs[f_id][ObsSpaceFactory.lichen_dim_start]
                 elif obs[f_id][ObsSpaceFactory.water_dim_start] == 0:  ############################################### special for the tie ending which no get to the end
                     real_reward[f_id] -= obs[f_id][ObsSpaceFactory.left_step_dim_start]
-                    self.reward_collect['lichen remain'] -= obs[f_id][ObsSpaceFactory.left_step_dim_start]
+                    # self.reward_collect['lichen remain'] -= obs[f_id][ObsSpaceFactory.left_step_dim_start]
+                self.reward_collect['real reward'] += real_reward[f_id]
                 continue
             metrics[f_id] = {}
             if f_id not in next_obs.keys():  ######################################################## it collide
                 rewards[f_id] -= 10
                 real_reward[f_id] -= obs[f_id][ObsSpaceFactory.left_step_dim_start]
-                self.reward_collect['lichen remain'] -= obs[f_id][ObsSpaceFactory.left_step_dim_start]
+                # self.reward_collect['lichen remain'] -= obs[f_id][ObsSpaceFactory.left_step_dim_start]
+                self.reward_collect['real reward'] += real_reward[f_id]
             elif f_id not in obs.keys():  # it is new born
                 pass
             else:
@@ -311,5 +313,6 @@ class MaRwdTransorFactory():
                     print(ActSpaceFactoryDemand.demand_id_to_increment(deltaDemand[f_id]))
                     print(factory_task_prob[f_id])
                     print(rewards[f_id])
+                    print(real_reward[f_id])
                     print('############################################ factory debug end #########################################################################################################')
         return rewards, real_reward
