@@ -18,7 +18,7 @@ class F_PPO_Online_Agent:
         self.task_probs = {}
         self.heavy_build = {}
         self.order_pos = {}
-        self.init_task_probs = {'ice': 1, 'ore': 0, 'rubble': 0}
+        self.init_task_probs = {'ice': 0.3, 'ore': 0.4, 'rubble': 0.3}
 
     def update(self, new_params):
         self.policy.load_state_dict(new_params)

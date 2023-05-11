@@ -42,6 +42,7 @@ want_load_model = True
 max_episode_length = 500
 agent_debug = False
 density_rwd = True
+factory_strategy = 'random'
 
 dim_info_unit = [ObsSpaceUnit.total_dims, ActSpaceUnit.total_act_dims]  # obs and act dims
 dim_info_factory = [ObsSpaceFactory.total_dims, ActSpaceFactoryDemand.total_act_dims]  # obs and act dims
@@ -93,7 +94,7 @@ def sub_run(replay_queue: multiprocessing.Queue, param_queue: multiprocessing.Qu
             if raw_obs['player_0']["real_env_steps"] < 0:
                 raw_action = {}
                 for g_agent in globalAgents:
-                    raw_action[g_agent.player] = g_agent.early_setup(env.get_state().env_steps, raw_obs[g_agent.player])
+                    raw_action[g_agent.player] = g_agent.early_setup(env.get_state().env_steps, raw_obs[g_agent.player], strategy=factory_strategy)
                 raw_next_obs, raw_reward, done, info = env.step(raw_action)
                 raw_obs = raw_next_obs
             else:
@@ -130,7 +131,7 @@ def sub_run(replay_queue: multiprocessing.Queue, param_queue: multiprocessing.Qu
                     for f_id, f_obs in obs_factory[g_agent.player].items():
                         action_factory[g_agent.player][f_id], factory_task_prob[g_agent.player][f_id], deltaDemand_factory[g_agent.player][f_id], \
                         deltaDemand_logprob_factory[g_agent.player][f_id], state_val_factory[g_agent.player][f_id] \
-                            = factory_online_agent.act(f_obs, raw_obs['player_0']["real_env_steps"], f_id, max_episode_length)
+                            = factory_online_agent.act(f_obs, raw_obs['player_0']["real_env_steps"], f_id, max_episode_length, strategy=factory_strategy)
                     raw_action_factory[g_agent.player] = maActTransorFactory.ma_to_sg(action_factory[g_agent.player], raw_obs[g_agent.player], g_agent.player)
                 ############################### get action and raw_action unit ###################################################################
                 action_unit = {}
