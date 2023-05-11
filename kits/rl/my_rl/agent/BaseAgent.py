@@ -40,7 +40,7 @@ class EarlyRuleAgent(Agent):
             'player_1': 'MotherMars'
         }
 
-    def early_setup(self, step: int, obs, remainingOverageTime: int = 60):
+    def early_setup(self, step: int, obs, remainingOverageTime: int = 60, strategy='resource'):
         '''
         Early Phase
         '''
@@ -94,8 +94,9 @@ class EarlyRuleAgent(Agent):
                         closes_my_factory_dist = np.min(np.mean((np.array(my_factories) - loc) ** 2, 1))
 
                     minimum_ice_dist = 10 * np.min(ice_tile_distances) + 1 * np.min(ore_tile_distances) + 10 * density_rubble / (
-                                           d_rubble) - closes_opp_factory_dist * 0.1 + closes_opp_factory_dist * 0.01
-                    minimum_ice_dist = np.random.random()
+                        d_rubble) - closes_opp_factory_dist * 0.1 + closes_opp_factory_dist * 0.01
+                    if strategy == 'random':
+                        minimum_ice_dist = np.random.random()
                     if minimum_ice_dist < min_dist:
                         min_dist = minimum_ice_dist
                         best_loc = loc
@@ -109,5 +110,3 @@ class EarlyRuleAgent(Agent):
                 actions['water'] = min(self.env_cfg.INIT_WATER_METAL_PER_FACTORY, water_left)
 
         return actions
-
-

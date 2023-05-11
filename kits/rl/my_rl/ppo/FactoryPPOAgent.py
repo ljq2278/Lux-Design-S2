@@ -49,7 +49,7 @@ class F_PPO_Online_Agent:
             if rd < accum:
                 return task
 
-    def act(self, f_obs, step, fid, max_episode_length):
+    def act(self, f_obs, step, fid, max_episode_length, strategy='model'):
         delta_demand, delta_demand_logprob, state_val = self.policy.act([f_obs])
         action = 3
         ###################################### the action choice ########################################
@@ -68,7 +68,8 @@ class F_PPO_Online_Agent:
             tmp[task] = self.task_probs[fid][task] + increment
         if max(tmp.values()) <= 1 and min(tmp.values()) >= 0:
             self.task_probs[fid] = tmp
-        self.task_probs[fid] = {'ice': 0.4, 'ore': 0.4, 'rubble': 0.2}
+        if strategy == 'random':
+            self.task_probs[fid] = {'ice': 0.4, 'ore': 0.4, 'rubble': 0.2}
         return action, self.task_probs[fid], delta_demand[0], delta_demand_logprob[0], state_val[0][0]
 
     def reset(self):
