@@ -68,6 +68,7 @@ class F_PPO_Online_Agent:
             tmp[task] = self.task_probs[fid][task] + increment
         if max(tmp.values()) <= 1 and min(tmp.values()) >= 0:
             self.task_probs[fid] = tmp
+        self.task_probs[fid] = {'ice': 0.4, 'ore': 0.4, 'rubble': 0.2}
         return action, self.task_probs[fid], delta_demand[0], delta_demand_logprob[0], state_val[0][0]
 
     def reset(self):

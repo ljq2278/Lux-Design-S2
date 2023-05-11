@@ -4,6 +4,7 @@ Implementation of RL agent. Note that luxai_s2 and stable_baselines3 are package
 import multiprocessing
 import copy
 import os.path as osp
+from torch.utils.tensorboard import SummaryWriter
 import gym
 import numpy as np
 import luxai_s2
@@ -19,7 +20,8 @@ from wrappers.act_space_levels import ActSpaceFactory, ActSpaceUnit, ActSpaceFac
 from ppo.UnitAgent import PPO_Offline_Agent, PPO_Online_Agent
 from ppo.Buffer import Buffer
 from ppo.FactoryPPOAgent import F_PPO_Offline_Agent, F_PPO_Online_Agent
-import cv2
+
+from luxai_s2.map.position import Position
 
 
 class GlobalAgent(EarlyRuleAgent, PPO):
@@ -36,18 +38,19 @@ eps_clip = 0.2
 K_epochs = 20
 episode_num = 3000000
 gamma = 0.98
-sub_proc_count = 1
+sub_proc_count = 6
 exp = 'paral_ppo_f2'
 want_load_model = True
 max_episode_length = 500
 agent_debug = False
 density_rwd = True
+episode_start = 0
 
 dim_info_unit = [ObsSpaceUnit.total_dims, ActSpaceUnit.total_act_dims]  # obs and act dims
 dim_info_factory = [ObsSpaceFactory.total_dims, ActSpaceFactoryDemand.total_act_dims]  # obs and act dims
 base_res_dir = os.environ['HOME'] + '/train_res/' + exp
 
-eval_save_path = os.environ['HOME'] + '/imgs/'
+writer = SummaryWriter(os.environ['HOME'] + '/logs/' + exp)
 
 
 def sub_run(replay_queue: multiprocessing.Queue, param_queue: multiprocessing.Queue, process_id):
@@ -59,23 +62,23 @@ def sub_run(replay_queue: multiprocessing.Queue, param_queue: multiprocessing.Qu
     maActTransorFactory = MaActTransorFactory(env, env_cfg)
     maObsTransorUnit = MaObsTransorUnit(env, env_cfg, if_mask=True)
     maObsTransorFactory = MaObsTransorFactory(env, env_cfg, if_mask=True)
-    maRwdTransorUnit = MaRwdTransorUnit(env, env_cfg, debug=True, density=density_rwd)
-    maRwdTransorFactory = MaRwdTransorFactory(env, env_cfg, debug=True, density=density_rwd)
+    maRwdTransorUnit = MaRwdTransorUnit(env, env_cfg, debug=False, density=density_rwd)
+    maRwdTransorFactory = MaRwdTransorFactory(env, env_cfg, debug=False, density=density_rwd)
     agent_cont = 2
     unit_online_agent = PPO_Online_Agent(dim_info_unit[0], dim_info_unit[1], env_cfg)
     factory_online_agent = F_PPO_Online_Agent(dim_info_factory[0], dim_info_factory[1], env_cfg)
-    new_params = param_queue.get()
-    unit_online_agent.update(new_params)
     if want_load_model:
         new_params = param_queue.get()
-        factory_online_agent.update(new_params)
+        unit_online_agent.update(new_params)
+    new_params = param_queue.get()
+    factory_online_agent.update(new_params)
     globalAgents = [GlobalAgent('player_' + str(i), env_cfg, unit_online_agent, factory_online_agent) for i in range(0, agent_cont)]
     globale_step = 0
     sum_rwd = 0
     survive_step = 0
-    factory_buffer = Buffer()
-    tmp_buffer_factory = {}  # record every factory datas
-    for episode in range(1):
+    unit_buffer = Buffer()
+    tmp_buffer_unit = {}  # record every factory datas
+    for episode in range(episode_start, episode_num):
         np.random.seed()
         seed = np.random.randint(0, 100000000)
         raw_obs = env.reset(seed=seed)
@@ -83,11 +86,6 @@ def sub_run(replay_queue: multiprocessing.Queue, param_queue: multiprocessing.Qu
         obs_factory = maObsTransorFactory.sg_to_ma(raw_obs['player_0'], env.state.factories, max_episode_length - raw_obs['player_0']["real_env_steps"],
                                                    factory_online_agent.heavy_build, factory_online_agent.task_probs, factory_online_agent.order_pos, env.state.board.rubble)
         done = {'player_0': False, 'player_1': False}
-        imgs = {}
-        img_actions = {}
-        img_raw_actions = {}
-        img_obss = {}
-        img_next_obss = {}
         ################################ interact with the env for an episode ###################################
         while raw_obs['player_0']["real_env_steps"] < 0 or sum(done.values()) < len(done):
             if raw_obs['player_0']["real_env_steps"] < 0:
@@ -103,8 +101,8 @@ def sub_run(replay_queue: multiprocessing.Queue, param_queue: multiprocessing.Qu
                         for f_id in fp_info.keys():
                             # set factories to have 1000 water to check the ore dig ability
                             env.state.factories[p_id][f_id].cargo.water = 150
-                            # env.state.factories[p_id][f_id].cargo.metal = 200
-                            # env.state.factories[p_id][f_id].power = 10000
+                            env.state.factories[p_id][f_id].cargo.metal = 200
+                            env.state.factories[p_id][f_id].power = 30000
                     ice_locs = np.argwhere(raw_obs['player_0']["board"]["ice"] == 1)
                     ore_locs = np.argwhere(raw_obs['player_0']["board"]["ore"] == 1)
                     factory_online_agent.order_resource_pos(raw_obs['player_0']['factories'], ice_locs, ore_locs, rubble_locs)
@@ -130,7 +128,7 @@ def sub_run(replay_queue: multiprocessing.Queue, param_queue: multiprocessing.Qu
                     for f_id, f_obs in obs_factory[g_agent.player].items():
                         action_factory[g_agent.player][f_id], factory_task_prob[g_agent.player][f_id], deltaDemand_factory[g_agent.player][f_id], \
                         deltaDemand_logprob_factory[g_agent.player][f_id], state_val_factory[g_agent.player][f_id] \
-                            = factory_online_agent.act(f_obs, raw_obs['player_0']["real_env_steps"], f_id, max_episode_length)
+                            = factory_online_agent.act(f_obs, raw_obs['player_0']["real_env_steps"], f_id,max_episode_length)
                     raw_action_factory[g_agent.player] = maActTransorFactory.ma_to_sg(action_factory[g_agent.player], raw_obs[g_agent.player], g_agent.player)
                 ############################### get action and raw_action unit ###################################################################
                 action_unit = {}
@@ -153,13 +151,6 @@ def sub_run(replay_queue: multiprocessing.Queue, param_queue: multiprocessing.Qu
                     for u_id, u_info in raw_action_unit[p_id].items():
                         raw_action[p_id][u_id] = u_info
                 raw_next_obs, raw_reward, done, info = env.step(raw_action)
-                img = env.render("rgb_array", width=640, height=640)
-                imgs[raw_obs['player_0']["real_env_steps"]] = img
-                cv2.imwrite(eval_save_path + str(raw_obs['player_0']["real_env_steps"]) + '.jpg', img)
-                print(raw_obs['player_0']["real_env_steps"], raw_action)
-                img_raw_actions[raw_obs['player_0']["real_env_steps"]] = raw_action
-                img_actions[raw_obs['player_0']["real_env_steps"]] = deltaDemand_factory
-                img_obss[raw_obs['player_0']["real_env_steps"]] = obs_factory
                 ############################### get next obs factory ######################################
                 next_obs_factory = maObsTransorFactory.sg_to_ma(raw_next_obs['player_0'], env.state.factories, max_episode_length - raw_obs['player_0']["real_env_steps"],
                                                                 factory_online_agent.heavy_build, factory_online_agent.task_probs, factory_online_agent.order_pos, env.state.board.rubble)
@@ -184,18 +175,6 @@ def sub_run(replay_queue: multiprocessing.Queue, param_queue: multiprocessing.Qu
                         else:
                             d_factory = False
                         sum_rwd += real_reward_factory[g_agent.player][f_id]
-                        ############################ record the simple data ################################
-                        if f_id not in tmp_buffer_factory.keys():
-                            tmp_buffer_factory[f_id] = []
-                        tmp_buffer_factory[f_id].append([
-                            f_id,
-                            deltaDemand_factory[g_agent.player][f_id],
-                            obs_factory[g_agent.player][f_id],
-                            deltaDemand_logprob_factory[g_agent.player][f_id],
-                            real_reward_factory[g_agent.player][f_id],
-                            state_val_factory[g_agent.player][f_id],
-                            d_factory
-                        ])
                 ############################### get next obs unit ######################################
                 next_obs_unit = maObsTransorUnit.sg_to_ma(raw_next_obs['player_0'], obs_unit)
                 ################################ every n step, change the unit obs ######################################################################
@@ -216,6 +195,18 @@ def sub_run(replay_queue: multiprocessing.Queue, param_queue: multiprocessing.Qu
                         else:
                             d_unit = False
                         sum_rwd += reward_unit[g_agent.player][u_id]
+                        ############################ record the simple data ################################
+                        if u_id not in tmp_buffer_unit.keys():
+                            tmp_buffer_unit[u_id] = []
+                        tmp_buffer_unit[u_id].append([
+                            u_id,
+                            action_unit[g_agent.player][u_id],
+                            obs_unit[g_agent.player][u_id],
+                            action_logprob_unit[g_agent.player][u_id],
+                            reward_unit[g_agent.player][u_id],
+                            state_val_unit[g_agent.player][u_id],
+                            d_unit
+                        ])
                 ############################### prepare to the next step #################################
                 raw_obs = raw_next_obs
                 obs_factory = next_obs_factory
@@ -224,28 +215,31 @@ def sub_run(replay_queue: multiprocessing.Queue, param_queue: multiprocessing.Qu
         survive_step += raw_obs["player_0"]["real_env_steps"]
         factory_online_agent.reset()
         ##################### after a game, use MC the reward and get Advantage and tranport #####################
-        for f_id, behaviors in tmp_buffer_factory.items():
-            factory_buffer.add_examples(*list(zip(*behaviors)))
-        factory_buffer.transfer_reward(gamma)
-        factory_buffer.calc_advantage()
+        for u_id, behaviors in tmp_buffer_unit.items():
+            unit_buffer.add_examples(*list(zip(*behaviors)))
+        unit_buffer.transfer_reward(gamma)
+        unit_buffer.calc_advantage()
         replay_queue.put(
-            [factory_buffer.states, factory_buffer.actions, factory_buffer.action_logprobs,
-             factory_buffer.state_vals, factory_buffer.rewards, factory_buffer.dones, factory_buffer.advantages])
+            [unit_buffer.states, unit_buffer.actions, unit_buffer.action_logprobs,
+             unit_buffer.state_vals, unit_buffer.rewards, unit_buffer.dones, unit_buffer.advantages])
         new_params = param_queue.get()
-        factory_online_agent.update(new_params)
-        factory_buffer.clear()
-        tmp_buffer_factory.clear()
+        unit_online_agent.update(new_params)
+        unit_buffer.clear()
+        tmp_buffer_unit.clear()
 
         ########################################### episode finishes  ########################################
         if episode % print_interv == 0:  # print info every 100 g_step
             message = f'episode {episode}, '
             message += f'avg episode reward: {sum_rwd / print_interv}, '
             message += f'avg survive step: {survive_step / print_interv}'
-            print('seed: ', seed, message)
+            print(message)
             print(raw_obs["player_0"]["real_env_steps"], maRwdTransorUnit.reward_collect)
             print(raw_obs["player_0"]["real_env_steps"], maRwdTransorFactory.reward_collect)
             sum_rwd = 0
             survive_step = 0
+            if process_id == 0:
+                writer.add_scalars('unit_rewards', maRwdTransorUnit.reward_collect, episode)
+                writer.add_scalars('factory_rewards', maRwdTransorFactory.reward_collect, episode)
             for k, v in maRwdTransorUnit.reward_collect.items():
                 maRwdTransorUnit.reward_collect[k] = 0
             for k, v in maRwdTransorFactory.reward_collect.items():
@@ -257,13 +251,13 @@ def offline_learn(replay_queue: multiprocessing.Queue, param_queue_list, pid):
     env_cfg = env.env_cfg
     ppo_offline_agent = PPO_Offline_Agent(dim_info_unit[0], dim_info_unit[1], env_cfg, actor_lr, critic_lr, eps_clip, base_res_dir)
     f_ppo_offline_agent = F_PPO_Offline_Agent(dim_info_factory[0], dim_info_factory[1], env_cfg, actor_lr, critic_lr, eps_clip, base_res_dir)
-    ppo_offline_agent.load()
-    for param_queue in param_queue_list:
-        param_queue.put(ppo_offline_agent.policy.state_dict())
     if want_load_model:
-        f_ppo_offline_agent.load()
+        ppo_offline_agent.load()
         for param_queue in param_queue_list:
-            param_queue.put(f_ppo_offline_agent.policy.state_dict())
+            param_queue.put(ppo_offline_agent.policy.state_dict())
+    f_ppo_offline_agent.load()
+    for param_queue in param_queue_list:
+        param_queue.put(f_ppo_offline_agent.policy.state_dict())
     online_agent_update_time = 0
     train_data = []
     while True:
@@ -273,11 +267,14 @@ def offline_learn(replay_queue: multiprocessing.Queue, param_queue_list, pid):
                 if len(data[0]) == 0:
                     print('data can not be null !')
                 train_data.append(data)
-            new_params = f_ppo_offline_agent.update_and_get_new_param(train_data, K_epochs)
+            new_params = ppo_offline_agent.update_and_get_new_param(train_data, K_epochs)
             online_agent_update_time += 1
             train_data.clear()
             for param_queue in param_queue_list:
                 param_queue.put(new_params)
+            if online_agent_update_time % 10 == 0:
+                print('save model, online agent update time ', online_agent_update_time)
+                ppo_offline_agent.save()
 
 
 if __name__ == "__main__":

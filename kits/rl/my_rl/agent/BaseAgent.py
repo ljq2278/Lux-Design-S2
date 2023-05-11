@@ -95,7 +95,7 @@ class EarlyRuleAgent(Agent):
 
                     minimum_ice_dist = 10 * np.min(ice_tile_distances) + 1 * np.min(ore_tile_distances) + 10 * density_rubble / (
                                            d_rubble) - closes_opp_factory_dist * 0.1 + closes_opp_factory_dist * 0.01
-
+                    minimum_ice_dist = np.random.random()
                     if minimum_ice_dist < min_dist:
                         min_dist = minimum_ice_dist
                         best_loc = loc
