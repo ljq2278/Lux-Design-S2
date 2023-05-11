@@ -248,6 +248,7 @@ class MaRwdTransorFactory():
             if done:
                 # print(obs[f_id][ObsSpaceFactory.left_step_dim_start])
                 rewards[f_id] -= 100
+                # real_reward[f_id] += obs[f_id][ObsSpaceFactory.heavy_build_dim_start] * 10
                 if obs[f_id][ObsSpaceFactory.left_step_dim_start] == 2:  ######################################################### normal end
                     real_reward[f_id] += obs[f_id][ObsSpaceFactory.lichen_dim_start]
                     self.reward_collect['lichen remain'] += obs[f_id][ObsSpaceFactory.lichen_dim_start]

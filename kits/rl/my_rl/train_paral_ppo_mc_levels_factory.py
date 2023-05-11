@@ -40,11 +40,11 @@ episode_num = 3000000
 gamma = 0.98
 sub_proc_count = 6
 exp = 'paral_ppo_f2'
-want_load_model = False
+want_load_model = True
 max_episode_length = 500
 agent_debug = False
 density_rwd = True
-episode_start = 5530
+episode_start = 0
 
 dim_info_unit = [ObsSpaceUnit.total_dims, ActSpaceUnit.total_act_dims]  # obs and act dims
 dim_info_factory = [ObsSpaceFactory.total_dims, ActSpaceFactoryDemand.total_act_dims]  # obs and act dims
@@ -102,7 +102,7 @@ def sub_run(replay_queue: multiprocessing.Queue, param_queue: multiprocessing.Qu
                             # set factories to have 1000 water to check the ore dig ability
                             env.state.factories[p_id][f_id].cargo.water = 150
                             # env.state.factories[p_id][f_id].cargo.metal = 200
-                            # env.state.factories[p_id][f_id].power = 10000
+                            # env.state.factories[p_id][f_id].power = 30000
                     ice_locs = np.argwhere(raw_obs['player_0']["board"]["ice"] == 1)
                     ore_locs = np.argwhere(raw_obs['player_0']["board"]["ore"] == 1)
                     factory_online_agent.order_resource_pos(raw_obs['player_0']['factories'], ice_locs, ore_locs, rubble_locs)
@@ -128,7 +128,7 @@ def sub_run(replay_queue: multiprocessing.Queue, param_queue: multiprocessing.Qu
                     for f_id, f_obs in obs_factory[g_agent.player].items():
                         action_factory[g_agent.player][f_id], factory_task_prob[g_agent.player][f_id], deltaDemand_factory[g_agent.player][f_id], \
                         deltaDemand_logprob_factory[g_agent.player][f_id], state_val_factory[g_agent.player][f_id] \
-                            = factory_online_agent.act(f_obs, raw_obs['player_0']["real_env_steps"], f_id)
+                            = factory_online_agent.act(f_obs, raw_obs['player_0']["real_env_steps"], f_id,max_episode_length)
                     raw_action_factory[g_agent.player] = maActTransorFactory.ma_to_sg(action_factory[g_agent.player], raw_obs[g_agent.player], g_agent.player)
                 ############################### get action and raw_action unit ###################################################################
                 action_unit = {}

@@ -11,13 +11,14 @@ from actcrt_model.ac_model_f import ActorCritic
 from ppo.Buffer import Buffer
 import copy
 
+
 class F_PPO_Online_Agent:
     def __init__(self, state_dim, action_dim, env_cfg):
         self.policy = ActorCritic(state_dim, action_dim, env_cfg)
         self.task_probs = {}
         self.heavy_build = {}
         self.order_pos = {}
-        self.init_task_probs = {'ice': 0.8, 'ore': 0.1, 'rubble': 0.1}
+        self.init_task_probs = {'ice': 1, 'ore': 0, 'rubble': 0}
 
     def update(self, new_params):
         self.policy.load_state_dict(new_params)
@@ -48,7 +49,7 @@ class F_PPO_Online_Agent:
             if rd < accum:
                 return task
 
-    def act(self, f_obs, step, fid):
+    def act(self, f_obs, step, fid, max_episode_length):
         delta_demand, delta_demand_logprob, state_val = self.policy.act([f_obs])
         action = 3
         ###################################### the action choice ########################################
@@ -57,7 +58,7 @@ class F_PPO_Online_Agent:
             if fid not in self.heavy_build.keys():
                 self.heavy_build[fid] = 0
             self.heavy_build[fid] += 1
-        elif step >= 439:
+        elif step >= max_episode_length - 62 and f_obs[ObsSpaceFactory.water_dim_start] > 20:
             action = 2
         ######################################### the demand ##################################################
         if fid not in self.task_probs.keys():
