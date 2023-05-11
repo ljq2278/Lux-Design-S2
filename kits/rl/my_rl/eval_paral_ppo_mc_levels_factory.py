@@ -42,7 +42,7 @@ want_load_model = True
 max_episode_length = 500
 agent_debug = False
 density_rwd = True
-factory_strategy = 'random'
+factory_strategy = 'normal'
 
 dim_info_unit = [ObsSpaceUnit.total_dims, ActSpaceUnit.total_act_dims]  # obs and act dims
 dim_info_factory = [ObsSpaceFactory.total_dims, ActSpaceFactoryDemand.total_act_dims]  # obs and act dims
@@ -103,9 +103,9 @@ def sub_run(replay_queue: multiprocessing.Queue, param_queue: multiprocessing.Qu
                     for p_id, fp_info in env.state.factories.items():
                         for f_id in fp_info.keys():
                             # set factories to have 1000 water to check the ore dig ability
-                            env.state.factories[p_id][f_id].cargo.water = 150
-                            # env.state.factories[p_id][f_id].cargo.metal = 200
-                            # env.state.factories[p_id][f_id].power = 10000
+                            env.state.factories[p_id][f_id].cargo.water = 500
+                            env.state.factories[p_id][f_id].cargo.metal = 200
+                            env.state.factories[p_id][f_id].power = 30000
                     ice_locs = np.argwhere(raw_obs['player_0']["board"]["ice"] == 1)
                     ore_locs = np.argwhere(raw_obs['player_0']["board"]["ore"] == 1)
                     factory_online_agent.order_resource_pos(raw_obs['player_0']['factories'], ice_locs, ore_locs, rubble_locs)

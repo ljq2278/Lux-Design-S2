@@ -135,7 +135,10 @@ class ObsSpaceFactory:
     def __init__(self, env_cfg):
         self.env_cfg = env_cfg
         self.normer = np.array(
-            [1 for _ in range(0, 2)] +
-            [1 for _ in range(2, self.total_dims)]
+            [10 for _ in range(0, 2)] +
+            [100 for _ in range(2, 7)] +
+            [10 for _ in range(7, 11)] +
+            [1 for _ in range(11, 14)] +
+            [10 for _ in range(14, self.total_dims)]
         )
         return
