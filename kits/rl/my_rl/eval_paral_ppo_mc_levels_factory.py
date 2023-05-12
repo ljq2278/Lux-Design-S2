@@ -39,7 +39,7 @@ gamma = 0.98
 sub_proc_count = 1
 exp = 'paral_ppo_f2'
 want_load_model = True
-max_episode_length = 500
+max_episode_length = 1000
 agent_debug = False
 density_rwd = True
 factory_strategy = 'normal'
@@ -55,6 +55,7 @@ def sub_run(replay_queue: multiprocessing.Queue, param_queue: multiprocessing.Qu
     # unit_agent = unit_agent.value
     env = gym.make(env_id, verbose=0, collect_stats=True, MAX_FACTORIES=2)
     env_cfg = env.env_cfg
+    # env_cfg.map_size = 24
     env_cfg.max_episode_length = max_episode_length
     maActTransorUnit = MaActTransorUnit(env, env_cfg)
     maActTransorFactory = MaActTransorFactory(env, env_cfg)
@@ -103,9 +104,9 @@ def sub_run(replay_queue: multiprocessing.Queue, param_queue: multiprocessing.Qu
                     for p_id, fp_info in env.state.factories.items():
                         for f_id in fp_info.keys():
                             # set factories to have 1000 water to check the ore dig ability
-                            env.state.factories[p_id][f_id].cargo.water = 500
+                            env.state.factories[p_id][f_id].cargo.water = 150000
                             env.state.factories[p_id][f_id].cargo.metal = 200
-                            env.state.factories[p_id][f_id].power = 30000
+                            env.state.factories[p_id][f_id].power = 300000
                     ice_locs = np.argwhere(raw_obs['player_0']["board"]["ice"] == 1)
                     ore_locs = np.argwhere(raw_obs['player_0']["board"]["ore"] == 1)
                     factory_online_agent.order_resource_pos(raw_obs['player_0']['factories'], ice_locs, ore_locs, rubble_locs)
