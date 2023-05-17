@@ -72,6 +72,6 @@ class CentralOfflineAgent:
     def load(self):
         """init maddpg using the model saved in `file`"""
         print('loading factory model .................')
-        checkpoint = torch.load(os.path.join(self.save_dir, 'f_model.pt'))
+        checkpoint = torch.load(os.path.join(self.save_dir, 'model.pt'))
         self.policy.load_state_dict(checkpoint['policy'])
         self.optimizer.load_state_dict(checkpoint['optimizer'])

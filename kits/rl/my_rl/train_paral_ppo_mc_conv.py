@@ -7,8 +7,8 @@ import os.path as osp
 from torch.utils.tensorboard import SummaryWriter
 import gym
 import numpy as np
-import luxai_s2
 import os
+import luxai_s2
 from lux.config import EnvConfig
 from wrappers.act_transfer import ActTransfer
 from wrappers.rwd_transfer import RwdTransfer
@@ -37,9 +37,9 @@ eps_clip = 0.2
 K_epochs = 20
 episode_num = 3000000
 gamma = 0.98
-sub_proc_count = 2
+sub_proc_count = 5
 exp = 'paral_ppo_conv'
-want_load_model = False
+want_load_model = True
 max_episode_length = 1000
 agent_debug = False
 density_rwd = False
