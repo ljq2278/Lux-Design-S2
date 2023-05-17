@@ -39,7 +39,7 @@ class CentralOfflineAgent:
             print('train_epochs: ', epochs_i)
             for pid_data in train_data:
                 # Evaluating old actions and values
-                old_states, old_state_vals, old_f_actions, old_f_logprobs, old_u_actions, old_u_logprobs, old_rewards, old_done, advantages = [torch.Tensor(np.array(x)) for x in pid_data]
+                old_states, old_state_vals, old_f_actions, old_f_logprobs, old_u_actions, old_u_logprobs, old_rewards, old_done, advantages = [torch.Tensor(np.array(x)).cuda() for x in pid_data]
                 old_f_masks, old_u_masks = old_states[:, self.obs_space.f_pos_dim_start, :, :], old_states[:, self.obs_space.u_pos_dim_start, :, :]
                 state_values, f_logprobs, f_dist_entropy, u_logprobs, u_dist_entropy = self.policy.evaluate(old_states, old_f_actions, old_u_actions)
                 # match state_values tensor dimensions with rewards tensor
@@ -67,7 +67,7 @@ class CentralOfflineAgent:
         torch.save({
             'policy': self.policy.state_dict(),
             'optimizer': self.optimizer.state_dict(),
-        }, os.path.join(self.save_dir, 'f_model.pt'))
+        }, os.path.join(self.save_dir, 'model.pt'))
 
     def load(self):
         """init maddpg using the model saved in `file`"""
