@@ -1,47 +1,39 @@
 import numpy as np
 
 
-class ActSpaceUnit:
-    move_dims = 4  # 0~3
-    transfer_dims = 1  # 4
-    pickup_dims = 1  # 5
-    dig_dims = 1  # 6
-    unit_noop_dims = 1  # 7
-
-    move_high = move_dims
-    transfer_high = move_high + transfer_dims
-    pickup_high = transfer_high + pickup_dims
-    dig_high = pickup_high + dig_dims
-    unit_noop_high = dig_high + unit_noop_dims
-
-    unit_dims = unit_noop_high
-
-    def __init__(self, env_cfg):
-        self.env_cfg = env_cfg
-
-        return
-
-
 class ActSpaceFactory:
-    build_light_dims = 1  # 0
-    build_heavy_dims = 1  # 1
-    water_lichen_dims = 1  # 2
-    factory_noop_dims = 1  # 3
 
-    build_light_high = build_light_dims
-    build_heavy_high = build_light_high + build_heavy_dims
-    water_lichen_high = build_heavy_high + water_lichen_dims
-    factory_noop_high = water_lichen_high + factory_noop_dims
-
-    factory_dims = factory_noop_high
-
-    def __init__(self, env_cfg):
-        self.env_cfg = env_cfg
-
-        return
+    def __init__(self, start_dim=0):
+        self.f_build_light_dim_start = start_dim
+        self.f_build_light_dim = 1
+        self.f_build_heavy_dim_start = self.f_build_light_dim_start + self.f_build_light_dim
+        self.f_build_heavy_dim = 1
+        self.f_water_lichen_dim_start = self.f_build_heavy_dim_start + self.f_build_heavy_dim
+        self.f_water_lichen_dim = 1
+        self.f_noop_dim_start = self.f_water_lichen_dim_start + self.f_water_lichen_dim
+        self.f_noop_dim = 1
+        self.f_dims = self.f_noop_dim_start + self.f_noop_dim - start_dim
 
 
-class ActSpace(ActSpaceFactory, ActSpaceUnit):
-    def __init__(self, env_cfg):
-        ActSpaceFactory.__init__(self, env_cfg)
-        ActSpaceUnit.__init__(self, env_cfg)
+class ActSpaceUnit:
+
+    def __init__(self, start_dim=0):
+        self.u_move_dim_start = start_dim
+        self.u_move_dim = 4
+        self.u_pickup_dim_start = self.u_move_dim_start + self.u_move_dim
+        self.u_pickup_dim = 4  # 100p, 300p, 1000p, 2000p
+        self.u_transfer_dim_start = self.u_pickup_dim_start + self.u_pickup_dim
+        self.u_transfer_dim = 2  # ice ore
+        self.u_dig_dim_start = self.u_transfer_dim_start + self.u_transfer_dim
+        self.u_dig_dim = 1
+        self.u_noop_dim_start = self.u_dig_dim_start + self.u_dig_dim
+        self.u_noop_dim = 1
+        self.u_dims = self.u_noop_dim_start + self.u_noop_dim - start_dim
+
+# class ActSpace(ActSpaceFactory, ActSpaceUnit):
+#
+#     def __init__(self, env_cfg):
+#         self.env_cfg = env_cfg
+#         ActSpaceFactory.__init__(self, start_dim=0)
+#         ActSpaceUnit.__init__(self, start_dim=self.f_dims)
+#         self.total_dims = self.f_dims + self.u_dims

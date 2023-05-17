@@ -2,123 +2,105 @@ import numpy as np
 
 
 class ObsSpaceBoard:
-    ice_dim_start = 0
-    ice_dim = 1
-    ore_dim_start = ice_dim_start + ice_dim  # 1
-    ore_dim = 1
-    rub_dim_start = ore_dim_start + ore_dim  # 2
-    rub_dim = 1
-    time_dim_start = rub_dim_start + rub_dim
-    time_dim = 1
-    left_step_dim_start = time_dim_start + time_dim
-    left_step_dim = 1
-    board_dim = left_step_dim_start + left_step_dim
-
-
-class ObsSpaceUnit:
-    power_dim_start = 0
-    power_dim = 1
-    ice_dim_start = power_dim_start + power_dim
-    ice_dim = 1
-    ore_dim_start = ice_dim_start + ice_dim  # 1
-    ore_dim = 1
-    typ_dim_start = ore_dim_start + ore_dim  # 1
-    typ_dim = 1
-    unit_dim = typ_dim_start + typ_dim
-    # the 0,4,20,24,12 is is_in_target/is_at_home/target_dist/home_dist/target_home_water
-    near_space_start = ore_dim_start + ore_dim  # 5
-    near_space = 5 * 5
-    is_in_target = near_space_start + 0
-    is_at_home = near_space_start + 4
-    target_dist = near_space_start + 20
-    home_dist = near_space_start + 24
-    # target_home_water = near_space_start + 12
-
-    target_pos_start = near_space_start + near_space  # 30
-    target_pos = 2
-
-    target_factory_pos_start = target_pos_start + target_pos  # 32
-    target_factory_pos = 2
-
-    nearest_oppo_factory_pos_start = target_factory_pos_start + target_factory_pos  # 34
-    nearest_oppo_factory_pos = 2
-
-    day_or_night_start = nearest_oppo_factory_pos_start + nearest_oppo_factory_pos  # 36
-    day_or_night = 1
-
-    task_type_start = day_or_night_start + day_or_night  # 37    <=0: no task; 1: ice 2: ore 3: dig for plant
-    task_type = 1
-
-    transfered_start = task_type_start + task_type  # 38
-    transfered = 1
-
-    total_dims = transfered_start + transfered  # total 39 dim
-
-    def __init__(self, env_cfg):
-        self.env_cfg = env_cfg
-        self.normer = np.array([self.env_cfg.map_size for _ in range(0, 2)] +
-                               [self.env_cfg.ROBOTS['HEAVY'].BATTERY_CAPACITY for _ in range(0, 1)] +
-                               [self.env_cfg.ROBOTS['HEAVY'].CARGO_SPACE / 100 for _ in range(0, 2)] +
-                               [self.env_cfg.MAX_RUBBLE for _ in range(0, 25)] +
-                               [self.env_cfg.map_size / 10 for _ in range(0, 6)] +
-                               [1 for _ in range(0, 2)] +
-                               [50 for _ in range(0, 1)], dtype=float)
-        self.normer[ObsSpaceUnit.is_in_target] = 1
-        self.normer[ObsSpaceUnit.is_at_home] = 1
-        self.normer[ObsSpaceUnit.target_dist] = 1
-        self.normer[ObsSpaceUnit.home_dist] = 1
-
-        return
+    def __init__(self, start_dim=0):
+        self.b_ice_dim_start = start_dim
+        self.b_ice_dim = 1
+        self.b_ore_dim_start = self.b_ice_dim_start + self.b_ice_dim  # 1
+        self.b_ore_dim = 1
+        self.b_rub_dim_start = self.b_ore_dim_start + self.b_ore_dim  # 2
+        self.b_rub_dim = 1
+        self.b_time_dim_start = self.b_rub_dim_start + self.b_rub_dim
+        self.b_time_dim = 1
+        self.b_left_step_dim_start = self.b_time_dim_start + self.b_time_dim
+        self.b_left_step_dim = 1
+        self.b_dims = self.b_left_step_dim_start + self.b_left_step_dim - start_dim
+        self.b_normer = [1, 1, 100, 50, 50]
 
 
 class ObsSpaceFactory:
-    pos_dim_start = 0  # 0
-    pos_dim = 2
-    water_dim_start = pos_dim_start + pos_dim  # 2
-    water_dim = 1
-    metal_dim_start = water_dim_start + water_dim  # 3
-    metal_dim = 1
-    ice_dim_start = metal_dim_start + metal_dim  # 4
-    ice_dim = 1
-    ore_dim_start = ice_dim_start + ice_dim  # 5
-    ore_dim = 1
-    power_dim_start = ore_dim_start + ore_dim  # 6
-    power_dim = 1
-    lichen_dim_start = power_dim_start + power_dim  # 7
-    lichen_dim = 1
-    left_step_dim_start = lichen_dim_start + lichen_dim  # 8
-    left_step_dim = 1
+    def __init__(self, start_dim=0):
+        self.f_pos_dim_start = start_dim
+        self.f_pos_dim = 1
+        self.f_water_dim_start = self.f_pos_dim_start + self.f_pos_dim
+        self.f_water_dim = 1
+        self.f_metal_dim_start = self.f_water_dim_start + self.f_water_dim
+        self.f_metal_dim = 1
+        self.f_ice_dim_start = self.f_metal_dim_start + self.f_metal_dim
+        self.f_ice_dim = 1
+        self.f_ore_dim_start = self.f_ice_dim_start + self.f_ice_dim
+        self.f_ore_dim = 1
+        self.f_power_dim_start = self.f_ore_dim_start + self.f_ore_dim
+        self.f_power_dim = 1
+        self.f_grow_lichen_dim_start = self.f_power_dim_start + self.f_power_dim
+        self.f_grow_lichen_dim = 1
+        self.f_connected_lichen_dim_start = self.f_grow_lichen_dim_start + self.f_grow_lichen_dim
+        self.f_connected_lichen_dim = 1
+        self.f_dims = self.f_connected_lichen_dim_start + self.f_connected_lichen_dim - start_dim
+        self.f_normer = [1, 10, 10, 100, 100, 100, 1, 1]
 
-    heavy_build_dim_start = left_step_dim_start + left_step_dim  # 9
-    heavy_build_dim = 1
 
-    plant_pos_dim_start = heavy_build_dim_start + heavy_build_dim  # 10
-    plant_pos_dim = 1
+class ObsSpaceOppoFactory:
+    def __init__(self, start_dim=0):
+        self.of_pos_dim_start = start_dim
+        self.of_pos_dim = 1
+        self.of_water_dim_start = self.of_pos_dim_start + self.of_pos_dim
+        self.of_water_dim = 1
+        self.of_metal_dim_start = self.of_water_dim_start + self.of_water_dim
+        self.of_metal_dim = 1
+        self.of_ice_dim_start = self.of_metal_dim_start + self.of_metal_dim
+        self.of_ice_dim = 1
+        self.of_ore_dim_start = self.of_ice_dim_start + self.of_ice_dim
+        self.of_ore_dim = 1
+        self.of_power_dim_start = self.of_ore_dim_start + self.of_ore_dim
+        self.of_power_dim = 1
+        self.of_grow_lichen_dim_start = self.of_power_dim_start + self.of_power_dim
+        self.of_grow_lichen_dim = 1
+        self.of_connected_lichen_dim_start = self.of_grow_lichen_dim_start + self.of_grow_lichen_dim
+        self.of_connected_lichen_dim = 1
+        self.of_dims = self.of_connected_lichen_dim_start + self.of_connected_lichen_dim - start_dim
+        self.of_normer = [1, 10, 10, 100, 100, 100, 1, 1]
 
-    ice_prob_dim_start = plant_pos_dim_start + plant_pos_dim  # 11
-    ice_prob_dim = 1
 
-    ore_prob_dim_start = ice_prob_dim_start + ice_prob_dim  # 12
-    ore_prob_dim = 1
+class ObsSpaceUnit:
+    def __init__(self, start_dim=0):
+        self.u_pos_dim_start = start_dim
+        self.u_pos_dim = 1
+        self.u_power_dim_start = self.u_pos_dim_start + self.u_pos_dim
+        self.u_power_dim = 1
+        self.u_ice_dim_start = self.u_power_dim_start + self.u_power_dim
+        self.u_ice_dim = 1
+        self.u_ore_dim_start = self.u_ice_dim_start + self.u_ice_dim
+        self.u_ore_dim = 1
+        self.u_typ_dim_start = self.u_ore_dim_start + self.u_ore_dim
+        self.u_typ_dim = 1
+        self.u_dims = self.u_typ_dim_start + self.u_typ_dim - start_dim
+        self.u_normer = [1, 10, 10, 10, 1]
 
-    rub_prob_dim_start = ore_prob_dim_start + ore_prob_dim  # 13
-    rub_prob_dim = 1
 
-    nearest_rubble_dist_start = rub_prob_dim_start + rub_prob_dim  # 14
-    nearest_rubble_dist = 1
+class ObsSpaceOppoUnit:
+    def __init__(self, start_dim=0):
+        self.ou_pos_dim_start = start_dim
+        self.ou_pos_dim = 1
+        self.ou_power_dim_start = self.ou_pos_dim_start + self.ou_pos_dim
+        self.ou_power_dim = 1
+        self.ou_ice_dim_start = self.ou_power_dim_start + self.ou_power_dim
+        self.ou_ice_dim = 1
+        self.ou_ore_dim_start = self.ou_ice_dim_start + self.ou_ice_dim
+        self.ou_ore_dim = 1
+        self.ou_typ_dim_start = self.ou_ore_dim_start + self.ou_ore_dim
+        self.ou_typ_dim = 1
+        self.ou_dims = self.ou_typ_dim_start + self.ou_typ_dim - start_dim
+        self.ou_normer = [1, 10, 10, 10, 1]
 
-    nearest_rubble_value_start = nearest_rubble_dist_start + nearest_rubble_dist  # 15
-    nearest_rubble_value = 1
 
-    total_dims = nearest_rubble_value_start + nearest_rubble_value  # total 16
+class ObsSpace(ObsSpaceBoard, ObsSpaceUnit, ObsSpaceFactory, ObsSpaceOppoUnit, ObsSpaceOppoFactory):
 
     def __init__(self, env_cfg):
         self.env_cfg = env_cfg
-        self.normer = np.array(
-            [10 for _ in range(0, 2)] +
-            [100 for _ in range(2, 7)] +
-            [10 for _ in range(7, 11)] +
-            [1 for _ in range(11, 14)] +
-            [10 for _ in range(14, self.total_dims)]
-        )
-        return
+        ObsSpaceBoard.__init__(self, start_dim=0)
+        ObsSpaceFactory.__init__(self, start_dim=self.b_dims)
+        ObsSpaceOppoFactory.__init__(self, start_dim=self.b_dims + self.f_dims)
+        ObsSpaceUnit.__init__(self, start_dim=self.b_dims + self.f_dims + self.of_dims)
+        ObsSpaceOppoUnit.__init__(self, start_dim=self.b_dims + self.f_dims + self.of_dims + self.u_dims)
+        self.total_dims = self.b_dims + self.f_dims + self.of_dims + self.u_dims + self.ou_dims
+        self.normer = np.array(self.b_normer + self.u_normer + self.ou_normer + self.f_normer + self.of_normer, dtype=float)
