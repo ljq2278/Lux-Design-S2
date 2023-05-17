@@ -18,26 +18,28 @@ class RwdTransfer:
         self.debug = debug
         self.density = density
         self.reward_collect = {
-            'on the way target': 0,
-            'leave the way target': 0,
-            'dig out rubble on target': 0,
-            'dig target': 0,
-            'on the way rubble': 0,
-            'leave the way rubble': 0,
-            'on the way home with target': 0,
-            'leave the way home with target': 0,
-            'collision happen': 0,
-            'transfer target': 0,
-            'transfer ice': 0,
-            'transfer ore': 0,
-            'dig out target rubble': 0,
-            'low power charged': 0,
+            # 'on the way target': 0,
+            # 'leave the way target': 0,
+            # 'dig out rubble on target': 0,
+            # 'dig target': 0,
+            # 'on the way rubble': 0,
+            # 'leave the way rubble': 0,
+            # 'on the way home with target': 0,
+            # 'leave the way home with target': 0,
+            # 'collision happen': 0,
+            # 'transfer target': 0,
+            # 'transfer ice': 0,
+            # 'transfer ore': 0,
+            # 'dig out target rubble': 0,
+            # 'low power charged': 0,
+            'rewards': 0
         }
         return
 
     def raw_to_wrap(self, ori_reward, done):
         if done:
+            self.reward_collect['rewards'] += ori_reward
             return ori_reward
         else:
+            self.reward_collect['rewards'] += 10
             return 10
-

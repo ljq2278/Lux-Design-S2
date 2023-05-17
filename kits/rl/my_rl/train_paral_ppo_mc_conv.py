@@ -37,7 +37,7 @@ eps_clip = 0.2
 K_epochs = 20
 episode_num = 3000000
 gamma = 0.98
-sub_proc_count = 5
+sub_proc_count = 1
 exp = 'paral_ppo_conv'
 want_load_model = True
 max_episode_length = 1000
@@ -160,7 +160,7 @@ def sub_run(replay_queue: multiprocessing.Queue, param_queue: multiprocessing.Qu
             sum_rwd = 0
             survive_step = 0
             if process_id == 0:
-                writer.add_scalars('factory_rewards', rwdTransfer.reward_collect, episode)
+                writer.add_scalars('rewards', rwdTransfer.reward_collect, episode)
             for k, v in rwdTransfer.reward_collect.items():
                 rwdTransfer.reward_collect[k] = 0
 
