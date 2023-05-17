@@ -24,7 +24,7 @@ class CentralOfflineAgent:
     def __init__(self, state_dim, f_action_dim, u_action_dim, env_cfg, lr_actor, lr_critic, eps_clip, save_dir='./'):
         self.eps_clip = eps_clip
         self.obs_space = ObsSpace(env_cfg)
-        self.policy = ActorCritic(state_dim, f_action_dim, u_action_dim, env_cfg)
+        self.policy = ActorCritic(state_dim, f_action_dim, u_action_dim, env_cfg).cuda()
         self.optimizer = torch.optim.Adam([
             {'params': self.policy.actor.parameters(), 'lr': lr_actor},
             {'params': self.policy.critic.parameters(), 'lr': lr_critic}
@@ -40,7 +40,7 @@ class CentralOfflineAgent:
             for pid_data in train_data:
                 # Evaluating old actions and values
                 old_states, old_state_vals, old_f_actions, old_f_logprobs, old_u_actions, old_u_logprobs, old_rewards, old_done, advantages = [torch.Tensor(np.array(x)).cuda() for x in pid_data]
-                old_f_masks, old_u_masks = old_states[:, self.obs_space.f_pos_dim_start, :, :], old_states[:, self.obs_space.u_pos_dim_start, :, :]
+                old_f_masks, old_u_masks = old_states[:, self.obs_space.f_pos_dim_start, :, :].cuda(), old_states[:, self.obs_space.u_pos_dim_start, :, :].cuda()
                 state_values, f_logprobs, f_dist_entropy, u_logprobs, u_dist_entropy = self.policy.evaluate(old_states, old_f_actions, old_u_actions)
                 # match state_values tensor dimensions with rewards tensor
                 state_values = torch.squeeze(state_values)

@@ -11,11 +11,14 @@ class ActMLPNetwork(nn.Module):
     def __init__(self, in_dim, f_out_dim, u_out_dim, env_cfg, hidden_dim=32, non_linear=nn.Tanh()):
         super(ActMLPNetwork, self).__init__()
         self.obs_space = ObsSpace(env_cfg)
-        self.f_deep_net = UNet(in_dim, f_out_dim).cuda()
-        self.u_deep_net = UNet(in_dim, u_out_dim).cuda()
+        self.f_deep_net = UNet(in_dim, f_out_dim)
+        self.u_deep_net = UNet(in_dim, u_out_dim)
 
-    def forward(self, x):
-        normer = torch.unsqueeze(torch.unsqueeze(torch.tensor(self.obs_space.normer), 1), 1).cuda()
+    def forward(self, x, device='cpu'):
+        if device == 'cpu':
+            normer = torch.unsqueeze(torch.unsqueeze(torch.tensor(self.obs_space.normer), 1), 1)
+        else:
+            normer = torch.unsqueeze(torch.unsqueeze(torch.tensor(self.obs_space.normer).cuda(), 1), 1)
         x = (x / normer).float()
         f_output = F.gumbel_softmax(self.f_deep_net(x), dim=1, tau=5)
         u_output = F.gumbel_softmax(self.u_deep_net(x), dim=1, tau=5)
@@ -26,11 +29,14 @@ class CriMLPNetwork(nn.Module):
     def __init__(self, in_dim, out_dim, env_cfg, hidden_dim=32, non_linear=nn.Tanh()):
         super(CriMLPNetwork, self).__init__()
         self.obs_space = ObsSpace(env_cfg)
-        self.deep_net = UNet(in_dim, out_dim).cuda()
-        self.fc = nn.Linear(self.obs_space.env_cfg.map_size * self.obs_space.env_cfg.map_size * out_dim, 1).cuda()
+        self.deep_net = UNet(in_dim, out_dim)
+        self.fc = nn.Linear(self.obs_space.env_cfg.map_size * self.obs_space.env_cfg.map_size * out_dim, 1)
 
-    def forward(self, x):
-        normer = torch.unsqueeze(torch.unsqueeze(torch.tensor(self.obs_space.normer), 1), 1).cuda()
+    def forward(self, x, device='cpu'):
+        if device == 'cpu':
+            normer = torch.unsqueeze(torch.unsqueeze(torch.tensor(self.obs_space.normer), 1), 1)
+        else:
+            normer = torch.unsqueeze(torch.unsqueeze(torch.tensor(self.obs_space.normer).cuda(), 1), 1)
         x = (x / normer).float()
         x = self.deep_net(x)
         ret = self.fc(x.reshape([-1, 1 * self.obs_space.env_cfg.map_size * self.obs_space.env_cfg.map_size]))
@@ -47,18 +53,18 @@ class ActorCritic(nn.Module):
         raise NotImplementedError
 
     def act(self, state):
-        state = torch.FloatTensor(state).cuda()
-        state_val = self.critic(state)
-        f_action_probs, u_action_probs = self.actor(state)
-        f_dist, u_dist = Categorical(torch.permute(f_action_probs, (0, 2, 3, 1))), Categorical(torch.permute(u_action_probs, (0, 2, 3, 1)))
-        f_action, u_action = f_dist.sample(), u_dist.sample()
-        f_action_logprob, u_action_logprob = f_dist.log_prob(f_action), u_dist.log_prob(u_action)
-        return state_val.tolist(), f_action.tolist(), f_action_logprob.tolist(), u_action.tolist(), u_action_logprob.tolist(),
+        with torch.no_grad():
+            state = torch.FloatTensor(state)
+            state_val = self.critic(state)
+            f_action_probs, u_action_probs = self.actor(state)
+            f_dist, u_dist = Categorical(torch.permute(f_action_probs, (0, 2, 3, 1))), Categorical(torch.permute(u_action_probs, (0, 2, 3, 1)))
+            f_action, u_action = f_dist.sample(), u_dist.sample()
+            f_action_logprob, u_action_logprob = f_dist.log_prob(f_action), u_dist.log_prob(u_action)
+            return state_val.tolist(), f_action.tolist(), f_action_logprob.tolist(), u_action.tolist(), u_action_logprob.tolist(),
 
     def evaluate(self, state, f_action, u_action):
-        state = state.cuda()
-        state_values = self.critic(state)
-        f_action_probs, u_action_probs = self.actor(state)
+        state_values = self.critic(state, device='gpu')
+        f_action_probs, u_action_probs = self.actor(state, device='gpu')
         f_dist, u_dist = Categorical(torch.permute(f_action_probs, (0, 2, 3, 1))), Categorical(torch.permute(u_action_probs, (0, 2, 3, 1)))
         f_action_logprobs, u_action_logprobs = f_dist.log_prob(f_action), u_dist.log_prob(u_action)
         f_dist_entropy, u_dist_entropy = f_dist.entropy(), u_dist.entropy()
