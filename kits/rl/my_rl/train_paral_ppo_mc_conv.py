@@ -101,7 +101,7 @@ def sub_run(replay_queue: multiprocessing.Queue, param_queue: multiprocessing.Qu
                     f_action[g_agent.player], u_action[g_agent.player] = {}, {}
                     f_action_logprob[g_agent.player], u_action_logprob[g_agent.player] = {}, {}
                     state_val[g_agent.player], f_action[g_agent.player], f_action_logprob[g_agent.player], u_action[g_agent.player], u_action_logprob[g_agent.player] \
-                        = online_agent.policy.act([obs[g_agent.player]])
+                        = online_agent.policy.act(np.array([obs[g_agent.player]]))
                     state_val[g_agent.player], f_action[g_agent.player], f_action_logprob[g_agent.player], u_action[g_agent.player], u_action_logprob[g_agent.player] \
                         = state_val[g_agent.player][0][0], f_action[g_agent.player][0], f_action_logprob[g_agent.player][0], u_action[g_agent.player][0], u_action_logprob[g_agent.player][0]
                     raw_action[g_agent.player] = actTransfer.wrap_to_raw(
@@ -187,7 +187,7 @@ def offline_learn(replay_queue: multiprocessing.Queue, param_queue_list, pid):
             train_data.clear()
             for param_queue in param_queue_list:
                 param_queue.put(new_params)
-            if online_agent_update_time % 10 == 0:
+            if online_agent_update_time % 1 == 0:
                 print('save model, online agent update time ', online_agent_update_time)
                 offline_agent.save()
 
