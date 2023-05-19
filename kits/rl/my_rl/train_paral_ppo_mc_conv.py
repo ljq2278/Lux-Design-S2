@@ -45,6 +45,7 @@ agent_debug = False
 density_rwd = False
 episode_start = 0
 save_peri = 10
+batch_size = 10
 
 # os.environ['HOME'] = 'D:'
 
@@ -186,7 +187,7 @@ def offline_learn(replay_queue: multiprocessing.Queue, param_queue_list, pid):
                 if len(data[0]) == 0:
                     print('data can not be null !')
                 train_data.append(data)
-            new_params = offline_agent.update_and_get_new_param(train_data, K_epochs)
+            new_params = offline_agent.update_and_get_new_param(train_data, K_epochs, batch_size)
             online_agent_update_time += 1
             train_data.clear()
             for param_queue in param_queue_list:
