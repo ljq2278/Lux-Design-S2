@@ -20,19 +20,19 @@ class ActTransfer:
 
     def u_choice_to_raw(self, ind):
         if self.action_space_unit.u_move_dim_start <= ind < self.action_space_unit.u_move_dim_start + self.action_space_unit.u_move_dim:
-            return np.array([0, ind + 1, 0, 0, 0, 1])
+            return [np.array([0, ind + 1, 0, 0, 0, 1])]
         elif self.action_space_unit.u_pickup_dim_start <= ind < self.action_space_unit.u_pickup_dim_start + self.action_space_unit.u_pickup_dim:
             for i in range(0, self.action_space_unit.u_pickup_dim):
                 if ind == self.action_space_unit.u_pickup_dim_start + i:
-                    return np.array([2, 0, 4, 100 + ((i ** 2) * 200), 0, 1])
+                    return [np.array([2, 0, 4, 100 + ((i ** 2) * 200), 0, 1])]
         elif self.action_space_unit.u_transfer_dim_start <= ind < self.action_space_unit.u_transfer_dim_start + self.action_space_unit.u_transfer_dim:
             for i in range(0, self.action_space_unit.u_transfer_dim):
                 if i == 0:
-                    return np.array([1, 0, 0, self.env_cfg.max_transfer_amount, 0, 1])
+                    return [np.array([1, 0, 0, self.env_cfg.max_transfer_amount, 0, 1])]
                 else:
-                    return np.array([1, 0, 1, self.env_cfg.max_transfer_amount, 0, 1])
+                    return [np.array([1, 0, 1, self.env_cfg.max_transfer_amount, 0, 1])]
         elif self.action_space_unit.u_dig_dim_start == ind:
-            return np.array([3, 0, 0, 0, 0, 1])
+            return [np.array([3, 0, 0, 0, 0, 1])]
         else:
             return None
 

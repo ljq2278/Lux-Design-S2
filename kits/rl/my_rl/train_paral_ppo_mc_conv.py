@@ -39,11 +39,14 @@ episode_num = 3000000
 gamma = 0.98
 sub_proc_count = 1
 exp = 'paral_ppo_conv'
-want_load_model = True
-max_episode_length = 1000
+want_load_model = False
+max_episode_length = 200
 agent_debug = False
 density_rwd = False
 episode_start = 0
+save_peri = 10
+
+# os.environ['HOME'] = 'D:'
 
 dim_info = [ObsSpace(None).total_dims, ActSpaceFactory().f_dims, ActSpaceUnit().u_dims]  # obs and act dims
 base_res_dir = os.environ['HOME'] + '/train_res/' + exp
@@ -84,12 +87,12 @@ def sub_run(replay_queue: multiprocessing.Queue, param_queue: multiprocessing.Qu
                 raw_obs = raw_next_obs
             else:
                 if raw_obs['player_0']["real_env_steps"] == 0:
-                    for p_id, fp_info in env.state.factories.items():
-                        for f_id in fp_info.keys():
-                            # set factories to have 1000 water to check the ore dig ability
-                            env.state.factories[p_id][f_id].cargo.water = 150000
-                            env.state.factories[p_id][f_id].cargo.metal = 200
-                            env.state.factories[p_id][f_id].power = 300000
+                    # for p_id, fp_info in env.state.factories.items():
+                    #     for f_id in fp_info.keys():
+                    #         # set factories to have 1000 water to check the ore dig ability
+                    #         env.state.factories[p_id][f_id].cargo.water = 150000
+                    #         env.state.factories[p_id][f_id].cargo.metal = 200
+                    #         env.state.factories[p_id][f_id].power = 300000
                     obs = obsTransfer.raw_to_wrap(raw_obs['player_0'], env.state, max_episode_length - raw_obs['player_0']["real_env_steps"])
                 globale_step += 1
                 ############################### get action and raw_action factory ###############################
@@ -107,6 +110,7 @@ def sub_run(replay_queue: multiprocessing.Queue, param_queue: multiprocessing.Qu
                     raw_action[g_agent.player] = actTransfer.wrap_to_raw(
                         f_action[g_agent.player], u_action[g_agent.player], env.state.factories[g_agent.player], env.state.units[g_agent.player])
                 ############################### get action to env result ###############################
+                print(raw_action)
                 raw_next_obs, raw_reward, done, info = env.step(raw_action)
                 ############################### get next obs factory ######################################
                 next_obs = obsTransfer.raw_to_wrap(raw_next_obs['player_0'], env.state, max_episode_length - raw_obs['player_0']["real_env_steps"])
@@ -187,7 +191,7 @@ def offline_learn(replay_queue: multiprocessing.Queue, param_queue_list, pid):
             train_data.clear()
             for param_queue in param_queue_list:
                 param_queue.put(new_params)
-            if online_agent_update_time % 1 == 0:
+            if online_agent_update_time % save_peri == 0:
                 print('save model, online agent update time ', online_agent_update_time)
                 offline_agent.save()
 
