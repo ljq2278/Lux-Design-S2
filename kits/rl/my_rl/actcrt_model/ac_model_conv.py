@@ -54,9 +54,9 @@ class ActorCritic(nn.Module):
 
     def act(self, state):
         with torch.no_grad():
-            state = torch.FloatTensor(state)
-            state_val = self.critic(state)
-            f_action_probs, u_action_probs = self.actor(state)
+            state = torch.FloatTensor(state).cuda()
+            state_val = self.critic(state, device='gpu')
+            f_action_probs, u_action_probs = self.actor(state, device='gpu')
             f_dist, u_dist = Categorical(torch.permute(f_action_probs, (0, 2, 3, 1))), Categorical(torch.permute(u_action_probs, (0, 2, 3, 1)))
             f_action, u_action = f_dist.sample(), u_dist.sample()
             f_action_logprob, u_action_logprob = f_dist.log_prob(f_action), u_dist.log_prob(u_action)

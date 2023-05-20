@@ -14,7 +14,7 @@ import copy
 
 class CentralOnlineAgent:
     def __init__(self, state_dim, f_action_dim, u_action_dim, env_cfg):
-        self.policy = ActorCritic(state_dim, f_action_dim, u_action_dim, env_cfg)
+        self.policy = ActorCritic(state_dim, f_action_dim, u_action_dim, env_cfg).cuda()
 
     def update(self, new_params):
         self.policy.load_state_dict(new_params)
