@@ -39,7 +39,7 @@ class CriMLPNetwork(nn.Module):
             normer = torch.unsqueeze(torch.unsqueeze(torch.tensor(self.obs_space.normer).cuda(), 1), 1)
         x = (x / normer).float()
         x = self.deep_net(x)
-        ret = self.fc(x.reshape([-1, 1 * self.obs_space.env_cfg.map_size * self.obs_space.env_cfg.map_size]))
+        ret = torch.sum(x.reshape([-1, 1, 1 * self.obs_space.env_cfg.map_size * self.obs_space.env_cfg.map_size]), axis=-1)
         return ret
 
 
