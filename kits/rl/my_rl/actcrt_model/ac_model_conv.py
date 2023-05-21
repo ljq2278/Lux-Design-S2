@@ -20,8 +20,8 @@ class ActMLPNetwork(nn.Module):
         else:
             normer = torch.unsqueeze(torch.unsqueeze(torch.tensor(self.obs_space.normer).cuda(), 1), 1)
         x = (x / normer).float()
-        f_output = F.gumbel_softmax(self.f_deep_net(x), dim=1, tau=5)
-        u_output = F.gumbel_softmax(self.u_deep_net(x), dim=1, tau=5)
+        f_output = F.gumbel_softmax(self.f_deep_net(x), dim=1, tau=8)
+        u_output = F.gumbel_softmax(self.u_deep_net(x), dim=1, tau=8)
         return f_output, u_output
 
 
@@ -52,11 +52,13 @@ class ActorCritic(nn.Module):
     def forward(self):
         raise NotImplementedError
 
-    def act(self, state):
+    def act(self, state, device='gpu'):
         with torch.no_grad():
-            state = torch.FloatTensor(state).cuda()
-            state_val = self.critic(state, device='gpu')
-            f_action_probs, u_action_probs = self.actor(state, device='gpu')
+            state = torch.FloatTensor(state)
+            if device == 'gpu':
+                state = state.cuda()
+            state_val = self.critic(state, device=device)
+            f_action_probs, u_action_probs = self.actor(state, device=device)
             f_dist, u_dist = Categorical(torch.permute(f_action_probs, (0, 2, 3, 1))), Categorical(torch.permute(u_action_probs, (0, 2, 3, 1)))
             f_action, u_action = f_dist.sample(), u_dist.sample()
             f_action_logprob, u_action_logprob = f_dist.log_prob(f_action), u_dist.log_prob(u_action)
