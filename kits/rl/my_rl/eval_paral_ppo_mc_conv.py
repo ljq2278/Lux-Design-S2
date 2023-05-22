@@ -4,7 +4,7 @@ Implementation of RL agent. Note that luxai_s2 and stable_baselines3 are package
 import multiprocessing
 import copy
 import os.path as osp
-from torch.utils.tensorboard import SummaryWriter
+
 import gym
 import numpy as np
 import os
@@ -39,13 +39,11 @@ max_episode_length = 200
 agent_debug = False
 density_rwd = False
 
-map_size = 36
-# os.environ['HOME'] = 'D:'
+map_size = 32
+os.environ['HOME'] = 'D:'
 
 dim_info = [ObsSpace(None).total_dims, ActSpaceFactory().f_dims, ActSpaceUnit().u_dims]  # obs and act dims
 base_res_dir = os.environ['HOME'] + '/train_res/' + exp
-
-writer = SummaryWriter(os.environ['HOME'] + '/logs/' + exp)
 
 if __name__ == "__main__":
     env = gym.make(env_id, verbose=0, collect_stats=True, MAX_FACTORIES=2)
@@ -67,7 +65,7 @@ if __name__ == "__main__":
     for episode in range(0, 1):
         np.random.seed()
         seed = np.random.randint(0, 100000000)
-        raw_obs = env.reset(seed=1)
+        raw_obs = env.reset(seed=seed)
         done = {'player_0': False, 'player_1': False}
         ################################ interact with the env for an episode ###################################
         while raw_obs['player_0']["real_env_steps"] < 0 or sum(done.values()) < len(done):
@@ -146,3 +144,12 @@ if __name__ == "__main__":
 
         ############################### episode data record  #################################
         survive_step += raw_obs["player_0"]["real_env_steps"]
+        message = f'episode {episode}, '
+        message += f'avg episode reward: {sum_rwd / 1}, '
+        message += f'avg survive step: {survive_step / 1}'
+        print(message)
+        print(raw_obs["player_0"]["real_env_steps"], rwdTransfer.reward_collect)
+        sum_rwd = 0
+        survive_step = 0
+        for k, v in rwdTransfer.reward_collect.items():
+            rwdTransfer.reward_collect[k] = 0
