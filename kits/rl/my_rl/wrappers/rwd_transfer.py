@@ -58,4 +58,4 @@ class RwdTransfer:
         #     step_reward['left_step_punish'] = cur_step-max_step
         for k in step_reward.keys():
             self.reward_collect[k] += step_reward[k]
-        return sum(list(step_reward.values()))
+        return sum(list(step_reward.values())), step_reward

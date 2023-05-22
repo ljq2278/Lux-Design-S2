@@ -106,17 +106,16 @@ if __name__ == "__main__":
                     raw_action[g_agent.player] = actTransfer.wrap_to_raw(
                         f_action[g_agent.player], u_action[g_agent.player], env.state.factories[g_agent.player], env.state.units[g_agent.player])
                 ############################### get action to env result ###############################
-                print(raw_obs['player_0']["real_env_steps"], raw_action['player_0'])
                 raw_next_obs, raw_reward, done, info = env.step(raw_action)
                 img = env.render("rgb_array", width=640, height=640)
                 plt.imsave('./imgs/' + str(raw_obs['player_0']["real_env_steps"]) + '.png', img)
-                print(raw_obs['player_0']["real_env_steps"], env.state.stats['player_0'])
                 ############################### get next obs factory ######################################
                 next_obs = obsTransfer.raw_to_wrap(raw_next_obs['player_0'], env.state, max_episode_length - raw_obs['player_0']["real_env_steps"])
                 ############################### get custom reward factory ######################################
                 reward = {}
+                step_reward = {}
                 for g_agent in [globalAgents[0]]:
-                    reward[g_agent.player] = rwdTransfer.raw_to_wrap(
+                    reward[g_agent.player], step_reward[g_agent.player] = rwdTransfer.raw_to_wrap(
                         raw_reward[g_agent.player],
                         done[g_agent.player],
                         last_stats[g_agent.player],
@@ -137,6 +136,12 @@ if __name__ == "__main__":
                         reward[g_agent.player],
                         done[g_agent.player]
                     ])
+                print('################################################# ',raw_obs['player_0']["real_env_steps"],' start ###########################################################################')
+                print('state: ', last_stats['player_0'])
+                print('action: ', raw_action['player_0'])
+                print('reward: ', step_reward['player_0'])
+                print('next_state: ', env.state.stats['player_0'])
+                print('################################################# ',raw_obs['player_0']["real_env_steps"],' end #############################################################################')
                 ############################### prepare to the next step #################################
                 raw_obs = raw_next_obs
                 obs = next_obs
@@ -147,7 +152,7 @@ if __name__ == "__main__":
         message = f'episode {episode}, '
         message += f'avg episode reward: {sum_rwd / 1}, '
         message += f'avg survive step: {survive_step / 1}'
-        print(message)
+        print(seed, message)
         print(raw_obs["player_0"]["real_env_steps"], rwdTransfer.reward_collect)
         sum_rwd = 0
         survive_step = 0

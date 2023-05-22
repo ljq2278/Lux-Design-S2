@@ -126,7 +126,7 @@ def sub_run(replay_queue: multiprocessing.Queue, param_queue: multiprocessing.Qu
                 ############################### get custom reward factory ######################################
                 reward = {}
                 for g_agent in [globalAgents[0]]:
-                    reward[g_agent.player] = rwdTransfer.raw_to_wrap(
+                    reward[g_agent.player], _ = rwdTransfer.raw_to_wrap(
                         raw_reward[g_agent.player],
                         done[g_agent.player],
                         last_stats[g_agent.player],
