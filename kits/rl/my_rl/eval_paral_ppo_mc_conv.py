@@ -65,6 +65,7 @@ if __name__ == "__main__":
     for episode in range(0, 1):
         np.random.seed()
         seed = np.random.randint(0, 100000000)
+        seed = 42
         raw_obs = env.reset(seed=seed)
         done = {'player_0': False, 'player_1': False}
         ################################ interact with the env for an episode ###################################
@@ -88,19 +89,19 @@ if __name__ == "__main__":
                 print(raw_obs['player_0']["real_env_steps"], raw_action['player_0'])
                 raw_next_obs, raw_reward, done, info = env.step(raw_action)
                 print(raw_obs['player_0']["real_env_steps"], env.state.stats['player_0'])
-                obs = obsTransfer.raw_to_wrap(raw_obs['player_0'], env.state, max_episode_length - raw_obs['player_0']["real_env_steps"])
+                obs, obs_stat = obsTransfer.raw_to_wrap(raw_obs['player_0'], env.state, max_episode_length - raw_obs['player_0']["real_env_steps"])
                 last_stats = copy.deepcopy(env.state.stats)
                 raw_obs = raw_next_obs
             else:
                 ############################### get action and raw_action factory ###############################
                 f_action, u_action = {}, {}
                 f_action_logprob, u_action_logprob = {}, {}
-                state_val, state_map = {}, {}
+                state_val = {}
                 for g_agent in [globalAgents[0]]:
                     f_action[g_agent.player], u_action[g_agent.player] = {}, {}
                     f_action_logprob[g_agent.player], u_action_logprob[g_agent.player] = {}, {}
-                    state_val[g_agent.player], f_action[g_agent.player], f_action_logprob[g_agent.player], u_action[g_agent.player], u_action_logprob[g_agent.player], state_map[g_agent.player] \
-                        = online_agent.policy.act(np.array([obs[g_agent.player]]), device='cpu')
+                    state_val[g_agent.player], f_action[g_agent.player], f_action_logprob[g_agent.player], u_action[g_agent.player], u_action_logprob[g_agent.player] \
+                        = online_agent.policy.act(np.array([obs[g_agent.player]]), np.array([obs_stat[g_agent.player]]), device='cpu')
                     state_val[g_agent.player], f_action[g_agent.player], f_action_logprob[g_agent.player], u_action[g_agent.player], u_action_logprob[g_agent.player] \
                         = state_val[g_agent.player][0][0], f_action[g_agent.player][0], f_action_logprob[g_agent.player][0], u_action[g_agent.player][0], u_action_logprob[g_agent.player][0]
                     raw_action[g_agent.player] = actTransfer.wrap_to_raw(
@@ -110,7 +111,7 @@ if __name__ == "__main__":
                 img = env.render("rgb_array", width=640, height=640)
                 plt.imsave('./imgs/' + str(raw_obs['player_0']["real_env_steps"]) + '.png', img)
                 ############################### get next obs factory ######################################
-                next_obs = obsTransfer.raw_to_wrap(raw_next_obs['player_0'], env.state, max_episode_length - raw_obs['player_0']["real_env_steps"])
+                next_obs, next_obs_stat = obsTransfer.raw_to_wrap(raw_next_obs['player_0'], env.state, max_episode_length - raw_obs['player_0']["real_env_steps"])
                 ############################### get custom reward factory ######################################
                 reward = {}
                 step_reward = {}
@@ -123,24 +124,25 @@ if __name__ == "__main__":
                     )
                     sum_rwd += reward[g_agent.player]
                     ############################ record the simple data ################################
-                    if g_agent.player not in tmp_buffer.keys():
-                        tmp_buffer[g_agent.player] = []
-                    tmp_buffer[g_agent.player].append([
-                        g_agent.player,
-                        obs[g_agent.player],
-                        state_val[g_agent.player],
-                        f_action[g_agent.player],
-                        f_action_logprob[g_agent.player],
-                        u_action[g_agent.player],
-                        u_action_logprob[g_agent.player],
-                        reward[g_agent.player],
-                        done[g_agent.player]
-                    ])
+                    # if g_agent.player not in tmp_buffer.keys():
+                    #     tmp_buffer[g_agent.player] = []
+                    # tmp_buffer[g_agent.player].append([
+                    #     g_agent.player,
+                    #     obs[g_agent.player],
+                    #     state_val[g_agent.player],
+                    #     f_action[g_agent.player],
+                    #     f_action_logprob[g_agent.player],
+                    #     u_action[g_agent.player],
+                    #     u_action_logprob[g_agent.player],
+                    #     reward[g_agent.player],
+                    #     done[g_agent.player]
+                    # ])
                 print('################################################# ', raw_obs['player_0']["real_env_steps"], ' start ###########################################################################')
-                print('state map: ', np.max(state_map['player_0']), np.min(state_map['player_0']))
-                for itm in state_map['player_0'][0][0]:
-                    print(['%05f'%x for x in itm])
+                print('state map: ', np.max(u_action['player_0']), np.min(u_action['player_0']))
+                for itm in u_action['player_0'] * obs['player_0'][obsTransfer.obs_space.u_pos_dim_start, :, :]:
+                    print(['%i' % x for x in itm])
                 print('state: ', last_stats['player_0'])
+                print('obs_stat: ', obs_stat['player_0'])
                 print('action: ', raw_action['player_0'])
                 print('reward: ', step_reward['player_0'])
                 print('next_state: ', env.state.stats['player_0'])
@@ -148,6 +150,7 @@ if __name__ == "__main__":
                 ############################### prepare to the next step #################################
                 raw_obs = raw_next_obs
                 obs = next_obs
+                obs_stat = next_obs_stat
                 last_stats = copy.deepcopy(env.state.stats)
 
         ############################### episode data record  #################################

@@ -76,9 +76,10 @@ class CentralOfflineAgent(CentralAgent):
                     f_surr2, u_surr2 = torch.clamp(f_ratios, 1 - self.eps_clip, 1 + self.eps_clip) * us_advantages, \
                                        torch.clamp(u_ratios, 1 - self.eps_clip, 1 + self.eps_clip) * us_advantages
                     # final loss of clipped objective PPO
-                    f_loss = (-torch.min(f_surr1, f_surr2) + 0.5 * self.mseLoss(state_values, old_rewards) - 0.01 * f_dist_entropy) * old_f_masks
-                    u_loss = (-torch.min(u_surr1, u_surr2) + 0.5 * self.mseLoss(state_values, old_rewards) - 0.01 * u_dist_entropy) * old_u_masks
-                    loss = f_loss + u_loss
+                    v_loss = 0.5 * self.mseLoss(state_values, old_rewards)
+                    f_loss = (-torch.min(f_surr1, f_surr2) - 0.01 * f_dist_entropy) * old_f_masks
+                    u_loss = (-torch.min(u_surr1, u_surr2) - 0.01 * u_dist_entropy) * old_u_masks
+                    loss = f_loss + u_loss + v_loss
                     # take gradient step
                     self.optimizer.zero_grad()
                     loss.mean().backward()

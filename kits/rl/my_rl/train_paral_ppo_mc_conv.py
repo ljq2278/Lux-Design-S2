@@ -40,7 +40,7 @@ gamma = 0.98
 sub_proc_count = 5
 exp = 'paral_ppo_conv'
 want_load_model = False
-max_episode_length = 20
+max_episode_length = 50
 agent_debug = False
 density_rwd = False
 episode_start = 0
@@ -48,6 +48,7 @@ save_peri = 10
 batch_size = 20
 map_size = 32
 os.environ['HOME'] = 'D:'
+update_interv = 10
 
 dim_info = [ObsSpace(None).total_dims, ActSpaceFactory().f_dims, ActSpaceUnit().u_dims]  # obs and act dims
 base_res_dir = os.environ['HOME'] + '/train_res/' + exp
@@ -77,7 +78,7 @@ def sub_run(replay_queue: multiprocessing.Queue, param_queue: multiprocessing.Qu
     for episode in range(episode_start, episode_num):
         np.random.seed()
         seed = np.random.randint(0, 100000000)
-        raw_obs = env.reset(seed=seed)
+        raw_obs = env.reset(seed=42)
         done = {'player_0': False, 'player_1': False}
         ################################ interact with the env for an episode ###################################
         while raw_obs['player_0']["real_env_steps"] < 0 or sum(done.values()) < len(done):
@@ -157,17 +158,18 @@ def sub_run(replay_queue: multiprocessing.Queue, param_queue: multiprocessing.Qu
         ############################### episode data record  #################################
         survive_step += raw_obs["player_0"]["real_env_steps"]
         ##################### after a game, use MC the reward and get Advantage and tranport #####################
-        for p_id, behaviors in tmp_buffer.items():
-            buffer.add_examples(*list(zip(*behaviors)))
-        buffer.transfer_reward(gamma)
-        buffer.calc_advantage()
-        replay_queue.put(
-            [buffer.states, buffer.states_stat, buffer.state_vals, buffer.f_actions, buffer.f_action_logprobs, buffer.u_actions, buffer.u_action_logprobs, buffer.rewards, buffer.dones,
-             buffer.advantages])
-        new_params = param_queue.get()
-        online_agent.update(new_params)
-        buffer.clear()
-        tmp_buffer.clear()
+        if episode % update_interv == update_interv - 1:
+            for p_id, behaviors in tmp_buffer.items():
+                buffer.add_examples(*list(zip(*behaviors)))
+            buffer.transfer_reward(gamma)
+            buffer.calc_advantage()
+            replay_queue.put(
+                [buffer.states, buffer.states_stat, buffer.state_vals, buffer.f_actions, buffer.f_action_logprobs, buffer.u_actions, buffer.u_action_logprobs, buffer.rewards, buffer.dones,
+                 buffer.advantages])
+            new_params = param_queue.get()
+            online_agent.update(new_params)
+            buffer.clear()
+            tmp_buffer.clear()
 
         ########################################### episode finishes  ########################################
         if episode % print_interv == 0:  # print info every 100 g_step

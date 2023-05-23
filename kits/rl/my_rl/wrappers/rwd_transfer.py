@@ -42,7 +42,7 @@ class RwdTransfer:
 
     def raw_to_wrap(self, ori_reward, done, last_stats, stats):
         step_reward = {
-            'step_rewards': 1,
+            'step_rewards': 0.1,
             'ice_generation': (stats['generation']['ice']['HEAVY'] + stats['generation']['ice']['LIGHT']) - \
                               (last_stats['generation']['ice']['HEAVY'] + last_stats['generation']['ice']['LIGHT']),
             'ore_generation': (stats['generation']['ore']['HEAVY'] + stats['generation']['ore']['LIGHT']) - \

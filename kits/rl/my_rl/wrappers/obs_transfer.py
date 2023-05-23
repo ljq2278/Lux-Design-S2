@@ -37,7 +37,7 @@ class ObsTransfer:
             ret[p_id][self.obs_space.b_ore_dim_start][:, :] = env_state.board.ore
             ret[p_id][self.obs_space.b_rub_dim_start][:, :] = env_state.board.rubble
             ret[p_id][self.obs_space.b_time_dim_start][:, :] = raw_obs['real_env_steps'] % self.env_cfg.CYCLE_LENGTH
-            ret[p_id][self.obs_space.b_left_step_dim_start][:, :] = left_step
+            # ret[p_id][self.obs_space.b_left_step_dim_start][:, :] = left_step
             ret_stat[p_id] = [0 for _ in range(0, self.obs_space_stat.s_dims)]
             ret_stat[p_id][self.obs_space_stat.s_rub_dim_start] = sum(list(env_state.stats[p_id]['destroyed']['rubble'].values())) * 0.1
             ret_stat[p_id][self.obs_space_stat.s_water_dim_start] = env_state.stats[p_id]['generation']['water'] * 10
@@ -78,9 +78,9 @@ class ObsTransfer:
                 ret[p_id][self.obs_space.u_power_dim_start][u_info['pos'][0], u_info['pos'][1]] = u_info['power']
                 ret[p_id][self.obs_space.u_typ_dim_start][u_info['pos'][0], u_info['pos'][1]] = self.typ_dict[u_info['unit_type']]
                 ###################################################### set oppo player u #########################################
-                ret[self.oppo_dict[p_id]][self.obs_space.u_pos_dim_start][u_info['pos'][0], u_info['pos'][1]] = 1
-                ret[self.oppo_dict[p_id]][self.obs_space.u_ice_dim_start][u_info['pos'][0], u_info['pos'][1]] = u_info['cargo']['ice']
-                ret[self.oppo_dict[p_id]][self.obs_space.u_ore_dim_start][u_info['pos'][0], u_info['pos'][1]] = u_info['cargo']['ore']
-                ret[self.oppo_dict[p_id]][self.obs_space.u_power_dim_start][u_info['pos'][0], u_info['pos'][1]] = u_info['power']
-                ret[self.oppo_dict[p_id]][self.obs_space.u_typ_dim_start][u_info['pos'][0], u_info['pos'][1]] = self.typ_dict[u_info['unit_type']]
+                ret[self.oppo_dict[p_id]][self.obs_space.ou_pos_dim_start][u_info['pos'][0], u_info['pos'][1]] = 1
+                ret[self.oppo_dict[p_id]][self.obs_space.ou_ice_dim_start][u_info['pos'][0], u_info['pos'][1]] = u_info['cargo']['ice']
+                ret[self.oppo_dict[p_id]][self.obs_space.ou_ore_dim_start][u_info['pos'][0], u_info['pos'][1]] = u_info['cargo']['ore']
+                ret[self.oppo_dict[p_id]][self.obs_space.ou_power_dim_start][u_info['pos'][0], u_info['pos'][1]] = u_info['power']
+                ret[self.oppo_dict[p_id]][self.obs_space.ou_typ_dim_start][u_info['pos'][0], u_info['pos'][1]] = self.typ_dict[u_info['unit_type']]
         return ret, ret_stat

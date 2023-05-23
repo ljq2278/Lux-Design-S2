@@ -20,8 +20,8 @@ class ActMLPNetwork(nn.Module):
         else:
             normer = torch.unsqueeze(torch.unsqueeze(torch.tensor(self.obs_space.normer).cuda(), 1), 1)
         x = (x / normer).float()
-        f_output = F.gumbel_softmax(self.f_deep_net(x), dim=1, tau=8)
-        u_output = F.gumbel_softmax(self.u_deep_net(x), dim=1, tau=8)
+        f_output = F.gumbel_softmax(self.f_deep_net(x), dim=1, tau=1)
+        u_output = F.gumbel_softmax(self.u_deep_net(x), dim=1, tau=1)
         return f_output, u_output
 
 
