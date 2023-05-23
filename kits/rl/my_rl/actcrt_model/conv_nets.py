@@ -88,7 +88,7 @@ class BaseNet(nn.Module):
         x3 = self.down2(x2)
         x4 = self.down3(x3)
         x5 = self.down4(x4)
-        # print(torch.argwhere(x1!=0))
+        print(torch.argwhere(x1 != 0))
         return x1, x2, x3, x4, x5
 
 

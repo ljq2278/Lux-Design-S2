@@ -8,6 +8,7 @@ import numpy as np
 from wrappers.obs_space_conv import ObsSpace
 # from wrappers.act_space_levels import ActSpaceFactoryDemand
 from actcrt_model.ac_model_conv import ActorCritic
+# from actcrt_model.ac_model_shared import ActorCritic
 from ppo_conv.Buffer import Buffer
 import copy
 
@@ -19,18 +20,6 @@ class CentralAgent:
             self.policy = ActorCritic(state_dim, f_action_dim, u_action_dim, env_cfg).cuda()
         else:
             self.policy = ActorCritic(state_dim, f_action_dim, u_action_dim, env_cfg)
-        # self.optimizer_u = torch.optim.SGD(list(self.policy.actor.u_deep_net.up1.parameters())
-        #                                    + list(self.policy.actor.u_deep_net.up2.parameters())
-        #                                    + list(self.policy.actor.u_deep_net.up3.parameters())
-        #                                    + list(self.policy.actor.u_deep_net.up4.parameters())
-        #                                    + list(self.policy.actor.u_deep_net.outc.parameters()), lr=lr_actor)
-        # self.optimizer_f = torch.optim.SGD(list(self.policy.actor.f_deep_net.up1.parameters())
-        #                                    + list(self.policy.actor.f_deep_net.up2.parameters())
-        #                                    + list(self.policy.actor.f_deep_net.up3.parameters())
-        #                                    + list(self.policy.actor.f_deep_net.up4.parameters())
-        #                                    + list(self.policy.actor.f_deep_net.outc.parameters()), lr=lr_actor)
-        # self.optimizer_v = torch.optim.SGD(self.policy.critic.deep_net.fc.parameters(), lr=lr_critic)
-        # self.optimizer_b = torch.optim.SGD(self.policy.critic.deep_net.base_net.parameters(), lr=base_lr)
         # self.optimizer = torch.optim.Adam([
         #     {'params': list(self.policy.actor.u_deep_net.up1.parameters())
         #                + list(self.policy.actor.u_deep_net.up2.parameters())
