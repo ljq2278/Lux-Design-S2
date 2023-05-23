@@ -104,3 +104,19 @@ class ObsSpace(ObsSpaceBoard, ObsSpaceUnit, ObsSpaceFactory, ObsSpaceOppoUnit, O
         ObsSpaceOppoUnit.__init__(self, start_dim=self.b_dims + self.f_dims + self.of_dims + self.u_dims)
         self.total_dims = self.b_dims + self.f_dims + self.of_dims + self.u_dims + self.ou_dims
         self.normer = np.array(self.b_normer + self.u_normer + self.ou_normer + self.f_normer + self.of_normer, dtype=float)
+
+
+class ObsSpaceStat:
+    def __init__(self, start_dim=0):
+        self.s_rub_dim_start = start_dim
+        self.s_rub_dim = 1
+        self.s_ice_dim_start = self.s_rub_dim_start + self.s_rub_dim
+        self.s_ice_dim = 1
+        self.s_ore_dim_start = self.s_ice_dim_start + self.s_ice_dim
+        self.s_ore_dim = 1
+        self.s_water_dim_start = self.s_ore_dim_start + self.s_ore_dim
+        self.s_water_dim = 1
+        self.s_metal_dim_start = self.s_water_dim_start + self.s_water_dim
+        self.s_metal_dim = 1
+        self.s_dims = self.s_metal_dim_start + self.s_metal_dim - start_dim
+        self.s_normer = [1, 1, 1, 1, 1]

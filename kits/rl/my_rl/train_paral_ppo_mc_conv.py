@@ -37,17 +37,17 @@ eps_clip = 0.2
 K_epochs = 1
 episode_num = 3000000
 gamma = 0.98
-sub_proc_count = 12
+sub_proc_count = 5
 exp = 'paral_ppo_conv'
-want_load_model = True
-max_episode_length = 200
+want_load_model = False
+max_episode_length = 20
 agent_debug = False
 density_rwd = False
 episode_start = 0
 save_peri = 10
-batch_size = 200
+batch_size = 20
 map_size = 32
-# os.environ['HOME'] = 'D:'
+os.environ['HOME'] = 'D:'
 
 dim_info = [ObsSpace(None).total_dims, ActSpaceFactory().f_dims, ActSpaceUnit().u_dims]  # obs and act dims
 base_res_dir = os.environ['HOME'] + '/train_res/' + exp
@@ -100,7 +100,7 @@ def sub_run(replay_queue: multiprocessing.Queue, param_queue: multiprocessing.Qu
                 # print(raw_obs['player_0']["real_env_steps"], raw_action['player_0'])
                 raw_next_obs, raw_reward, done, info = env.step(raw_action)
                 # print(raw_obs['player_0']["real_env_steps"], env.state.stats['player_0'])
-                obs = obsTransfer.raw_to_wrap(raw_obs['player_0'], env.state, max_episode_length - raw_obs['player_0']["real_env_steps"])
+                obs, obs_stat = obsTransfer.raw_to_wrap(raw_obs['player_0'], env.state, max_episode_length - raw_obs['player_0']["real_env_steps"])
                 last_stats = copy.deepcopy(env.state.stats)
                 raw_obs = raw_next_obs
             else:
@@ -112,7 +112,7 @@ def sub_run(replay_queue: multiprocessing.Queue, param_queue: multiprocessing.Qu
                     f_action[g_agent.player], u_action[g_agent.player] = {}, {}
                     f_action_logprob[g_agent.player], u_action_logprob[g_agent.player] = {}, {}
                     state_val[g_agent.player], f_action[g_agent.player], f_action_logprob[g_agent.player], u_action[g_agent.player], u_action_logprob[g_agent.player] \
-                        = online_agent.policy.act(np.array([obs[g_agent.player]]))
+                        = online_agent.policy.act(np.array([obs[g_agent.player]]), np.array([obs_stat[g_agent.player]]))
                     state_val[g_agent.player], f_action[g_agent.player], f_action_logprob[g_agent.player], u_action[g_agent.player], u_action_logprob[g_agent.player] \
                         = state_val[g_agent.player][0][0], f_action[g_agent.player][0], f_action_logprob[g_agent.player][0], u_action[g_agent.player][0], u_action_logprob[g_agent.player][0]
                     raw_action[g_agent.player] = actTransfer.wrap_to_raw(
@@ -122,7 +122,7 @@ def sub_run(replay_queue: multiprocessing.Queue, param_queue: multiprocessing.Qu
                 raw_next_obs, raw_reward, done, info = env.step(raw_action)
                 # print(raw_obs['player_0']["real_env_steps"], env.state.stats['player_0'])
                 ############################### get next obs factory ######################################
-                next_obs = obsTransfer.raw_to_wrap(raw_next_obs['player_0'], env.state, max_episode_length - raw_obs['player_0']["real_env_steps"])
+                next_obs, next_obs_stat = obsTransfer.raw_to_wrap(raw_next_obs['player_0'], env.state, max_episode_length - raw_obs['player_0']["real_env_steps"])
                 ############################### get custom reward factory ######################################
                 reward = {}
                 for g_agent in [globalAgents[0]]:
@@ -139,6 +139,7 @@ def sub_run(replay_queue: multiprocessing.Queue, param_queue: multiprocessing.Qu
                     tmp_buffer[g_agent.player].append([
                         g_agent.player,
                         obs[g_agent.player],
+                        obs_stat[g_agent.player],
                         state_val[g_agent.player],
                         f_action[g_agent.player],
                         f_action_logprob[g_agent.player],
@@ -150,6 +151,7 @@ def sub_run(replay_queue: multiprocessing.Queue, param_queue: multiprocessing.Qu
                 ############################### prepare to the next step #################################
                 raw_obs = raw_next_obs
                 obs = next_obs
+                obs_stat = next_obs_stat
                 last_stats = copy.deepcopy(env.state.stats)
 
         ############################### episode data record  #################################
@@ -160,7 +162,8 @@ def sub_run(replay_queue: multiprocessing.Queue, param_queue: multiprocessing.Qu
         buffer.transfer_reward(gamma)
         buffer.calc_advantage()
         replay_queue.put(
-            [buffer.states, buffer.state_vals, buffer.f_actions, buffer.f_action_logprobs, buffer.u_actions, buffer.u_action_logprobs, buffer.rewards, buffer.dones, buffer.advantages])
+            [buffer.states, buffer.states_stat, buffer.state_vals, buffer.f_actions, buffer.f_action_logprobs, buffer.u_actions, buffer.u_action_logprobs, buffer.rewards, buffer.dones,
+             buffer.advantages])
         new_params = param_queue.get()
         online_agent.update(new_params)
         buffer.clear()

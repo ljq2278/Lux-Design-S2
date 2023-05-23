@@ -5,7 +5,7 @@ import numpy as np
 import numpy.typing as npt
 from gym import spaces
 from lux.config import EnvConfig
-from wrappers.obs_space_conv import ObsSpace
+from wrappers.obs_space_conv import ObsSpace, ObsSpaceStat
 from wrappers.act_space_levels import ActSpaceUnit, ActSpaceFactory
 from ppo.FactoryAgent import Factory_Agent
 
@@ -16,6 +16,7 @@ class ObsTransfer:
         self.env = env
         self.env_cfg = env_cfg
         self.obs_space = ObsSpace(env_cfg)
+        self.obs_space_stat = ObsSpaceStat()
         self.oppo_dict = {
             'player_0': 'player_1',
             'player_1': 'player_0'
@@ -27,6 +28,7 @@ class ObsTransfer:
 
     def raw_to_wrap(self, raw_obs: Dict[str, Any], env_state, left_step):
         ret = {}
+        ret_stat = {}
         ########################################################## init and config board ###########################################
         for p_id in ['player_0', 'player_1']:
             matrix_features = np.zeros([self.obs_space.total_dims, self.env_cfg.map_size, self.env_cfg.map_size], dtype=float)  # CxHxW
@@ -36,6 +38,12 @@ class ObsTransfer:
             ret[p_id][self.obs_space.b_rub_dim_start][:, :] = env_state.board.rubble
             ret[p_id][self.obs_space.b_time_dim_start][:, :] = raw_obs['real_env_steps'] % self.env_cfg.CYCLE_LENGTH
             ret[p_id][self.obs_space.b_left_step_dim_start][:, :] = left_step
+            ret_stat[p_id] = [0 for _ in range(0, self.obs_space_stat.s_dims)]
+            ret_stat[p_id][self.obs_space_stat.s_rub_dim_start] = sum(list(env_state.stats[p_id]['destroyed']['rubble'].values())) * 0.1
+            ret_stat[p_id][self.obs_space_stat.s_water_dim_start] = env_state.stats[p_id]['generation']['water'] * 10
+            ret_stat[p_id][self.obs_space_stat.s_metal_dim_start] = env_state.stats[p_id]['generation']['metal'] * 10
+            ret_stat[p_id][self.obs_space_stat.s_ice_dim_start] = sum(list(env_state.stats[p_id]['generation']['ice'].values()))
+            ret_stat[p_id][self.obs_space_stat.s_ore_dim_start] = sum(list(env_state.stats[p_id]['generation']['ore'].values()))
         ########################################################## set factories ###########################################
         for p_id, p_finfos in raw_obs['factories'].items():
             for f_id, f_info in p_finfos.items():
@@ -75,4 +83,4 @@ class ObsTransfer:
                 ret[self.oppo_dict[p_id]][self.obs_space.u_ore_dim_start][u_info['pos'][0], u_info['pos'][1]] = u_info['cargo']['ore']
                 ret[self.oppo_dict[p_id]][self.obs_space.u_power_dim_start][u_info['pos'][0], u_info['pos'][1]] = u_info['power']
                 ret[self.oppo_dict[p_id]][self.obs_space.u_typ_dim_start][u_info['pos'][0], u_info['pos'][1]] = self.typ_dict[u_info['unit_type']]
-        return ret
+        return ret, ret_stat

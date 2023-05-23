@@ -6,6 +6,7 @@ class Buffer:
     def __init__(self):
         self.uids = []
         self.states = []
+        self.states_stat = []
         self.state_vals = []
         self.f_actions = []
         self.f_action_logprobs = []
@@ -18,9 +19,10 @@ class Buffer:
         self.dones = []
         self.advantages = None
 
-    def add_examples(self, uids, states, state_vals, f_actions, f_action_logprobs, u_actions, u_action_logprobs,  single_rewards, dones):
+    def add_examples(self, uids, states, states_stat, state_vals, f_actions, f_action_logprobs, u_actions, u_action_logprobs, single_rewards, dones):
         self.uids += uids
         self.states += states
+        self.states_stat += states_stat
         self.state_vals += state_vals
         self.f_actions += f_actions
         self.f_action_logprobs += f_action_logprobs
@@ -47,6 +49,7 @@ class Buffer:
     def clear(self):
         del self.uids[:]
         del self.states[:]
+        del self.states_stat[:]
         del self.state_vals[:]
         del self.f_actions[:]
         del self.f_action_logprobs[:]

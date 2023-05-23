@@ -35,7 +35,7 @@ gamma = 0.98
 
 exp = 'paral_ppo_conv'
 
-max_episode_length = 200
+max_episode_length = 20
 agent_debug = False
 density_rwd = False
 
@@ -95,11 +95,11 @@ if __name__ == "__main__":
                 ############################### get action and raw_action factory ###############################
                 f_action, u_action = {}, {}
                 f_action_logprob, u_action_logprob = {}, {}
-                state_val = {}
+                state_val, state_map = {}, {}
                 for g_agent in [globalAgents[0]]:
                     f_action[g_agent.player], u_action[g_agent.player] = {}, {}
                     f_action_logprob[g_agent.player], u_action_logprob[g_agent.player] = {}, {}
-                    state_val[g_agent.player], f_action[g_agent.player], f_action_logprob[g_agent.player], u_action[g_agent.player], u_action_logprob[g_agent.player] \
+                    state_val[g_agent.player], f_action[g_agent.player], f_action_logprob[g_agent.player], u_action[g_agent.player], u_action_logprob[g_agent.player], state_map[g_agent.player] \
                         = online_agent.policy.act(np.array([obs[g_agent.player]]), device='cpu')
                     state_val[g_agent.player], f_action[g_agent.player], f_action_logprob[g_agent.player], u_action[g_agent.player], u_action_logprob[g_agent.player] \
                         = state_val[g_agent.player][0][0], f_action[g_agent.player][0], f_action_logprob[g_agent.player][0], u_action[g_agent.player][0], u_action_logprob[g_agent.player][0]
@@ -136,12 +136,15 @@ if __name__ == "__main__":
                         reward[g_agent.player],
                         done[g_agent.player]
                     ])
-                print('################################################# ',raw_obs['player_0']["real_env_steps"],' start ###########################################################################')
+                print('################################################# ', raw_obs['player_0']["real_env_steps"], ' start ###########################################################################')
+                print('state map: ', np.max(state_map['player_0']), np.min(state_map['player_0']))
+                for itm in state_map['player_0'][0][0]:
+                    print(['%05f'%x for x in itm])
                 print('state: ', last_stats['player_0'])
                 print('action: ', raw_action['player_0'])
                 print('reward: ', step_reward['player_0'])
                 print('next_state: ', env.state.stats['player_0'])
-                print('################################################# ',raw_obs['player_0']["real_env_steps"],' end #############################################################################')
+                print('################################################# ', raw_obs['player_0']["real_env_steps"], ' end #############################################################################')
                 ############################### prepare to the next step #################################
                 raw_obs = raw_next_obs
                 obs = next_obs
