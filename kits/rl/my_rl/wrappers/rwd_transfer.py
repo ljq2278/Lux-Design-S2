@@ -43,16 +43,14 @@ class RwdTransfer:
     def raw_to_wrap(self, ori_reward, done, last_stats, stats):
         step_reward = {
             'step_rewards': 0.0,
-            'ice_generation': (stats['generation']['ice']['HEAVY'] + stats['generation']['ice']['LIGHT']) - \
-                              (last_stats['generation']['ice']['HEAVY'] + last_stats['generation']['ice']['LIGHT']),
-            'ore_generation': (stats['generation']['ore']['HEAVY'] + stats['generation']['ore']['LIGHT']) - \
-                              (last_stats['generation']['ore']['HEAVY'] + last_stats['generation']['ore']['LIGHT']),
+            'ice_generation': (sum(list(stats['generation']['ice'].values())) - sum(list(last_stats['generation']['ice'].values()))) * 10,
+            'ore_generation': (sum(list(stats['generation']['ore'].values())) - sum(list(last_stats['generation']['ore'].values()))) * 10,
             'power_generation': (stats['generation']['power']['FACTORY'] - last_stats['generation']['power']['FACTORY']) * 0,
             'water_generation': stats['generation']['water'] - last_stats['generation']['water'],
             'metal_generation': stats['generation']['metal'] - last_stats['generation']['metal'],
             # 'ice_transfer': stats['transfer']['ice'] - last_stats['transfer']['ice'],
             # 'ore_transfer': stats['transfer']['ore'] - last_stats['transfer']['ore'],
-            'destroyed_rubble': (sum(list(stats['destroyed']['rubble'].values())) - sum(list(last_stats['destroyed']['rubble'].values()))) / 10,
+            'destroyed_rubble': (sum(list(stats['destroyed']['rubble'].values())) - sum(list(last_stats['destroyed']['rubble'].values()))) / 1,
         }
         # if done:
         #     step_reward['left_step_punish'] = cur_step-max_step

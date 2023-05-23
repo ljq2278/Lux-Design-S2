@@ -36,7 +36,7 @@ class ObsSpaceFactory:
         self.f_connected_lichen_dim_start = self.f_grow_lichen_dim_start + self.f_grow_lichen_dim
         self.f_connected_lichen_dim = 1
         self.f_dims = self.f_connected_lichen_dim_start + self.f_connected_lichen_dim - start_dim
-        self.f_normer = [1, 10, 10, 100, 100, 100, 1, 1]
+        self.f_normer = [1, 10, 10, 100, 100, 1000, 1, 1]
 
 
 class ObsSpaceOppoFactory:
@@ -58,7 +58,7 @@ class ObsSpaceOppoFactory:
         self.of_connected_lichen_dim_start = self.of_grow_lichen_dim_start + self.of_grow_lichen_dim
         self.of_connected_lichen_dim = 1
         self.of_dims = self.of_connected_lichen_dim_start + self.of_connected_lichen_dim - start_dim
-        self.of_normer = [1, 10, 10, 100, 100, 100, 1, 1]
+        self.of_normer = [1, 10, 10, 100, 100, 1000, 1, 1]
 
 
 class ObsSpaceUnit:
@@ -74,7 +74,7 @@ class ObsSpaceUnit:
         self.u_typ_dim_start = self.u_ore_dim_start + self.u_ore_dim
         self.u_typ_dim = 1
         self.u_dims = self.u_typ_dim_start + self.u_typ_dim - start_dim
-        self.u_normer = [1, 10, 10, 10, 1]
+        self.u_normer = [1, 100, 10, 10, 1]
 
 
 class ObsSpaceOppoUnit:
@@ -90,7 +90,7 @@ class ObsSpaceOppoUnit:
         self.ou_typ_dim_start = self.ou_ore_dim_start + self.ou_ore_dim
         self.ou_typ_dim = 1
         self.ou_dims = self.ou_typ_dim_start + self.ou_typ_dim - start_dim
-        self.ou_normer = [1, 10, 10, 10, 1]
+        self.ou_normer = [1, 100, 10, 10, 1]
 
 
 class ObsSpace(ObsSpaceBoard, ObsSpaceUnit, ObsSpaceFactory, ObsSpaceOppoUnit, ObsSpaceOppoFactory):
@@ -103,7 +103,7 @@ class ObsSpace(ObsSpaceBoard, ObsSpaceUnit, ObsSpaceFactory, ObsSpaceOppoUnit, O
         ObsSpaceUnit.__init__(self, start_dim=self.b_dims + self.f_dims + self.of_dims)
         ObsSpaceOppoUnit.__init__(self, start_dim=self.b_dims + self.f_dims + self.of_dims + self.u_dims)
         self.total_dims = self.b_dims + self.f_dims + self.of_dims + self.u_dims + self.ou_dims
-        self.normer = np.array(self.b_normer + self.u_normer + self.ou_normer + self.f_normer + self.of_normer, dtype=float)
+        self.normer = np.array(self.b_normer + self.f_normer + self.of_normer + self.u_normer + self.ou_normer, dtype=float)
 
 
 class ObsSpaceStat:

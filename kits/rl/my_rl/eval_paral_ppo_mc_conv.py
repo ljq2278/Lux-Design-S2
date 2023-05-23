@@ -45,7 +45,7 @@ dim_info = [ObsSpace(None).total_dims, ActSpaceFactory().f_dims, ActSpaceUnit().
 base_res_dir = os.environ['HOME'] + '/train_res/' + exp
 
 if __name__ == "__main__":
-    env = gym.make(env_id, verbose=0, collect_stats=True, MAX_FACTORIES=2)
+    env = gym.make(env_id, verbose=0, collect_stats=True, MAX_FACTORIES=3)
     env_cfg = env.env_cfg
     env_cfg.map_size = map_size
     env_cfg.max_episode_length = max_episode_length
@@ -53,7 +53,7 @@ if __name__ == "__main__":
     obsTransfer = ObsTransfer(env, env_cfg)
     rwdTransfer = RwdTransfer(env, env_cfg, debug=False, density=density_rwd)
     agent_cont = 2
-    online_agent = CentralOnlineAgent(dim_info[0], dim_info[1], dim_info[2], env_cfg, 0, 0, base_res_dir, False)
+    online_agent = CentralOnlineAgent(dim_info[0], dim_info[1], dim_info[2], env_cfg, 0, 0, 0, base_res_dir, False)
     if want_load_model:
         new_params = online_agent.load()
     globalAgents = [GlobalAgent('player_' + str(i), env_cfg, online_agent) for i in range(0, agent_cont)]
@@ -83,7 +83,7 @@ if __name__ == "__main__":
                         raw_action[p_id][f_id] = 1
                         if p_id == 'player_1':
                             # set factories to have 1000 water to check the ore dig ability
-                            env.state.factories[p_id][f_id].cargo.water = 150000
+                            env.state.factories[p_id][f_id].cargo.water = 200
                             # env.state.factories[p_id][f_id].cargo.metal = 200
                             # env.state.factories[p_id][f_id].power = 300000
                 print(raw_obs['player_0']["real_env_steps"], raw_action['player_0'])
@@ -149,6 +149,8 @@ if __name__ == "__main__":
                           ' end #############################################################################')
                 ############################### prepare to the next step #################################
                 raw_obs = raw_next_obs
+                print('max and min: ', np.max(obs['player_0'] / (obsTransfer.obs_space.normer.reshape([-1, 1, 1])) - next_obs['player_0'] / (obsTransfer.obs_space.normer.reshape([-1, 1, 1]))),
+                      np.min(obs['player_0'] / (obsTransfer.obs_space.normer.reshape([-1, 1, 1])) - next_obs['player_0'] / (obsTransfer.obs_space.normer.reshape([-1, 1, 1]))))
                 obs = next_obs
                 obs_stat = next_obs_stat
                 last_stats = copy.deepcopy(env.state.stats)

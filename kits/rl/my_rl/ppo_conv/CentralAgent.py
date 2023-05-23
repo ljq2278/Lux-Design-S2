@@ -102,6 +102,7 @@ class CentralOfflineAgent(CentralAgent):
     def update_and_get_new_param2(self, train_data, K_epochs, bz=10):
         # Monte Carlo estimate of returns
         # Optimize policy for K epochs
+        self.policy.to('cuda')
         pid_num = len(train_data)
         tt_old_states, tt_old_states_stat, tt_old_state_vals, tt_old_f_actions, tt_old_f_logprobs, tt_old_u_actions, tt_old_u_logprobs, tt_old_rewards, tt_old_done, tt_advantages = [], [], [], [], [], [], [], [], [], []
         for i in range(0, pid_num):
@@ -120,16 +121,16 @@ class CentralOfflineAgent(CentralAgent):
             print('train_epochs: ', epochs_i)
             for i in range(0, len(tt_old_states), bz):
                 old_states, old_states_stat, old_state_vals, old_f_actions, old_f_logprobs, old_u_actions, old_u_logprobs, old_rewards, old_done, advantages \
-                    = torch.Tensor(np.array(tt_old_states)[permute_list[i * bz:(i + 1) * bz]]).cuda(), \
-                      torch.Tensor(np.array(tt_old_states_stat)[permute_list[i * bz:(i + 1) * bz]]).cuda(), \
-                      torch.Tensor(np.array(tt_old_state_vals)[permute_list[i * bz:(i + 1) * bz]]).cuda(), \
-                      torch.Tensor(np.array(tt_old_f_actions)[permute_list[i * bz:(i + 1) * bz]]).cuda(), \
-                      torch.Tensor(np.array(tt_old_f_logprobs)[permute_list[i * bz:(i + 1) * bz]]).cuda(), \
-                      torch.Tensor(np.array(tt_old_u_actions)[permute_list[i * bz:(i + 1) * bz]]).cuda(), \
-                      torch.Tensor(np.array(tt_old_u_logprobs)[permute_list[i * bz:(i + 1) * bz]]).cuda(), \
-                      torch.Tensor(np.array(tt_old_rewards)[permute_list[i * bz:(i + 1) * bz]]).cuda(), \
-                      torch.Tensor(np.array(tt_old_done)[permute_list[i * bz:(i + 1) * bz]]).cuda(), \
-                      torch.Tensor(np.array(tt_advantages)[permute_list[i * bz:(i + 1) * bz]]).cuda()
+                    = torch.Tensor(np.array(tt_old_states)[permute_list[i:i + bz]]).cuda(), \
+                      torch.Tensor(np.array(tt_old_states_stat)[permute_list[i:i + bz]]).cuda(), \
+                      torch.Tensor(np.array(tt_old_state_vals)[permute_list[i:i + bz]]).cuda(), \
+                      torch.Tensor(np.array(tt_old_f_actions)[permute_list[i:i + bz]]).cuda(), \
+                      torch.Tensor(np.array(tt_old_f_logprobs)[permute_list[i:i + bz]]).cuda(), \
+                      torch.Tensor(np.array(tt_old_u_actions)[permute_list[i:i + bz]]).cuda(), \
+                      torch.Tensor(np.array(tt_old_u_logprobs)[permute_list[i:i + bz]]).cuda(), \
+                      torch.Tensor(np.array(tt_old_rewards)[permute_list[i:i + bz]]).cuda(), \
+                      torch.Tensor(np.array(tt_old_done)[permute_list[i:i + bz]]).cuda(), \
+                      torch.Tensor(np.array(tt_advantages)[permute_list[i:i + bz]]).cuda()
                 old_f_masks, old_u_masks = old_states[:, self.obs_space.f_pos_dim_start, :, :].cuda(), old_states[:, self.obs_space.u_pos_dim_start, :, :].cuda()
                 state_values, f_logprobs, f_dist_entropy, u_logprobs, u_dist_entropy = self.policy.evaluate(old_states, old_states_stat, old_f_actions, old_u_actions)
                 # match state_values tensor dimensions with rewards tensor
@@ -160,4 +161,4 @@ class CentralOfflineAgent(CentralAgent):
                 self.optimizer_b.zero_grad()
                 self.optimizer_b.step()
 
-        return self.policy.state_dict()
+        return self.policy.to('cpu').state_dict()
