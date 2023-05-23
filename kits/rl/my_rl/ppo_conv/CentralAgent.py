@@ -7,28 +7,40 @@ from torch.distributions import Categorical
 import numpy as np
 from wrappers.obs_space_conv import ObsSpace
 # from wrappers.act_space_levels import ActSpaceFactoryDemand
-from actcrt_model.ac_model_conv import ActorCritic
+from actcrt_model.ac_model_shared import ActorCritic
 from ppo_conv.Buffer import Buffer
 import copy
 
 
 class CentralAgent:
-    def __init__(self, state_dim, f_action_dim, u_action_dim, env_cfg, lr_actor, lr_critic, save_dir='./', is_cuda=True):
+    def __init__(self, state_dim, f_action_dim, u_action_dim, env_cfg, lr_actor, lr_critic, base_lr, save_dir='./', is_cuda=True):
         self.save_dir = save_dir
         if is_cuda:
             self.policy = ActorCritic(state_dim, f_action_dim, u_action_dim, env_cfg).cuda()
         else:
             self.policy = ActorCritic(state_dim, f_action_dim, u_action_dim, env_cfg)
-        self.optimizer = torch.optim.Adam([
-            {'params': self.policy.actor.parameters(), 'lr': lr_actor},
-            {'params': self.policy.critic.parameters(), 'lr': lr_critic}
-        ])
+        self.optimizer_u = torch.optim.SGD(list(self.policy.actor.u_deep_net.up1.parameters())
+                                           + list(self.policy.actor.u_deep_net.up2.parameters())
+                                           + list(self.policy.actor.u_deep_net.up3.parameters())
+                                           + list(self.policy.actor.u_deep_net.up4.parameters())
+                                           + list(self.policy.actor.u_deep_net.outc.parameters()), lr=lr_actor)
+        self.optimizer_f = torch.optim.SGD(list(self.policy.actor.f_deep_net.up1.parameters())
+                                           + list(self.policy.actor.f_deep_net.up2.parameters())
+                                           + list(self.policy.actor.f_deep_net.up3.parameters())
+                                           + list(self.policy.actor.f_deep_net.up4.parameters())
+                                           + list(self.policy.actor.f_deep_net.outc.parameters()), lr=lr_actor)
+        self.optimizer_v = torch.optim.SGD(self.policy.critic.deep_net.fc.parameters(), lr=lr_critic)
+        self.optimizer_b = torch.optim.SGD(self.policy.critic.deep_net.base_net.parameters(), lr=base_lr)
+        # self.optimizer = torch.optim.Adam([
+        #     {'params': self.policy.actor.parameters(), 'lr': lr_actor},
+        #     {'params': self.policy.critic.parameters(), 'lr': lr_critic}
+        # ])
 
     def save(self):
         """save actor parameters of all agents and training reward to `res_dir`"""
         torch.save({
             'policy': self.policy.state_dict(),
-            'optimizer': self.optimizer.state_dict(),
+            # 'optimizer': self.optimizer.state_dict(),
         }, os.path.join(self.save_dir, 'model.pt'))
 
     def load(self):
@@ -36,20 +48,20 @@ class CentralAgent:
         print('loading model .................')
         checkpoint = torch.load(os.path.join(self.save_dir, 'model.pt'))
         self.policy.load_state_dict(checkpoint['policy'])
-        self.optimizer.load_state_dict(checkpoint['optimizer'])
+        # self.optimizer.load_state_dict(checkpoint['optimizer'])
 
 
 class CentralOnlineAgent(CentralAgent):
-    def __init__(self, state_dim, f_action_dim, u_action_dim, env_cfg, lr_actor=0, lr_critic=0, save_dir='./', is_cuda=True):
-        super().__init__(state_dim, f_action_dim, u_action_dim, env_cfg, lr_actor, lr_critic, save_dir, is_cuda)
+    def __init__(self, state_dim, f_action_dim, u_action_dim, env_cfg, lr_actor=0, lr_critic=0, base_lr=0, save_dir='./', is_cuda=True):
+        super().__init__(state_dim, f_action_dim, u_action_dim, env_cfg, lr_actor, lr_critic, base_lr, save_dir, is_cuda)
 
     def update(self, new_params):
         self.policy.load_state_dict(new_params)
 
 
 class CentralOfflineAgent(CentralAgent):
-    def __init__(self, state_dim, f_action_dim, u_action_dim, env_cfg, lr_actor, lr_critic, eps_clip, save_dir='./', is_cuda=True):
-        super().__init__(state_dim, f_action_dim, u_action_dim, env_cfg, lr_actor, lr_critic, save_dir, is_cuda)
+    def __init__(self, state_dim, f_action_dim, u_action_dim, env_cfg, lr_actor, lr_critic, base_lr, eps_clip, save_dir='./', is_cuda=True):
+        super().__init__(state_dim, f_action_dim, u_action_dim, env_cfg, lr_actor, lr_critic, base_lr, save_dir, is_cuda)
         self.eps_clip = eps_clip
         self.obs_space = ObsSpace(env_cfg)
         self.mseLoss = nn.MSELoss()
@@ -130,12 +142,22 @@ class CentralOfflineAgent(CentralAgent):
                 f_surr2, u_surr2 = torch.clamp(f_ratios, 1 - self.eps_clip, 1 + self.eps_clip) * us_advantages, \
                                    torch.clamp(u_ratios, 1 - self.eps_clip, 1 + self.eps_clip) * us_advantages
                 # final loss of clipped objective PPO
-                f_loss = (-torch.min(f_surr1, f_surr2) + 0.5 * self.mseLoss(state_values, old_rewards) - 0.01 * f_dist_entropy) * old_f_masks
-                u_loss = (-torch.min(u_surr1, u_surr2) + 0.5 * self.mseLoss(state_values, old_rewards) - 0.01 * u_dist_entropy) * old_u_masks
-                loss = f_loss + u_loss
-                # take gradient step
-                self.optimizer.zero_grad()
-                loss.mean().backward()
-                self.optimizer.step()
+                self.optimizer_f.zero_grad()
+                f_loss = (-torch.min(f_surr1, f_surr2) - 0.0001 * f_dist_entropy) * old_f_masks
+                f_loss.mean().backward()
+                self.optimizer_f.step()
+
+                self.optimizer_u.zero_grad()
+                u_loss = (-torch.min(u_surr1, u_surr2) - 0.0001 * u_dist_entropy) * old_u_masks
+                u_loss.mean().backward()
+                self.optimizer_u.step()
+
+                self.optimizer_v.zero_grad()
+                v_loss = 0.5 * self.mseLoss(state_values, old_rewards)
+                v_loss.mean().backward()
+                self.optimizer_v.step()
+
+                self.optimizer_b.zero_grad()
+                self.optimizer_b.step()
 
         return self.policy.state_dict()

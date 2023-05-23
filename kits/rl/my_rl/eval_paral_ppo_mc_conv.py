@@ -30,18 +30,17 @@ class GlobalAgent(EarlyRuleAgent):
 
 
 env_id = "LuxAI_S2-v0"
-
+debug = True
+debug_param = False
 gamma = 0.98
-
 exp = 'paral_ppo_conv'
-
-max_episode_length = 20
+max_episode_length = 10
 agent_debug = False
 density_rwd = False
-
+epochs = 1
 map_size = 32
 os.environ['HOME'] = 'D:'
-
+want_load_model = True
 dim_info = [ObsSpace(None).total_dims, ActSpaceFactory().f_dims, ActSpaceUnit().u_dims]  # obs and act dims
 base_res_dir = os.environ['HOME'] + '/train_res/' + exp
 
@@ -55,17 +54,18 @@ if __name__ == "__main__":
     rwdTransfer = RwdTransfer(env, env_cfg, debug=False, density=density_rwd)
     agent_cont = 2
     online_agent = CentralOnlineAgent(dim_info[0], dim_info[1], dim_info[2], env_cfg, 0, 0, base_res_dir, False)
-    new_params = online_agent.load()
+    if want_load_model:
+        new_params = online_agent.load()
     globalAgents = [GlobalAgent('player_' + str(i), env_cfg, online_agent) for i in range(0, agent_cont)]
     globale_step = 0
     sum_rwd = 0
     survive_step = 0
     buffer = Buffer()
     tmp_buffer = {}  # record every datas
-    for episode in range(0, 1):
+    for episode in range(0, epochs):
         np.random.seed()
         seed = np.random.randint(0, 100000000)
-        seed = 42
+        # seed = 42
         raw_obs = env.reset(seed=seed)
         done = {'player_0': False, 'player_1': False}
         ################################ interact with the env for an episode ###################################
@@ -89,12 +89,13 @@ if __name__ == "__main__":
                 print(raw_obs['player_0']["real_env_steps"], raw_action['player_0'])
                 raw_next_obs, raw_reward, done, info = env.step(raw_action)
                 print(raw_obs['player_0']["real_env_steps"], env.state.stats['player_0'])
-                for name, param in online_agent.policy.actor.named_parameters():
-                    if param.requires_grad:
-                        print(name, param.data)
-                for name, param in online_agent.policy.critic.named_parameters():
-                    if param.requires_grad:
-                        print(name, param.data)
+                if debug_param:
+                    for name, param in online_agent.policy.actor.named_parameters():
+                        if param.requires_grad:
+                            print(name, param.data)
+                    for name, param in online_agent.policy.critic.named_parameters():
+                        if param.requires_grad:
+                            print(name, param.data)
                 obs, obs_stat = obsTransfer.raw_to_wrap(raw_obs['player_0'], env.state, max_episode_length - raw_obs['player_0']["real_env_steps"])
                 last_stats = copy.deepcopy(env.state.stats)
                 raw_obs = raw_next_obs
@@ -129,45 +130,33 @@ if __name__ == "__main__":
                         env.state.stats[g_agent.player]
                     )
                     sum_rwd += reward[g_agent.player]
-                    ############################ record the simple data ################################
-                    # if g_agent.player not in tmp_buffer.keys():
-                    #     tmp_buffer[g_agent.player] = []
-                    # tmp_buffer[g_agent.player].append([
-                    #     g_agent.player,
-                    #     obs[g_agent.player],
-                    #     state_val[g_agent.player],
-                    #     f_action[g_agent.player],
-                    #     f_action_logprob[g_agent.player],
-                    #     u_action[g_agent.player],
-                    #     u_action_logprob[g_agent.player],
-                    #     reward[g_agent.player],
-                    #     done[g_agent.player]
-                    # ])
-                print('################################################# ', raw_obs['player_0']["real_env_steps"], ' start ###########################################################################')
-                print('state map: ', np.max(u_action['player_0']), np.min(u_action['player_0']))
-                for itm in u_action['player_0'] * obs['player_0'][obsTransfer.obs_space.u_pos_dim_start, :, :]:
-                    print(['%i' % x for x in itm])
-                print('state: ', last_stats['player_0'])
-                print('obs_stat: ', obs_stat['player_0'])
-                print('action: ', raw_action['player_0'])
-                print('u_action_logprob: ', u_action_logprob['player_0'])
-                print('reward: ', step_reward['player_0'])
-                print('next_state: ', env.state.stats['player_0'])
-                print('################################################# ', raw_obs['player_0']["real_env_steps"], ' end #############################################################################')
+                if debug:
+                    print('################################################# ', raw_obs['player_0']["real_env_steps"],
+                          ' start ###########################################################################')
+                    print('state map: ', np.max(u_action['player_0']), np.min(u_action['player_0']))
+                    # for itm in u_action['player_0'] * obs['player_0'][obsTransfer.obs_space.u_pos_dim_start, :, :]:
+                    #     print(['%i' % x for x in itm])
+                    # for itm in obs['player_0'][obsTransfer.obs_space.b_rub_dim_start, :, :]:
+                    #     print(['%03i' % x for x in itm])
+                    print('state: ', last_stats['player_0'])
+                    print('state_val: ', state_val['player_0'])
+                    print('obs_stat: ', obs_stat['player_0'])
+                    print('action: ', raw_action['player_0'])
+                    # print('u_action_logprob: ', u_action_logprob['player_0'])
+                    print('reward: ', step_reward['player_0'])
+                    print('next_state: ', env.state.stats['player_0'])
+                    print('################################################# ', raw_obs['player_0']["real_env_steps"],
+                          ' end #############################################################################')
                 ############################### prepare to the next step #################################
                 raw_obs = raw_next_obs
                 obs = next_obs
                 obs_stat = next_obs_stat
                 last_stats = copy.deepcopy(env.state.stats)
-
         ############################### episode data record  #################################
         survive_step += raw_obs["player_0"]["real_env_steps"]
-        message = f'episode {episode}, '
-        message += f'avg episode reward: {sum_rwd / 1}, '
-        message += f'avg survive step: {survive_step / 1}'
-        print(seed, message)
-        print(raw_obs["player_0"]["real_env_steps"], rwdTransfer.reward_collect)
-        sum_rwd = 0
-        survive_step = 0
-        for k, v in rwdTransfer.reward_collect.items():
-            rwdTransfer.reward_collect[k] = 0
+        # print(seed, raw_obs["player_0"]["real_env_steps"])
+    print('############################################### rewards ######################################################')
+    print('avg rewards: ', sum_rwd / epochs)
+    print('avg survive: ', survive_step / epochs)
+    for k, v in rwdTransfer.reward_collect.items():
+        print(k, v / epochs)

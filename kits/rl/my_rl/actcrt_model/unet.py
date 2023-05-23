@@ -77,7 +77,7 @@ class OutConv(nn.Module):
         return self.conv(x)
 
 class UNet(nn.Module):
-    def __init__(self, n_channels, n_classes, base_channel=8, bilinear=False):
+    def __init__(self, n_channels, n_classes, base_channel=8, bilinear=True):
         super(UNet, self).__init__()
         self.n_channels = n_channels
         self.n_classes = n_classes
@@ -110,18 +110,16 @@ class UNet(nn.Module):
 
 
 class ConvNet(nn.Module):
-    def __init__(self, n_channels, n_classes, base_channel=8, bilinear=False):
+    def __init__(self, n_channels, n_classes, base_channel=8):
         super(ConvNet, self).__init__()
         self.n_channels = n_channels
         self.n_classes = n_classes
-        self.bilinear = bilinear
 
         self.inc = (DoubleConv(n_channels, base_channel))
         self.down1 = (Down(base_channel, base_channel*2))
         self.down2 = (Down(base_channel*2, base_channel*4))
         self.down3 = (Down(base_channel*4, base_channel*8))
-        factor = 2 if bilinear else 1
-        self.down4 = (Down(base_channel*8, base_channel*16 // factor))
+        self.down4 = (Down(base_channel*8, base_channel*16))
 
 
     def forward(self, x):

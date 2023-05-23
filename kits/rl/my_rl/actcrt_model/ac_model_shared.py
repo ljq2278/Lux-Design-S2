@@ -4,15 +4,15 @@ from torch import nn, Tensor
 from torch.optim import Adam
 from torch.distributions import Categorical
 from wrappers.obs_space_conv import ObsSpace, ObsSpaceStat
-from .unet import UNet, ConvNet
+from .conv_nets import UActNet, FActNet, ValueNet, BaseNet
 
 
 class ActMLPNetwork(nn.Module):
-    def __init__(self, in_dim, f_out_dim, u_out_dim, env_cfg, hidden_dim=32, non_linear=nn.Tanh()):
+    def __init__(self, in_dim, f_out_dim, u_out_dim, env_cfg, base_net, hidden_dim=32, non_linear=nn.Tanh()):
         super(ActMLPNetwork, self).__init__()
         self.obs_space = ObsSpace(env_cfg)
-        self.f_deep_net = UNet(in_dim, f_out_dim)
-        self.u_deep_net = UNet(in_dim, u_out_dim)
+        self.f_deep_net = FActNet(in_dim, f_out_dim, base_net)
+        self.u_deep_net = UActNet(in_dim, u_out_dim, base_net)
 
     def forward(self, x, device='cpu'):
         if device == 'cpu':
@@ -26,12 +26,11 @@ class ActMLPNetwork(nn.Module):
 
 
 class CriMLPNetwork(nn.Module):
-    def __init__(self, in_dim, out_dim, env_cfg, hidden_dim=32, non_linear=nn.Tanh()):
+    def __init__(self, in_dim, out_dim, env_cfg, base_net, hidden_dim=32, non_linear=nn.Tanh()):
         super(CriMLPNetwork, self).__init__()
         self.obs_space = ObsSpace(env_cfg)
         self.obs_space_stat = ObsSpaceStat()
-        self.deep_net = ConvNet(in_dim, out_dim)
-        self.fc = nn.Linear(128 * (self.obs_space.env_cfg.map_size // 16) * (self.obs_space.env_cfg.map_size // 16) + self.obs_space_stat.s_dims, 1)
+        self.deep_net = ValueNet(in_dim, out_dim, base_net, 128 * (self.obs_space.env_cfg.map_size // 16) * (self.obs_space.env_cfg.map_size // 16))
 
     def forward(self, x, x_stat, device='cpu'):
         if device == 'cpu':
@@ -39,17 +38,16 @@ class CriMLPNetwork(nn.Module):
         else:
             normer = torch.unsqueeze(torch.unsqueeze(torch.tensor(self.obs_space.normer).cuda(), 1), 1)
         x = (x / normer).float()
-        x = self.deep_net(x)
-        # ret = torch.sum(x.reshape([-1, 1, 1 * self.obs_space.env_cfg.map_size * self.obs_space.env_cfg.map_size]), dim=-1)
-        ret = self.fc(torch.concat([x.reshape([-1, 128 * (self.obs_space.env_cfg.map_size // 16) * (self.obs_space.env_cfg.map_size // 16)]), 0 * x_stat], dim=-1))
+        ret = self.deep_net(x)
         return ret
 
 
 class ActorCritic(nn.Module):
     def __init__(self, state_dim, f_action_dim, u_action_dim, env_cfg, hidden_dim=64, non_linear=nn.ReLU()):
         super(ActorCritic, self).__init__()
-        self.actor = ActMLPNetwork(state_dim, f_action_dim, u_action_dim, env_cfg)
-        self.critic = CriMLPNetwork(state_dim, 1, env_cfg)
+        self.base_net = BaseNet(state_dim)
+        self.actor = ActMLPNetwork(state_dim, f_action_dim, u_action_dim, env_cfg, self.base_net)
+        self.critic = CriMLPNetwork(state_dim, 1, env_cfg, self.base_net)
 
     def forward(self):
         raise NotImplementedError

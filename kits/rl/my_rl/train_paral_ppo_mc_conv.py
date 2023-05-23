@@ -33,6 +33,7 @@ env_id = "LuxAI_S2-v0"
 print_interv = 1
 actor_lr = 0.0001
 critic_lr = 0.0004
+base_lr = 0.001
 eps_clip = 0.2
 K_epochs = 1
 episode_num = 3000000
@@ -48,7 +49,7 @@ save_peri = 10
 batch_size = 20
 map_size = 32
 os.environ['HOME'] = 'D:'
-update_interv = 1
+update_interv = 5
 
 dim_info = [ObsSpace(None).total_dims, ActSpaceFactory().f_dims, ActSpaceUnit().u_dims]  # obs and act dims
 base_res_dir = os.environ['HOME'] + '/train_res/' + exp
@@ -190,7 +191,7 @@ def offline_learn(replay_queue: multiprocessing.Queue, param_queue_list, pid):
     env = gym.make(env_id, verbose=0, collect_stats=True, MAX_FACTORIES=2)
     env_cfg = env.env_cfg
     env_cfg.map_size = map_size
-    offline_agent = CentralOfflineAgent(dim_info[0], dim_info[1], dim_info[2], env_cfg, actor_lr, critic_lr, eps_clip, base_res_dir)
+    offline_agent = CentralOfflineAgent(dim_info[0], dim_info[1], dim_info[2], env_cfg, actor_lr, critic_lr, base_lr, eps_clip, base_res_dir)
     if want_load_model:
         offline_agent.load()
         for param_queue in param_queue_list:
