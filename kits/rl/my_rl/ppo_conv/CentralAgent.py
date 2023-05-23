@@ -7,7 +7,7 @@ from torch.distributions import Categorical
 import numpy as np
 from wrappers.obs_space_conv import ObsSpace
 # from wrappers.act_space_levels import ActSpaceFactoryDemand
-from actcrt_model.ac_model_shared import ActorCritic
+from actcrt_model.ac_model_conv import ActorCritic
 from ppo_conv.Buffer import Buffer
 import copy
 
@@ -19,28 +19,42 @@ class CentralAgent:
             self.policy = ActorCritic(state_dim, f_action_dim, u_action_dim, env_cfg).cuda()
         else:
             self.policy = ActorCritic(state_dim, f_action_dim, u_action_dim, env_cfg)
-        self.optimizer_u = torch.optim.SGD(list(self.policy.actor.u_deep_net.up1.parameters())
-                                           + list(self.policy.actor.u_deep_net.up2.parameters())
-                                           + list(self.policy.actor.u_deep_net.up3.parameters())
-                                           + list(self.policy.actor.u_deep_net.up4.parameters())
-                                           + list(self.policy.actor.u_deep_net.outc.parameters()), lr=lr_actor)
-        self.optimizer_f = torch.optim.SGD(list(self.policy.actor.f_deep_net.up1.parameters())
-                                           + list(self.policy.actor.f_deep_net.up2.parameters())
-                                           + list(self.policy.actor.f_deep_net.up3.parameters())
-                                           + list(self.policy.actor.f_deep_net.up4.parameters())
-                                           + list(self.policy.actor.f_deep_net.outc.parameters()), lr=lr_actor)
-        self.optimizer_v = torch.optim.SGD(self.policy.critic.deep_net.fc.parameters(), lr=lr_critic)
-        self.optimizer_b = torch.optim.SGD(self.policy.critic.deep_net.base_net.parameters(), lr=base_lr)
+        # self.optimizer_u = torch.optim.SGD(list(self.policy.actor.u_deep_net.up1.parameters())
+        #                                    + list(self.policy.actor.u_deep_net.up2.parameters())
+        #                                    + list(self.policy.actor.u_deep_net.up3.parameters())
+        #                                    + list(self.policy.actor.u_deep_net.up4.parameters())
+        #                                    + list(self.policy.actor.u_deep_net.outc.parameters()), lr=lr_actor)
+        # self.optimizer_f = torch.optim.SGD(list(self.policy.actor.f_deep_net.up1.parameters())
+        #                                    + list(self.policy.actor.f_deep_net.up2.parameters())
+        #                                    + list(self.policy.actor.f_deep_net.up3.parameters())
+        #                                    + list(self.policy.actor.f_deep_net.up4.parameters())
+        #                                    + list(self.policy.actor.f_deep_net.outc.parameters()), lr=lr_actor)
+        # self.optimizer_v = torch.optim.SGD(self.policy.critic.deep_net.fc.parameters(), lr=lr_critic)
+        # self.optimizer_b = torch.optim.SGD(self.policy.critic.deep_net.base_net.parameters(), lr=base_lr)
         # self.optimizer = torch.optim.Adam([
-        #     {'params': self.policy.actor.parameters(), 'lr': lr_actor},
-        #     {'params': self.policy.critic.parameters(), 'lr': lr_critic}
+        #     {'params': list(self.policy.actor.u_deep_net.up1.parameters())
+        #                + list(self.policy.actor.u_deep_net.up2.parameters())
+        #                + list(self.policy.actor.u_deep_net.up3.parameters())
+        #                + list(self.policy.actor.u_deep_net.up4.parameters())
+        #                + list(self.policy.actor.u_deep_net.outc.parameters()), 'lr': lr_actor},
+        #     {'params': list(self.policy.actor.f_deep_net.up1.parameters())
+        #                + list(self.policy.actor.f_deep_net.up2.parameters())
+        #                + list(self.policy.actor.f_deep_net.up3.parameters())
+        #                + list(self.policy.actor.f_deep_net.up4.parameters())
+        #                + list(self.policy.actor.f_deep_net.outc.parameters()), 'lr': lr_actor},
+        #     {'params': self.policy.critic.deep_net.fc.parameters(), 'lr': lr_critic},
+        #     {'params': self.policy.critic.deep_net.base_net.parameters(), 'lr': base_lr}
         # ])
+        self.optimizer = torch.optim.Adam([
+            {'params': self.policy.actor.parameters(), 'lr': lr_actor},
+            {'params': self.policy.critic.parameters(), 'lr': lr_critic}
+        ])
 
     def save(self):
         """save actor parameters of all agents and training reward to `res_dir`"""
         torch.save({
             'policy': self.policy.state_dict(),
-            # 'optimizer': self.optimizer.state_dict(),
+            'optimizer': self.optimizer.state_dict(),
         }, os.path.join(self.save_dir, 'model.pt'))
 
     def load(self):
@@ -48,7 +62,7 @@ class CentralAgent:
         print('loading model .................')
         checkpoint = torch.load(os.path.join(self.save_dir, 'model.pt'))
         self.policy.load_state_dict(checkpoint['policy'])
-        # self.optimizer.load_state_dict(checkpoint['optimizer'])
+        self.optimizer.load_state_dict(checkpoint['optimizer'])
 
 
 class CentralOnlineAgent(CentralAgent):
@@ -65,39 +79,6 @@ class CentralOfflineAgent(CentralAgent):
         self.eps_clip = eps_clip
         self.obs_space = ObsSpace(env_cfg)
         self.mseLoss = nn.MSELoss()
-
-    def update_and_get_new_param(self, train_data, K_epochs, bz=10):
-        # Monte Carlo estimate of returns
-        # Optimize policy for K epochs
-        for epochs_i in range(K_epochs):
-            print('train_epochs: ', epochs_i)
-            for pid_data in train_data:
-                # Evaluating old actions and values
-                for i in range(0, len(pid_data[0]), bz):
-                    old_states, old_state_vals, old_f_actions, old_f_logprobs, old_u_actions, old_u_logprobs, old_rewards, old_done, advantages \
-                        = [torch.Tensor(np.array(x[i:min(i + bz, len(pid_data[0]))])).cuda() for x in pid_data]
-                    old_f_masks, old_u_masks = old_states[:, self.obs_space.f_pos_dim_start, :, :].cuda(), old_states[:, self.obs_space.u_pos_dim_start, :, :].cuda()
-                    state_values, f_logprobs, f_dist_entropy, u_logprobs, u_dist_entropy = self.policy.evaluate(old_states, old_f_actions, old_u_actions)
-                    # match state_values tensor dimensions with rewards tensor
-                    state_values = torch.squeeze(state_values)
-                    # Finding the ratio (pi_theta / pi_theta__old)
-                    f_ratios, u_ratios = torch.exp(f_logprobs - old_f_logprobs), torch.exp(u_logprobs - old_u_logprobs)
-                    # Finding Surrogate Loss
-                    us_advantages = advantages.unsqueeze(dim=1).unsqueeze(dim=1)
-                    f_surr1, u_surr1 = f_ratios * us_advantages, u_ratios * us_advantages
-                    f_surr2, u_surr2 = torch.clamp(f_ratios, 1 - self.eps_clip, 1 + self.eps_clip) * us_advantages, \
-                                       torch.clamp(u_ratios, 1 - self.eps_clip, 1 + self.eps_clip) * us_advantages
-                    # final loss of clipped objective PPO
-                    v_loss = 0.5 * self.mseLoss(state_values, old_rewards)
-                    f_loss = (-torch.min(f_surr1, f_surr2) - 0.01 * f_dist_entropy) * old_f_masks
-                    u_loss = (-torch.min(u_surr1, u_surr2) - 0.01 * u_dist_entropy) * old_u_masks
-                    loss = f_loss + u_loss + v_loss
-                    # take gradient step
-                    self.optimizer.zero_grad()
-                    loss.mean().backward()
-                    self.optimizer.step()
-
-        return self.policy.state_dict()
 
     def update_and_get_new_param2(self, train_data, K_epochs, bz=10):
         # Monte Carlo estimate of returns
@@ -143,22 +124,65 @@ class CentralOfflineAgent(CentralAgent):
                 f_surr2, u_surr2 = torch.clamp(f_ratios, 1 - self.eps_clip, 1 + self.eps_clip) * us_advantages, \
                                    torch.clamp(u_ratios, 1 - self.eps_clip, 1 + self.eps_clip) * us_advantages
                 # final loss of clipped objective PPO
-                self.optimizer_f.zero_grad()
-                f_loss = (-torch.min(f_surr1, f_surr2) - 0.0001 * f_dist_entropy) * old_f_masks
-                f_loss.mean().backward()
-                self.optimizer_f.step()
 
-                self.optimizer_u.zero_grad()
-                u_loss = (-torch.min(u_surr1, u_surr2) - 0.0001 * u_dist_entropy) * old_u_masks
-                u_loss.mean().backward()
-                self.optimizer_u.step()
-
-                self.optimizer_v.zero_grad()
                 v_loss = 0.5 * self.mseLoss(state_values, old_rewards)
-                v_loss.mean().backward()
-                self.optimizer_v.step()
+                f_loss = (-torch.min(f_surr1, f_surr2) - 0.0001 * f_dist_entropy) * old_f_masks
+                u_loss = (-torch.min(u_surr1, u_surr2) - 0.0001 * u_dist_entropy) * old_u_masks
+                loss = f_loss + u_loss + v_loss
+                # take gradient step
+                self.optimizer.zero_grad()
+                loss.mean().backward()
+                self.optimizer.step()
 
-                self.optimizer_b.zero_grad()
-                self.optimizer_b.step()
+                # self.optimizer_f.zero_grad()
+                # f_loss = (-torch.min(f_surr1, f_surr2) - 0.0001 * f_dist_entropy) * old_f_masks
+                # f_loss.mean().backward()
+                # self.optimizer_f.step()
+                #
+                # self.optimizer_u.zero_grad()
+                # u_loss = (-torch.min(u_surr1, u_surr2) - 0.0001 * u_dist_entropy) * old_u_masks
+                # u_loss.mean().backward()
+                # self.optimizer_u.step()
+                #
+                # self.optimizer_v.zero_grad()
+                # v_loss = 0.5 * self.mseLoss(state_values, old_rewards)
+                # v_loss.mean().backward()
+                # self.optimizer_v.step()
+                #
+                # self.optimizer_b.zero_grad()
+                # self.optimizer_b.step()
 
         return self.policy.to('cpu').state_dict()
+
+    def update_and_get_new_param(self, train_data, K_epochs, bz=10):
+        # Monte Carlo estimate of returns
+        # Optimize policy for K epochs
+        for epochs_i in range(K_epochs):
+            print('train_epochs: ', epochs_i)
+            for pid_data in train_data:
+                # Evaluating old actions and values
+                for i in range(0, len(pid_data[0]), bz):
+                    old_states, old_state_vals, old_f_actions, old_f_logprobs, old_u_actions, old_u_logprobs, old_rewards, old_done, advantages \
+                        = [torch.Tensor(np.array(x[i:min(i + bz, len(pid_data[0]))])).cuda() for x in pid_data]
+                    old_f_masks, old_u_masks = old_states[:, self.obs_space.f_pos_dim_start, :, :].cuda(), old_states[:, self.obs_space.u_pos_dim_start, :, :].cuda()
+                    state_values, f_logprobs, f_dist_entropy, u_logprobs, u_dist_entropy = self.policy.evaluate(old_states, old_f_actions, old_u_actions)
+                    # match state_values tensor dimensions with rewards tensor
+                    state_values = torch.squeeze(state_values)
+                    # Finding the ratio (pi_theta / pi_theta__old)
+                    f_ratios, u_ratios = torch.exp(f_logprobs - old_f_logprobs), torch.exp(u_logprobs - old_u_logprobs)
+                    # Finding Surrogate Loss
+                    us_advantages = advantages.unsqueeze(dim=1).unsqueeze(dim=1)
+                    f_surr1, u_surr1 = f_ratios * us_advantages, u_ratios * us_advantages
+                    f_surr2, u_surr2 = torch.clamp(f_ratios, 1 - self.eps_clip, 1 + self.eps_clip) * us_advantages, \
+                                       torch.clamp(u_ratios, 1 - self.eps_clip, 1 + self.eps_clip) * us_advantages
+                    # final loss of clipped objective PPO
+                    v_loss = 0.5 * self.mseLoss(state_values, old_rewards)
+                    f_loss = (-torch.min(f_surr1, f_surr2) - 0.01 * f_dist_entropy) * old_f_masks
+                    u_loss = (-torch.min(u_surr1, u_surr2) - 0.01 * u_dist_entropy) * old_u_masks
+                    loss = f_loss + u_loss + v_loss
+                    # take gradient step
+                    self.optimizer.zero_grad()
+                    loss.mean().backward()
+                    self.optimizer.step()
+
+        return self.policy.state_dict()
