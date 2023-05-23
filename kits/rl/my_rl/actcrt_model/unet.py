@@ -13,12 +13,12 @@ class DoubleConv(nn.Module):
         if not mid_channels:
             mid_channels = out_channels
         self.double_conv = nn.Sequential(
-            nn.Conv2d(in_channels, mid_channels, kernel_size=3, padding=1, bias=False),
+            nn.Conv2d(in_channels, mid_channels, kernel_size=(3, 3), padding=1, bias=False),
             # nn.BatchNorm2d(mid_channels),
-            nn.ReLU(inplace=True),
-            nn.Conv2d(mid_channels, out_channels, kernel_size=3, padding=1, bias=False),
+            nn.LeakyReLU(),
+            nn.Conv2d(mid_channels, out_channels, kernel_size=(3, 3), padding=1, bias=False),
             # nn.BatchNorm2d(out_channels),
-            nn.ReLU(inplace=True)
+            nn.LeakyReLU()
         )
 
     def forward(self, x):
@@ -50,7 +50,7 @@ class Up(nn.Module):
             self.up = nn.Upsample(scale_factor=2, mode='bilinear', align_corners=True)
             self.conv = DoubleConv(in_channels, out_channels, in_channels // 2)
         else:
-            self.up = nn.ConvTranspose2d(in_channels, in_channels // 2, kernel_size=2, stride=2)
+            self.up = nn.ConvTranspose2d(in_channels, in_channels // 2, kernel_size=(2, 2), stride=(2, 2))
             self.conv = DoubleConv(in_channels, out_channels)
 
     def forward(self, x1, x2):
@@ -71,10 +71,11 @@ class Up(nn.Module):
 class OutConv(nn.Module):
     def __init__(self, in_channels, out_channels):
         super(OutConv, self).__init__()
-        self.conv = nn.Conv2d(in_channels, out_channels, kernel_size=1)
+        self.conv = nn.Conv2d(in_channels, out_channels, kernel_size=(1, 1))
 
     def forward(self, x):
         return self.conv(x)
+
 
 class UNet(nn.Module):
     def __init__(self, n_channels, n_classes, base_channel=8, bilinear=True):
@@ -84,15 +85,15 @@ class UNet(nn.Module):
         self.bilinear = bilinear
 
         self.inc = (DoubleConv(n_channels, base_channel))
-        self.down1 = (Down(base_channel, base_channel*2))
-        self.down2 = (Down(base_channel*2, base_channel*4))
-        self.down3 = (Down(base_channel*4, base_channel*8))
+        self.down1 = (Down(base_channel, base_channel * 2))
+        self.down2 = (Down(base_channel * 2, base_channel * 4))
+        self.down3 = (Down(base_channel * 4, base_channel * 8))
         factor = 2 if bilinear else 1
-        self.down4 = (Down(base_channel*8, base_channel*16 // factor))
-        self.up1 = (Up(base_channel*16, base_channel*8 // factor, bilinear))
-        self.up2 = (Up(base_channel*8, base_channel*4 // factor, bilinear))
-        self.up3 = (Up(base_channel*4, base_channel*2 // factor, bilinear))
-        self.up4 = (Up(base_channel*2, base_channel, bilinear))
+        self.down4 = (Down(base_channel * 8, base_channel * 16 // factor))
+        self.up1 = (Up(base_channel * 16, base_channel * 8 // factor, bilinear))
+        self.up2 = (Up(base_channel * 8, base_channel * 4 // factor, bilinear))
+        self.up3 = (Up(base_channel * 4, base_channel * 2 // factor, bilinear))
+        self.up4 = (Up(base_channel * 2, base_channel, bilinear))
         self.outc = (OutConv(base_channel, n_classes))
 
     def forward(self, x):
@@ -116,11 +117,10 @@ class ConvNet(nn.Module):
         self.n_classes = n_classes
 
         self.inc = (DoubleConv(n_channels, base_channel))
-        self.down1 = (Down(base_channel, base_channel*2))
-        self.down2 = (Down(base_channel*2, base_channel*4))
-        self.down3 = (Down(base_channel*4, base_channel*8))
-        self.down4 = (Down(base_channel*8, base_channel*16))
-
+        self.down1 = (Down(base_channel, base_channel * 2))
+        self.down2 = (Down(base_channel * 2, base_channel * 4))
+        self.down3 = (Down(base_channel * 4, base_channel * 8))
+        self.down4 = (Down(base_channel * 8, base_channel * 16))
 
     def forward(self, x):
         x1 = self.inc(x)
