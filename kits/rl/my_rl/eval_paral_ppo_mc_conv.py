@@ -89,6 +89,12 @@ if __name__ == "__main__":
                 print(raw_obs['player_0']["real_env_steps"], raw_action['player_0'])
                 raw_next_obs, raw_reward, done, info = env.step(raw_action)
                 print(raw_obs['player_0']["real_env_steps"], env.state.stats['player_0'])
+                for name, param in online_agent.policy.actor.named_parameters():
+                    if param.requires_grad:
+                        print(name, param.data)
+                for name, param in online_agent.policy.critic.named_parameters():
+                    if param.requires_grad:
+                        print(name, param.data)
                 obs, obs_stat = obsTransfer.raw_to_wrap(raw_obs['player_0'], env.state, max_episode_length - raw_obs['player_0']["real_env_steps"])
                 last_stats = copy.deepcopy(env.state.stats)
                 raw_obs = raw_next_obs
@@ -144,6 +150,7 @@ if __name__ == "__main__":
                 print('state: ', last_stats['player_0'])
                 print('obs_stat: ', obs_stat['player_0'])
                 print('action: ', raw_action['player_0'])
+                print('u_action_logprob: ', u_action_logprob['player_0'])
                 print('reward: ', step_reward['player_0'])
                 print('next_state: ', env.state.stats['player_0'])
                 print('################################################# ', raw_obs['player_0']["real_env_steps"], ' end #############################################################################')
