@@ -31,15 +31,15 @@ class GlobalAgent(EarlyRuleAgent):
 
 env_id = "LuxAI_S2-v0"
 print_interv = 1
-actor_lr = 0.001
-critic_lr = 0.004
-base_lr = 0.001
+actor_lr = 0.0001
+critic_lr = 0.0004
+base_lr = 0.0001
 eps_clip = 0.2
 K_epochs = 1
 episode_num = 3000000
 gamma = 0.98
 sub_proc_count = 5
-exp = 'paral_ppo_conv'
+exp = 'paral_ppo_share'
 want_load_model = True
 max_episode_length = 10
 agent_debug = False

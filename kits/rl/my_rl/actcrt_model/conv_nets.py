@@ -19,13 +19,13 @@ class DoubleConv(nn.Module):
             nn.Conv2d(mid_channels, out_channels, kernel_size=(3, 3), padding=1, bias=True),
             # nn.BatchNorm2d(out_channels),
             nn.LeakyReLU()
-        ).apply(self.init)
+        )
 
-    @staticmethod
-    def init(m):
-        if isinstance(m, nn.Conv2d):
-            torch.nn.init.normal_(m.weight)
-            torch.nn.init.normal_(m.bias)
+    # @staticmethod
+    # def init(m):
+    #     if isinstance(m, nn.Conv2d):
+    #         torch.nn.init.normal_(m.weight)
+    #         torch.nn.init.normal_(m.bias)
 
     def forward(self, x):
         return self.double_conv(x)
@@ -88,7 +88,7 @@ class BaseNet(nn.Module):
         x3 = self.down2(x2)
         x4 = self.down3(x3)
         x5 = self.down4(x4)
-        print(torch.argwhere(x1 != 0))
+        # print(torch.argwhere(x1 != 0))
         return x1, x2, x3, x4, x5
 
 
