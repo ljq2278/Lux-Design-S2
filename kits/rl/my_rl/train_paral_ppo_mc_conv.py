@@ -55,7 +55,7 @@ dim_info = [ObsSpace(None).total_dims, ActSpaceFactory().f_dims, ActSpaceUnit().
 base_res_dir = os.environ['HOME'] + '/train_res/' + exp
 
 writer = SummaryWriter(os.environ['HOME'] + '/logs/' + exp)
-
+train_writer = SummaryWriter(os.environ['HOME'] + '/logs/' + exp+'_loss')
 
 def sub_run(replay_queue: multiprocessing.Queue, param_queue: multiprocessing.Queue, process_id):
     env = gym.make(env_id, verbose=0, collect_stats=True, MAX_FACTORIES=3)
@@ -205,7 +205,7 @@ def offline_learn(replay_queue: multiprocessing.Queue, param_queue_list, pid):
                 if len(data[0]) == 0:
                     print('data can not be null !')
                 train_data.append(data)
-            new_params = offline_agent.update_and_get_new_param2(train_data, K_epochs, batch_size)
+            new_params = offline_agent.update_and_get_new_param2(train_data, K_epochs, batch_size, train_writer,online_agent_update_time)
             online_agent_update_time += 1
             train_data.clear()
             for param_queue in param_queue_list:

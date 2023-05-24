@@ -70,9 +70,16 @@ class CentralOfflineAgent(CentralAgent):
         self.obs_space = ObsSpace(env_cfg)
         self.mseLoss = nn.MSELoss()
 
-    def update_and_get_new_param2(self, train_data, K_epochs, bz=10):
+    def update_and_get_new_param2(self, train_data, K_epochs, bz, log_writer, online_agent_update_time):
         # Monte Carlo estimate of returns
         # Optimize policy for K epochs
+        tt_loss = {
+            'v_loss': 0,
+            'f_loss': 0,
+            'u_loss': 0,
+            'ed_loss': 0,
+        }
+        tt = 0
         self.policy.to('cuda')
         pid_num = len(train_data)
         tt_old_states, tt_old_states_stat, tt_old_state_vals, tt_old_f_actions, tt_old_f_logprobs, tt_old_u_actions, tt_old_u_logprobs, tt_old_rewards, tt_old_done, tt_advantages = [], [], [], [], [], [], [], [], [], []
@@ -118,13 +125,17 @@ class CentralOfflineAgent(CentralAgent):
                 v_loss = 0.5 * self.mseLoss(state_values, old_rewards)
                 f_loss = (-torch.min(f_surr1, f_surr2) - 0.0001 * f_dist_entropy) * old_f_masks
                 u_loss = (-torch.min(u_surr1, u_surr2) - 0.0001 * u_dist_entropy) * old_u_masks
-                ed_loss = self.mseLoss(self.policy.decoder(hidden), old_states)
+                ed_loss = 1000 * self.mseLoss(self.policy.decoder(hidden), old_states)
                 loss = f_loss + u_loss + v_loss + ed_loss
                 # take gradient step
                 self.optimizer.zero_grad()
                 loss.mean().backward()
                 self.optimizer.step()
-
+                tt_loss['v_loss'] += v_loss.mean().item()
+                tt_loss['f_loss'] += f_loss.mean().item()
+                tt_loss['u_loss'] += u_loss.mean().item()
+                tt_loss['ed_loss'] += ed_loss.mean().item()
+                tt += 1
                 # self.optimizer_f.zero_grad()
                 # f_loss = (-torch.min(f_surr1, f_surr2) - 0.0001 * f_dist_entropy) * old_f_masks
                 # f_loss.mean().backward()
@@ -142,7 +153,7 @@ class CentralOfflineAgent(CentralAgent):
                 #
                 # self.optimizer_b.zero_grad()
                 # self.optimizer_b.step()
-
+        log_writer.add_scalars('loss', dict([(k, v / tt) for k, v in tt_loss.items()]), online_agent_update_time)
         return self.policy.to('cpu').state_dict()
 
     def update_and_get_new_param(self, train_data, K_epochs, bz=10):
