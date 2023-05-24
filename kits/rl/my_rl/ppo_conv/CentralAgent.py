@@ -132,23 +132,7 @@ class CentralOfflineAgent(CentralAgent):
                 tt_loss['u_loss'] += u_loss.mean().item()
                 tt_loss['ed_loss'] += ed_loss.mean().item()
                 tt += 1
-                # self.optimizer_f.zero_grad()
-                # f_loss = (-torch.min(f_surr1, f_surr2) - 0.0001 * f_dist_entropy) * old_f_masks
-                # f_loss.mean().backward()
-                # self.optimizer_f.step()
-                #
-                # self.optimizer_u.zero_grad()
-                # u_loss = (-torch.min(u_surr1, u_surr2) - 0.0001 * u_dist_entropy) * old_u_masks
-                # u_loss.mean().backward()
-                # self.optimizer_u.step()
-                #
-                # self.optimizer_v.zero_grad()
-                # v_loss = 0.5 * self.mseLoss(state_values, old_rewards)
-                # v_loss.mean().backward()
-                # self.optimizer_v.step()
-                #
-                # self.optimizer_b.zero_grad()
-                # self.optimizer_b.step()
+
         mean_loss = dict([(k, v / tt) for k, v in tt_loss.items()])
         log_writer.add_scalars('loss', mean_loss, online_agent_update_time)
         print(mean_loss, tt_loss)

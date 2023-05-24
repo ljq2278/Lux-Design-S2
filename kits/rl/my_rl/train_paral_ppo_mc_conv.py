@@ -40,7 +40,7 @@ episode_num = 3000000
 gamma = 0.98
 sub_proc_count = 5
 exp = 'paral_ppo_share'
-want_load_model = False
+want_load_model = True
 max_episode_length = 20
 agent_debug = False
 density_rwd = False
@@ -195,7 +195,7 @@ def offline_learn(replay_queue: multiprocessing.Queue, param_queue_list, pid):
     if want_load_model:
         offline_agent.load()
         for param_queue in param_queue_list:
-            param_queue.put(offline_agent.policy.state_dict())
+            param_queue.put(offline_agent.policy.to('cpu').state_dict())
     online_agent_update_time = 0
     train_data = []
     while True:
