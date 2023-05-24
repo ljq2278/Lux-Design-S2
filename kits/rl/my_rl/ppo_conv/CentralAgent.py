@@ -21,14 +21,10 @@ class CentralAgent:
         else:
             self.policy = ActorCritic(state_dim, f_action_dim, u_action_dim, env_cfg)
         self.optimizer = torch.optim.Adam([
-            {'params': list(self.policy.actor.u_deep_net.up1.parameters())
-                       + list(self.policy.actor.u_deep_net.up2.parameters())
-                       + list(self.policy.actor.u_deep_net.up3.parameters())
+            {'params': list(self.policy.actor.u_deep_net.up3.parameters())
                        + list(self.policy.actor.u_deep_net.up4.parameters())
                        + list(self.policy.actor.u_deep_net.outc.parameters()), 'lr': lr_actor},
-            {'params': list(self.policy.actor.f_deep_net.up1.parameters())
-                       + list(self.policy.actor.f_deep_net.up2.parameters())
-                       + list(self.policy.actor.f_deep_net.up3.parameters())
+            {'params': list(self.policy.actor.f_deep_net.up3.parameters())
                        + list(self.policy.actor.f_deep_net.up4.parameters())
                        + list(self.policy.actor.f_deep_net.outc.parameters()), 'lr': lr_actor},
             {'params': self.policy.critic.deep_net.fc.parameters(), 'lr': lr_critic},
@@ -153,7 +149,9 @@ class CentralOfflineAgent(CentralAgent):
                 #
                 # self.optimizer_b.zero_grad()
                 # self.optimizer_b.step()
-        log_writer.add_scalars('loss', dict([(k, v / tt) for k, v in tt_loss.items()]), online_agent_update_time)
+        mean_loss = dict([(k, v / tt) for k, v in tt_loss.items()])
+        log_writer.add_scalars('loss', mean_loss, online_agent_update_time)
+        print(mean_loss, tt_loss)
         return self.policy.to('cpu').state_dict()
 
     def update_and_get_new_param(self, train_data, K_epochs, bz=10):

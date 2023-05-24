@@ -41,7 +41,7 @@ gamma = 0.98
 sub_proc_count = 5
 exp = 'paral_ppo_share'
 want_load_model = False
-max_episode_length = 10
+max_episode_length = 20
 agent_debug = False
 density_rwd = False
 episode_start = 0
@@ -205,7 +205,7 @@ def offline_learn(replay_queue: multiprocessing.Queue, param_queue_list, pid):
                 if len(data[0]) == 0:
                     print('data can not be null !')
                 train_data.append(data)
-            new_params = offline_agent.update_and_get_new_param2(train_data, K_epochs, batch_size, train_writer,online_agent_update_time)
+            new_params = offline_agent.update_and_get_new_param2(train_data, K_epochs, batch_size, train_writer, online_agent_update_time)
             online_agent_update_time += 1
             train_data.clear()
             for param_queue in param_queue_list:
