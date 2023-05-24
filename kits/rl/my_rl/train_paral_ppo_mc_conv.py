@@ -31,25 +31,25 @@ class GlobalAgent(EarlyRuleAgent):
 
 env_id = "LuxAI_S2-v0"
 print_interv = 1
-actor_lr = 0.00002
-critic_lr = 0.0001
+actor_lr = 0.001
+critic_lr = 0.01
 base_lr = 0.0001
 eps_clip = 0.2
-K_epochs = 1
+K_epochs = 20
 episode_num = 3000000
 gamma = 0.98
 sub_proc_count = 5
 exp = 'paral_ppo_share'
 want_load_model = False
-max_episode_length = 40
+max_episode_length = 20
 agent_debug = False
 density_rwd = False
-episode_start = 0
+episode_start = 1
 save_peri = 5
 batch_size = 40
 map_size = 32
 os.environ['HOME'] = 'D:'
-update_interv = 10
+update_interv = 1
 
 dim_info = [ObsSpace(None).total_dims, ActSpaceFactory().f_dims, ActSpaceUnit().u_dims]  # obs and act dims
 base_res_dir = os.environ['HOME'] + '/train_res/' + exp
@@ -159,7 +159,7 @@ def sub_run(replay_queue: multiprocessing.Queue, param_queue: multiprocessing.Qu
         ############################### episode data record  #################################
         survive_step += raw_obs["player_0"]["real_env_steps"]
         ##################### after a game, use MC the reward and get Advantage and tranport #####################
-        if episode % update_interv == update_interv - 1:
+        if episode % update_interv == 0:
             for p_id, behaviors in tmp_buffer.items():
                 buffer.add_examples(*list(zip(*behaviors)))
             buffer.transfer_reward(gamma)

@@ -180,6 +180,7 @@ class ValueNet(nn.Module):
         self.base_net = base_net
         self.fc = nn.Sequential(
             nn.Linear(fc_dims, 1024),
+            nn.LeakyReLU(),
             nn.Linear(1024, 1)
         )
 
