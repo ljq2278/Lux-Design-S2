@@ -109,7 +109,7 @@ class BaseNet(nn.Module):
     def __init__(self, n_channels, base_channel=8):
         super(BaseNet, self).__init__()
         # self.n_channels = n_channels
-        self.inc = DoubleConv(n_channels, base_channel)
+        self.inc = nn.Conv2d(n_channels, base_channel, kernel_size=(1, 1))
         self.down1 = Down(base_channel, base_channel * 4)
         self.down2 = Down(base_channel * 4, base_channel * 16)
         # self.down3 = Down(base_channel * 4, base_channel * 8)
