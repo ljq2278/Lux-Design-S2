@@ -40,7 +40,7 @@ episode_num = 3000000
 gamma = 0.98
 sub_proc_count = 5
 exp = 'paral_ppo_share'
-want_load_model = True
+want_load_model = False
 max_episode_length = 10
 agent_debug = False
 density_rwd = False
@@ -49,7 +49,7 @@ save_peri = 5
 batch_size = 20
 map_size = 32
 os.environ['HOME'] = 'D:'
-update_interv = 5
+update_interv = 10
 
 dim_info = [ObsSpace(None).total_dims, ActSpaceFactory().f_dims, ActSpaceUnit().u_dims]  # obs and act dims
 base_res_dir = os.environ['HOME'] + '/train_res/' + exp

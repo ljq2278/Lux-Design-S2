@@ -32,7 +32,8 @@ class CentralAgent:
                        + list(self.policy.actor.f_deep_net.up4.parameters())
                        + list(self.policy.actor.f_deep_net.outc.parameters()), 'lr': lr_actor},
             {'params': self.policy.critic.deep_net.fc.parameters(), 'lr': lr_critic},
-            {'params': self.policy.critic.deep_net.base_net.parameters(), 'lr': base_lr}
+            {'params': self.policy.base_net.parameters(), 'lr': base_lr},
+            {'params': self.policy.decoder.parameters(), 'lr': base_lr}
         ])
         # self.optimizer = torch.optim.Adam([
         #     {'params': self.policy.actor.parameters(), 'lr': lr_actor},
@@ -102,7 +103,7 @@ class CentralOfflineAgent(CentralAgent):
                       torch.Tensor(np.array(tt_old_done)[permute_list[i:i + bz]]).cuda(), \
                       torch.Tensor(np.array(tt_advantages)[permute_list[i:i + bz]]).cuda()
                 old_f_masks, old_u_masks = old_states[:, self.obs_space.f_pos_dim_start, :, :].cuda(), old_states[:, self.obs_space.u_pos_dim_start, :, :].cuda()
-                state_values, f_logprobs, f_dist_entropy, u_logprobs, u_dist_entropy = self.policy.evaluate(old_states, old_states_stat, old_f_actions, old_u_actions)
+                state_values, f_logprobs, f_dist_entropy, u_logprobs, u_dist_entropy, hidden = self.policy.evaluate(old_states, old_states_stat, old_f_actions, old_u_actions)
                 # match state_values tensor dimensions with rewards tensor
                 state_values = torch.squeeze(state_values)
                 # Finding the ratio (pi_theta / pi_theta__old)
@@ -117,7 +118,8 @@ class CentralOfflineAgent(CentralAgent):
                 v_loss = 0.5 * self.mseLoss(state_values, old_rewards)
                 f_loss = (-torch.min(f_surr1, f_surr2) - 0.0001 * f_dist_entropy) * old_f_masks
                 u_loss = (-torch.min(u_surr1, u_surr2) - 0.0001 * u_dist_entropy) * old_u_masks
-                loss = f_loss + u_loss + v_loss
+                ed_loss = self.mseLoss(self.policy.decoder(hidden), old_states)
+                loss = f_loss + u_loss + v_loss + ed_loss
                 # take gradient step
                 self.optimizer.zero_grad()
                 loss.mean().backward()
@@ -154,7 +156,7 @@ class CentralOfflineAgent(CentralAgent):
                     old_states, old_state_vals, old_f_actions, old_f_logprobs, old_u_actions, old_u_logprobs, old_rewards, old_done, advantages \
                         = [torch.Tensor(np.array(x[i:min(i + bz, len(pid_data[0]))])).cuda() for x in pid_data]
                     old_f_masks, old_u_masks = old_states[:, self.obs_space.f_pos_dim_start, :, :].cuda(), old_states[:, self.obs_space.u_pos_dim_start, :, :].cuda()
-                    state_values, f_logprobs, f_dist_entropy, u_logprobs, u_dist_entropy = self.policy.evaluate(old_states, old_f_actions, old_u_actions)
+                    state_values, f_logprobs, f_dist_entropy, u_logprobs, u_dist_entropy, hidden = self.policy.evaluate(old_states, old_f_actions, old_u_actions)
                     # match state_values tensor dimensions with rewards tensor
                     state_values = torch.squeeze(state_values)
                     # Finding the ratio (pi_theta / pi_theta__old)

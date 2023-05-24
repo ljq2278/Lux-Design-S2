@@ -63,6 +63,18 @@ class Up(nn.Module):
         return self.conv(x)
 
 
+class UpConv(nn.Module):
+    """Upscaling then double conv"""
+
+    def __init__(self, in_channels, out_channels):
+        super(UpConv, self).__init__()
+        self.up = nn.ConvTranspose2d(in_channels, out_channels, kernel_size=(2, 2), stride=(2, 2))
+        self.conv = DoubleConv(out_channels, out_channels)
+
+    def forward(self, x):
+        x = self.up(x)
+        return self.conv(x)
+
 class OutConv(nn.Module):
     def __init__(self, in_channels, out_channels):
         super(OutConv, self).__init__()
@@ -70,6 +82,25 @@ class OutConv(nn.Module):
 
     def forward(self, x):
         return self.conv(x)
+
+class Decoder(nn.Module):
+    def __init__(self, n_channels, base_channel=8):
+        super(Decoder, self).__init__()
+        # self.n_channels = n_channels
+        self.up1 = UpConv(base_channel*16, base_channel * 8)
+        self.up2 = UpConv(base_channel * 8, base_channel * 4)
+        self.up3 = UpConv(base_channel * 4, base_channel * 2)
+        self.up4 = UpConv(base_channel * 2, base_channel * 1)
+        self.outc = OutConv(base_channel, n_channels)
+
+    def forward(self, x):
+        x1 = self.up1(x)
+        x2 = self.up2(x1)
+        x3 = self.up3(x2)
+        x4 = self.up4(x3)
+        x5 = self.outc(x4)
+        # print(torch.argwhere(x1 != 0))
+        return x5
 
 
 class BaseNet(nn.Module):
@@ -145,9 +176,12 @@ class ValueNet(nn.Module):
         self.n_classes = n_classes
         self.fc_dims = fc_dims
         self.base_net = base_net
-        self.fc = nn.Linear(fc_dims, 1)
+        self.fc = nn.Sequential(
+            nn.Linear(fc_dims, 1024),
+            nn.Linear(1024, 1)
+        )
 
     def forward(self, x):
         x1, x2, x3, x4, x5 = self.base_net(x)
         ret = self.fc(x5.reshape([-1, self.fc_dims]))
-        return ret
+        return x5, ret
