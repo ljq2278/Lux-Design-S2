@@ -31,8 +31,8 @@ class GlobalAgent(EarlyRuleAgent):
 
 env_id = "LuxAI_S2-v0"
 print_interv = 1
-actor_lr = 0.0001
-critic_lr = 0.0004
+actor_lr = 0.00002
+critic_lr = 0.0001
 base_lr = 0.0001
 eps_clip = 0.2
 K_epochs = 1

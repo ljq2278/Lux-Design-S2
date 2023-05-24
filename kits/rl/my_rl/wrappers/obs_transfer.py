@@ -36,7 +36,7 @@ class ObsTransfer:
             ret[p_id][self.obs_space.b_ice_dim_start][:, :] = env_state.board.ice
             ret[p_id][self.obs_space.b_ore_dim_start][:, :] = env_state.board.ore
             ret[p_id][self.obs_space.b_rub_dim_start][:, :] = env_state.board.rubble
-            ret[p_id][self.obs_space.b_time_dim_start][:, :] = raw_obs['real_env_steps'] % self.env_cfg.CYCLE_LENGTH
+            # ret[p_id][self.obs_space.b_time_dim_start][:, :] = raw_obs['real_env_steps'] % self.env_cfg.CYCLE_LENGTH
             # ret[p_id][self.obs_space.b_left_step_dim_start][:, :] = left_step
             ret_stat[p_id] = [0 for _ in range(0, self.obs_space_stat.s_dims)]
             ret_stat[p_id][self.obs_space_stat.s_rub_dim_start] = sum(list(env_state.stats[p_id]['destroyed']['rubble'].values())) * 0.1
