@@ -53,7 +53,7 @@ if __name__ == "__main__":
     obsTransfer = ObsTransfer(env, env_cfg)
     rwdTransfer = RwdTransfer(env, env_cfg, debug=False, density=density_rwd)
     agent_cont = 2
-    online_agent = CentralOnlineAgent(dim_info[0], dim_info[1], dim_info[2], env_cfg, 0, 0, 0, base_res_dir, False)
+    online_agent = CentralOnlineAgent(dim_info[0], dim_info[1], dim_info[2], env_cfg, save_dir=base_res_dir, is_cuda=False)
     if want_load_model:
         new_params = online_agent.load()
     globalAgents = [GlobalAgent('player_' + str(i), env_cfg, online_agent) for i in range(0, agent_cont)]
