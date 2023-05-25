@@ -1,5 +1,6 @@
 import numpy as np
 import torch
+import copy
 
 
 class Buffer:
@@ -41,6 +42,21 @@ class Buffer:
                 discounted_reward = 0
             discounted_reward = reward + (gamma * discounted_reward)
             self.rewards.insert(0, discounted_reward)
+        return
+
+    def transfer_reward_tdn(self, gamma, n):
+        self.rewards = []
+        last_end = -1
+        for j, is_terminal in enumerate(self.dones):
+            if is_terminal:
+                tmp_single_rewards = np.array(self.single_rewards[last_end + 1:j + 1])
+                cur_rewards = np.zeros(len(tmp_single_rewards))
+                cur_state_vals = np.array(copy.deepcopy(self.state_vals[last_end + 1:j + 1]))
+                for i in range(0, n):
+                    cur_rewards = cur_rewards + gamma ** i * np.array(tmp_single_rewards[i:len(tmp_single_rewards)].tolist() + i * [0])
+                    cur_state_vals = gamma * np.array(cur_state_vals[1:len(tmp_single_rewards)].tolist() + [0])
+                self.rewards += (cur_rewards + cur_state_vals).tolist()
+                last_end = j
         return
 
     def calc_advantage(self):

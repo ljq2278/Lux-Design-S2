@@ -30,14 +30,15 @@ class GlobalAgent(EarlyRuleAgent):
 
 
 env_id = "LuxAI_S2-v0"
+tdn = 3
 state_val_adv_debug = True
-soft_update_tau = 0.2
+soft_update_tau = 0.5
 print_interv = 1
 actor_lr = 0.001
 critic_lr = 0.01
 encoder_lr = 0.0001
 decoder_lr = 0.0001
-ed_loss_factor = 0.0001
+ed_loss_factor = 1
 eps_clip = 0.2
 entropy_loss_factor = 1
 K_epochs = 1
@@ -60,7 +61,8 @@ dim_info = [ObsSpace(None).total_dims, ActSpaceFactory().f_dims, ActSpaceUnit().
 base_res_dir = os.environ['HOME'] + '/train_res/' + exp
 
 writer = SummaryWriter(os.environ['HOME'] + '/logs/' + exp)
-train_writer = SummaryWriter(os.environ['HOME'] + '/logs/' + exp+'_loss')
+train_writer = SummaryWriter(os.environ['HOME'] + '/logs/' + exp + '_loss')
+
 
 def sub_run(replay_queue: multiprocessing.Queue, param_queue: multiprocessing.Queue, process_id):
     env = gym.make(env_id, verbose=0, collect_stats=True, MAX_FACTORIES=3)
@@ -84,7 +86,8 @@ def sub_run(replay_queue: multiprocessing.Queue, param_queue: multiprocessing.Qu
     for episode in range(episode_start, episode_num):
         np.random.seed()
         seed = np.random.randint(0, 100000000)
-        raw_obs = env.reset(seed=1)
+        # seed = 1
+        raw_obs = env.reset(seed=seed)
         done = {'player_0': False, 'player_1': False}
         ################################ interact with the env for an episode ###################################
         while raw_obs['player_0']["real_env_steps"] < 0 or sum(done.values()) < len(done):
@@ -169,7 +172,10 @@ def sub_run(replay_queue: multiprocessing.Queue, param_queue: multiprocessing.Qu
         if episode % update_interv == 0:
             for p_id, behaviors in tmp_buffer.items():
                 buffer.add_examples(*list(zip(*behaviors)))
-            buffer.transfer_reward(gamma)
+            if tdn > 0:
+                buffer.transfer_reward_tdn(gamma, tdn)
+            else:
+                buffer.transfer_reward(gamma)
             buffer.calc_advantage()
             if state_val_adv_debug:
                 print('########################################################### state_vals advantages start ########################################################### ')
