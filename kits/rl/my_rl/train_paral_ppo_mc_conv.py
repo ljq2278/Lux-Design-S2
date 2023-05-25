@@ -30,9 +30,9 @@ class GlobalAgent(EarlyRuleAgent):
 
 
 env_id = "LuxAI_S2-v0"
-tdn = 3
+tdn = 8
 state_val_adv_debug = True
-soft_update_tau = 0.5
+soft_update_tau = 0.8
 print_interv = 1
 actor_lr = 0.001
 critic_lr = 0.01
@@ -46,7 +46,7 @@ episode_num = 3000000
 gamma = 0.98
 sub_proc_count = 4
 exp = 'paral_ppo_share'
-want_load_model = True
+want_load_model = False
 max_episode_length = 100
 agent_debug = False
 density_rwd = False
@@ -186,7 +186,10 @@ def sub_run(replay_queue: multiprocessing.Queue, param_queue: multiprocessing.Qu
                 [buffer.states, buffer.states_stat, buffer.state_vals, buffer.f_actions, buffer.f_action_logprobs, buffer.u_actions, buffer.u_action_logprobs, buffer.rewards, buffer.dones,
                  buffer.advantages])
             new_params = param_queue.get()
-            online_agent.soft_update(new_params, soft_update_tau)
+            if soft_update_tau < 1:
+                online_agent.soft_update(new_params, soft_update_tau)
+            else:
+                online_agent.update(new_params)
             buffer.clear()
             tmp_buffer.clear()
 
