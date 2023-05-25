@@ -30,13 +30,16 @@ class GlobalAgent(EarlyRuleAgent):
 
 
 env_id = "LuxAI_S2-v0"
+state_val_adv_debug = True
+soft_update_tau = 0.2
 print_interv = 1
 actor_lr = 0.001
 critic_lr = 0.01
 encoder_lr = 0.0001
-decoder_lr = 0.0000
-eps_clip = 0.8
-entropy_loss_factor = 10
+decoder_lr = 0.0001
+ed_loss_factor = 0.0001
+eps_clip = 0.2
+entropy_loss_factor = 1
 K_epochs = 1
 episode_num = 3000000
 gamma = 0.98
@@ -51,7 +54,7 @@ save_peri = 5
 batch_size = 100
 map_size = 32
 os.environ['HOME'] = 'D:'
-update_interv = 2
+update_interv = 20
 
 dim_info = [ObsSpace(None).total_dims, ActSpaceFactory().f_dims, ActSpaceUnit().u_dims]  # obs and act dims
 base_res_dir = os.environ['HOME'] + '/train_res/' + exp
@@ -168,11 +171,16 @@ def sub_run(replay_queue: multiprocessing.Queue, param_queue: multiprocessing.Qu
                 buffer.add_examples(*list(zip(*behaviors)))
             buffer.transfer_reward(gamma)
             buffer.calc_advantage()
+            if state_val_adv_debug:
+                print('########################################################### state_vals advantages start ########################################################### ')
+                print('state_vals: ', buffer.state_vals)
+                print('advantages: ', buffer.advantages)
+                print('########################################################### state_vals advantages end ########################################################### ')
             replay_queue.put(
                 [buffer.states, buffer.states_stat, buffer.state_vals, buffer.f_actions, buffer.f_action_logprobs, buffer.u_actions, buffer.u_action_logprobs, buffer.rewards, buffer.dones,
                  buffer.advantages])
             new_params = param_queue.get()
-            online_agent.update(new_params)
+            online_agent.soft_update(new_params, soft_update_tau)
             buffer.clear()
             tmp_buffer.clear()
 
@@ -209,7 +217,7 @@ def offline_learn(replay_queue: multiprocessing.Queue, param_queue_list, pid):
                 if len(data[0]) == 0:
                     print('data can not be null !')
                 train_data.append(data)
-            new_params = offline_agent.update_and_get_new_param2(train_data, K_epochs, batch_size, train_writer, online_agent_update_time, entropy_loss_factor)
+            new_params = offline_agent.update_and_get_new_param2(train_data, K_epochs, batch_size, train_writer, online_agent_update_time, entropy_loss_factor, ed_loss_factor)
             online_agent_update_time += 1
             train_data.clear()
             for param_queue in param_queue_list:

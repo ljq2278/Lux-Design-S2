@@ -5,6 +5,7 @@ from torch import nn, Tensor
 from torch.optim import Adam
 from torch.distributions import Categorical
 import numpy as np
+from collections import OrderedDict
 from wrappers.obs_space_conv import ObsSpace
 # from wrappers.act_space_levels import ActSpaceFactoryDemand
 # from actcrt_model.ac_model_conv import ActorCritic
@@ -58,6 +59,13 @@ class CentralOnlineAgent(CentralAgent):
     def update(self, new_params):
         self.policy.load_state_dict(new_params)
 
+    def soft_update(self, new_params, tau=0.5):
+        soft_new_params = OrderedDict()
+        for k, v in self.policy.state_dict().items():
+            soft_new_params[k] = (1 - tau) * v.to('cpu') + tau * new_params[k].to('cpu')
+        self.policy.load_state_dict(soft_new_params)
+
+
 
 class CentralOfflineAgent(CentralAgent):
     def __init__(self, state_dim, f_action_dim, u_action_dim, env_cfg, lr_actor, lr_critic, encoder_lr, decoder_lr, eps_clip, save_dir='./', is_cuda=True):
@@ -66,7 +74,7 @@ class CentralOfflineAgent(CentralAgent):
         self.obs_space = ObsSpace(env_cfg)
         self.mseLoss = nn.MSELoss()
 
-    def update_and_get_new_param2(self, train_data, K_epochs, bz, log_writer, online_agent_update_time, entropy_loss_factor):
+    def update_and_get_new_param2(self, train_data, K_epochs, bz, log_writer, online_agent_update_time, entropy_loss_factor, ed_loss_factor):
         # Monte Carlo estimate of returns
         # Optimize policy for K epochs
         tt_loss = {
@@ -118,10 +126,10 @@ class CentralOfflineAgent(CentralAgent):
                                    torch.clamp(u_ratios, 1 - self.eps_clip, 1 + self.eps_clip) * us_advantages
                 # final loss of clipped objective PPO
 
-                v_loss = 0.5 * self.mseLoss(state_values, old_rewards)
+                v_loss = self.mseLoss(state_values, old_rewards)
                 f_loss = (-torch.min(f_surr1, f_surr2) - entropy_loss_factor * f_dist_entropy) * old_f_masks
                 u_loss = (-torch.min(u_surr1, u_surr2) - entropy_loss_factor * u_dist_entropy) * old_u_masks
-                ed_loss = 1 * self.mseLoss(self.policy.decoder(hidden), old_states)
+                ed_loss = ed_loss_factor * self.mseLoss(self.policy.decoder(hidden), old_states)
                 loss = f_loss + u_loss + v_loss + ed_loss
                 # take gradient step
                 self.optimizer.zero_grad()
