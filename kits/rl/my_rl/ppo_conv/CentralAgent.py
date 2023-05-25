@@ -14,7 +14,7 @@ import copy
 
 
 class CentralAgent:
-    def __init__(self, state_dim, f_action_dim, u_action_dim, env_cfg, lr_actor, lr_critic, base_lr, save_dir='./', is_cuda=True):
+    def __init__(self, state_dim, f_action_dim, u_action_dim, env_cfg, lr_actor, lr_critic, encoder_lr, decoder_lr, save_dir='./', is_cuda=True):
         self.save_dir = save_dir
         if is_cuda:
             self.policy = ActorCritic(state_dim, f_action_dim, u_action_dim, env_cfg).cuda()
@@ -28,8 +28,8 @@ class CentralAgent:
                        + list(self.policy.actor.f_deep_net.up4.parameters())
                        + list(self.policy.actor.f_deep_net.outc.parameters()), 'lr': lr_actor},
             {'params': self.policy.critic.deep_net.fc.parameters(), 'lr': lr_critic},
-            {'params': self.policy.base_net.parameters(), 'lr': base_lr},
-            {'params': self.policy.decoder.parameters(), 'lr': base_lr}
+            {'params': self.policy.base_net.parameters(), 'lr': encoder_lr},
+            {'params': self.policy.decoder.parameters(), 'lr': decoder_lr}
         ])
         # self.optimizer = torch.optim.Adam([
         #     {'params': self.policy.actor.parameters(), 'lr': lr_actor},
@@ -52,21 +52,21 @@ class CentralAgent:
 
 
 class CentralOnlineAgent(CentralAgent):
-    def __init__(self, state_dim, f_action_dim, u_action_dim, env_cfg, lr_actor=0, lr_critic=0, base_lr=0, save_dir='./', is_cuda=True):
-        super().__init__(state_dim, f_action_dim, u_action_dim, env_cfg, lr_actor, lr_critic, base_lr, save_dir, is_cuda)
+    def __init__(self, state_dim, f_action_dim, u_action_dim, env_cfg, lr_actor=0, lr_critic=0, encoder_lr=0, decoder_lr=0, save_dir='./', is_cuda=True):
+        super().__init__(state_dim, f_action_dim, u_action_dim, env_cfg, lr_actor, lr_critic, encoder_lr, decoder_lr, save_dir, is_cuda)
 
     def update(self, new_params):
         self.policy.load_state_dict(new_params)
 
 
 class CentralOfflineAgent(CentralAgent):
-    def __init__(self, state_dim, f_action_dim, u_action_dim, env_cfg, lr_actor, lr_critic, base_lr, eps_clip, save_dir='./', is_cuda=True):
-        super().__init__(state_dim, f_action_dim, u_action_dim, env_cfg, lr_actor, lr_critic, base_lr, save_dir, is_cuda)
+    def __init__(self, state_dim, f_action_dim, u_action_dim, env_cfg, lr_actor, lr_critic, encoder_lr, decoder_lr, eps_clip, save_dir='./', is_cuda=True):
+        super().__init__(state_dim, f_action_dim, u_action_dim, env_cfg, lr_actor, lr_critic, encoder_lr, decoder_lr, save_dir, is_cuda)
         self.eps_clip = eps_clip
         self.obs_space = ObsSpace(env_cfg)
         self.mseLoss = nn.MSELoss()
 
-    def update_and_get_new_param2(self, train_data, K_epochs, bz, log_writer, online_agent_update_time):
+    def update_and_get_new_param2(self, train_data, K_epochs, bz, log_writer, online_agent_update_time, entropy_loss_factor):
         # Monte Carlo estimate of returns
         # Optimize policy for K epochs
         tt_loss = {
@@ -119,8 +119,8 @@ class CentralOfflineAgent(CentralAgent):
                 # final loss of clipped objective PPO
 
                 v_loss = 0.5 * self.mseLoss(state_values, old_rewards)
-                f_loss = (-torch.min(f_surr1, f_surr2) - 0.1 * f_dist_entropy) * old_f_masks
-                u_loss = (-torch.min(u_surr1, u_surr2) - 0.1 * u_dist_entropy) * old_u_masks
+                f_loss = (-torch.min(f_surr1, f_surr2) - entropy_loss_factor * f_dist_entropy) * old_f_masks
+                u_loss = (-torch.min(u_surr1, u_surr2) - entropy_loss_factor * u_dist_entropy) * old_u_masks
                 ed_loss = 1 * self.mseLoss(self.policy.decoder(hidden), old_states)
                 loss = f_loss + u_loss + v_loss + ed_loss
                 # take gradient step

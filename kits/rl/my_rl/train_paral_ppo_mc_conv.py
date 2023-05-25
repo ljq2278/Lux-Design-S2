@@ -33,20 +33,22 @@ env_id = "LuxAI_S2-v0"
 print_interv = 1
 actor_lr = 0.001
 critic_lr = 0.01
-base_lr = 0.0001
-eps_clip = 0.15
+encoder_lr = 0.0001
+decoder_lr = 0.0000
+eps_clip = 0.8
+entropy_loss_factor = 10
 K_epochs = 1
 episode_num = 3000000
 gamma = 0.98
-sub_proc_count = 5
+sub_proc_count = 4
 exp = 'paral_ppo_share'
 want_load_model = True
-max_episode_length = 50
+max_episode_length = 100
 agent_debug = False
 density_rwd = False
 episode_start = 1
 save_peri = 5
-batch_size = 40
+batch_size = 100
 map_size = 32
 os.environ['HOME'] = 'D:'
 update_interv = 2
@@ -79,7 +81,7 @@ def sub_run(replay_queue: multiprocessing.Queue, param_queue: multiprocessing.Qu
     for episode in range(episode_start, episode_num):
         np.random.seed()
         seed = np.random.randint(0, 100000000)
-        raw_obs = env.reset(seed=42)
+        raw_obs = env.reset(seed=1)
         done = {'player_0': False, 'player_1': False}
         ################################ interact with the env for an episode ###################################
         while raw_obs['player_0']["real_env_steps"] < 0 or sum(done.values()) < len(done):
@@ -193,7 +195,7 @@ def offline_learn(replay_queue: multiprocessing.Queue, param_queue_list, pid):
     env = gym.make(env_id, verbose=0, collect_stats=True, MAX_FACTORIES=2)
     env_cfg = env.env_cfg
     env_cfg.map_size = map_size
-    offline_agent = CentralOfflineAgent(dim_info[0], dim_info[1], dim_info[2], env_cfg, actor_lr, critic_lr, base_lr, eps_clip, base_res_dir)
+    offline_agent = CentralOfflineAgent(dim_info[0], dim_info[1], dim_info[2], env_cfg, actor_lr, critic_lr, encoder_lr, decoder_lr, eps_clip, base_res_dir)
     if want_load_model:
         offline_agent.load()
         for param_queue in param_queue_list:
@@ -207,7 +209,7 @@ def offline_learn(replay_queue: multiprocessing.Queue, param_queue_list, pid):
                 if len(data[0]) == 0:
                     print('data can not be null !')
                 train_data.append(data)
-            new_params = offline_agent.update_and_get_new_param2(train_data, K_epochs, batch_size, train_writer, online_agent_update_time)
+            new_params = offline_agent.update_and_get_new_param2(train_data, K_epochs, batch_size, train_writer, online_agent_update_time, entropy_loss_factor)
             online_agent_update_time += 1
             train_data.clear()
             for param_queue in param_queue_list:

@@ -34,7 +34,7 @@ debug = True
 debug_param = False
 gamma = 0.98
 exp = 'paral_ppo_share'
-max_episode_length = 50
+max_episode_length = 100
 agent_debug = False
 density_rwd = False
 epochs = 1
@@ -65,7 +65,7 @@ if __name__ == "__main__":
     for episode in range(0, epochs):
         np.random.seed()
         seed = np.random.randint(0, 100000000)
-        # seed = 42
+        seed = 1
         raw_obs = env.reset(seed=seed)
         done = {'player_0': False, 'player_1': False}
         ################################ interact with the env for an episode ###################################
