@@ -119,8 +119,8 @@ class CentralOfflineAgent(CentralAgent):
                 # final loss of clipped objective PPO
 
                 v_loss = 0.5 * self.mseLoss(state_values, old_rewards)
-                f_loss = (-torch.min(f_surr1, f_surr2) - 0.0001 * f_dist_entropy) * old_f_masks
-                u_loss = (-torch.min(u_surr1, u_surr2) - 0.0001 * u_dist_entropy) * old_u_masks
+                f_loss = (-torch.min(f_surr1, f_surr2) - 0.1 * f_dist_entropy) * old_f_masks
+                u_loss = (-torch.min(u_surr1, u_surr2) - 0.1 * u_dist_entropy) * old_u_masks
                 ed_loss = 1 * self.mseLoss(self.policy.decoder(hidden), old_states)
                 loss = f_loss + u_loss + v_loss + ed_loss
                 # take gradient step

@@ -40,8 +40,8 @@ episode_num = 3000000
 gamma = 0.98
 sub_proc_count = 5
 exp = 'paral_ppo_share'
-want_load_model = False
-max_episode_length = 20
+want_load_model = True
+max_episode_length = 50
 agent_debug = False
 density_rwd = False
 episode_start = 1
@@ -99,6 +99,8 @@ def sub_run(replay_queue: multiprocessing.Queue, param_queue: multiprocessing.Qu
                             env.state.factories[p_id][f_id].cargo.water = 200
                             # env.state.factories[p_id][f_id].cargo.metal = 200
                             # env.state.factories[p_id][f_id].power = 300000
+                        else:
+                            env.state.factories[p_id][f_id].cargo.water = 20
                 # print(raw_obs['player_0']["real_env_steps"], raw_action['player_0'])
                 raw_next_obs, raw_reward, done, info = env.step(raw_action)
                 # print(raw_obs['player_0']["real_env_steps"], env.state.stats['player_0'])
