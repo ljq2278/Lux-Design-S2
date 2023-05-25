@@ -34,7 +34,7 @@ print_interv = 1
 actor_lr = 0.001
 critic_lr = 0.01
 base_lr = 0.0001
-eps_clip = 0.3
+eps_clip = 0.15
 K_epochs = 1
 episode_num = 3000000
 gamma = 0.98
@@ -79,7 +79,7 @@ def sub_run(replay_queue: multiprocessing.Queue, param_queue: multiprocessing.Qu
     for episode in range(episode_start, episode_num):
         np.random.seed()
         seed = np.random.randint(0, 100000000)
-        raw_obs = env.reset(seed=seed)
+        raw_obs = env.reset(seed=42)
         done = {'player_0': False, 'player_1': False}
         ################################ interact with the env for an episode ###################################
         while raw_obs['player_0']["real_env_steps"] < 0 or sum(done.values()) < len(done):

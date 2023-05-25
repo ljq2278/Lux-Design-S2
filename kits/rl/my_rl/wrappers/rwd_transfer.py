@@ -23,8 +23,8 @@ class RwdTransfer:
             'power_generation': 0,
             'water_generation': 0,
             'metal_generation': 0,
-            'ice_transfer': 0,
-            'ore_transfer': 0,
+            # 'ice_transfer': 0,
+            # 'ore_transfer': 0,
             'destroyed_rubble': 0,
             # 'leave the way rubble': 0,
             # 'on the way home with target': 0,
@@ -35,14 +35,15 @@ class RwdTransfer:
             # 'transfer ore': 0,
             # 'dig out target rubble': 0,
             # 'low power charged': 0,
-            'step_rewards': 0,
+            'step': 0,
+            'ori_reward': 0,
             # 'left_step_punish': 0
         }
         return
 
     def raw_to_wrap(self, ori_reward, done, last_stats, stats):
         step_reward = {
-            'step_rewards': 0.0,
+            'step': 1.0,
             'ice_generation': (sum(list(stats['generation']['ice'].values())) - sum(list(last_stats['generation']['ice'].values()))) * 10,
             'ore_generation': (sum(list(stats['generation']['ore'].values())) - sum(list(last_stats['generation']['ore'].values()))) * 10,
             'power_generation': (stats['generation']['power']['FACTORY'] - last_stats['generation']['power']['FACTORY']) * 0,
@@ -52,8 +53,8 @@ class RwdTransfer:
             # 'ore_transfer': stats['transfer']['ore'] - last_stats['transfer']['ore'],
             'destroyed_rubble': (sum(list(stats['destroyed']['rubble'].values())) - sum(list(last_stats['destroyed']['rubble'].values()))) / 1,
         }
-        # if done:
-        #     step_reward['left_step_punish'] = cur_step-max_step
+        if done:
+            step_reward['ori_reward'] = ori_reward if ori_reward < 0 else ori_reward * 100
         for k in step_reward.keys():
             self.reward_collect[k] += step_reward[k]
         return sum(list(step_reward.values())), step_reward
