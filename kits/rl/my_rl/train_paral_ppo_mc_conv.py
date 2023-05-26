@@ -113,7 +113,7 @@ def sub_run(replay_queue: multiprocessing.Queue, param_queue: multiprocessing.Qu
                 raw_next_obs, raw_reward, done, info = env.step(raw_action)
                 # print(raw_obs['player_0']["real_env_steps"], env.state.stats['player_0'])
                 obs, obs_stat = obsTransfer.raw_to_wrap(raw_obs['player_0'], env.state, max_episode_length - raw_obs['player_0']["real_env_steps"])
-                last_stats = copy.deepcopy(env.state.stats)
+                last_stats = copy.deepcopy(env.state)
                 raw_obs = raw_next_obs
             else:
                 ############################### get action and raw_action factory ###############################
@@ -141,8 +141,12 @@ def sub_run(replay_queue: multiprocessing.Queue, param_queue: multiprocessing.Qu
                     reward[g_agent.player], _ = rwdTransfer.raw_to_wrap(
                         raw_reward[g_agent.player],
                         done[g_agent.player],
-                        last_stats[g_agent.player],
-                        env.state.stats[g_agent.player]
+                        last_stats.stats[g_agent.player],
+                        env.state.stats[g_agent.player],
+                        last_stats.factories[g_agent.player],
+                        env.state.factories[g_agent.player],
+                        last_stats.units[g_agent.player],
+                        env.state.units[g_agent.player]
                     )
                     sum_rwd += reward[g_agent.player]
                     ############################ record the simple data ################################
@@ -164,7 +168,7 @@ def sub_run(replay_queue: multiprocessing.Queue, param_queue: multiprocessing.Qu
                 raw_obs = raw_next_obs
                 obs = next_obs
                 obs_stat = next_obs_stat
-                last_stats = copy.deepcopy(env.state.stats)
+                last_stats = copy.deepcopy(env.state)
 
         ############################### episode data record  #################################
         survive_step += raw_obs["player_0"]["real_env_steps"]

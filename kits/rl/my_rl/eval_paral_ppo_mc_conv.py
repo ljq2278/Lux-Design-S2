@@ -99,7 +99,7 @@ if __name__ == "__main__":
                         if param.requires_grad:
                             print(name, param.data)
                 obs, obs_stat = obsTransfer.raw_to_wrap(raw_obs['player_0'], env.state, max_episode_length - raw_obs['player_0']["real_env_steps"])
-                last_stats = copy.deepcopy(env.state.stats)
+                last_stats = copy.deepcopy(env.state)
                 raw_obs = raw_next_obs
             else:
                 ############################### get action and raw_action factory ###############################
@@ -128,8 +128,12 @@ if __name__ == "__main__":
                     reward[g_agent.player], step_reward[g_agent.player] = rwdTransfer.raw_to_wrap(
                         raw_reward[g_agent.player],
                         done[g_agent.player],
-                        last_stats[g_agent.player],
-                        env.state.stats[g_agent.player]
+                        last_stats.stats[g_agent.player],
+                        env.state.stats[g_agent.player],
+                        last_stats.factories[g_agent.player],
+                        env.state.factories[g_agent.player],
+                        last_stats.units[g_agent.player],
+                        env.state.units[g_agent.player]
                     )
                     sum_rwd += reward[g_agent.player]
                 if debug:
@@ -140,7 +144,7 @@ if __name__ == "__main__":
                     #     print(['%i' % x for x in itm])
                     # for itm in obs['player_0'][obsTransfer.obs_space.b_rub_dim_start, :, :]:
                     #     print(['%03i' % x for x in itm])
-                    print('state: ', last_stats['player_0'])
+                    print('state: ', last_stats.stats['player_0'])
                     print('state_val: ', state_val['player_0'])
                     print('obs_stat: ', obs_stat['player_0'])
                     print('action: ', raw_action['player_0'])
@@ -155,7 +159,7 @@ if __name__ == "__main__":
                       np.min(obs['player_0'] / (obsTransfer.obs_space.normer.reshape([-1, 1, 1])) - next_obs['player_0'] / (obsTransfer.obs_space.normer.reshape([-1, 1, 1]))))
                 obs = next_obs
                 obs_stat = next_obs_stat
-                last_stats = copy.deepcopy(env.state.stats)
+                last_stats = copy.deepcopy(env.state)
         ############################### episode data record  #################################
         survive_step += raw_obs["player_0"]["real_env_steps"]
         # print(seed, raw_obs["player_0"]["real_env_steps"])
