@@ -23,8 +23,8 @@ class RwdTransfer:
             'power_generation': 0,
             'water_generation': 0,
             'metal_generation': 0,
-            'ice_to_factory': 0,
-            'ore_to_factory': 0,
+            # 'ice_to_factory': 0,
+            # 'ore_to_factory': 0,
             # 'ice_transfer': 0,
             # 'ore_transfer': 0,
             'destroyed_rubble': 0,
@@ -46,8 +46,8 @@ class RwdTransfer:
     def raw_to_wrap(self, ori_reward, done, last_stats, stats, last_factories, factories, last_units, units, last_obs, obs):
         step_reward = {
             'step': 1.0,
-            'ice_to_factory': sum([max(-(u_info.cargo.ice - lu_info.cargo.ice), 0) for ((u_id, u_info), (lu_id, lu_info)) in list(zip(units.items(), last_units.items()))]) * 10,
-            'ore_to_factory': sum([max(-(u_info.cargo.ore - lu_info.cargo.ore), 0) for ((u_id, u_info), (lu_id, lu_info)) in list(zip(units.items(), last_units.items()))]) * 10,
+            # 'ice_to_factory': sum([max(-(u_info.cargo.ice - lu_info.cargo.ice), 0) for ((u_id, u_info), (lu_id, lu_info)) in list(zip(units.items(), last_units.items()))]) * 10,
+            # 'ore_to_factory': sum([max(-(u_info.cargo.ore - lu_info.cargo.ore), 0) for ((u_id, u_info), (lu_id, lu_info)) in list(zip(units.items(), last_units.items()))]) * 10,
             'ice_generation': (sum(list(stats['generation']['ice'].values())) - sum(list(last_stats['generation']['ice'].values()))) * 10,
             'ore_generation': (sum(list(stats['generation']['ore'].values())) - sum(list(last_stats['generation']['ore'].values()))) * 10,
             'power_generation': (stats['generation']['power']['FACTORY'] - last_stats['generation']['power']['FACTORY']) * 0,
