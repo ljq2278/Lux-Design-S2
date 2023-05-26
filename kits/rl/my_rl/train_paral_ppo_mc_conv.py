@@ -44,7 +44,7 @@ entropy_loss_factor = 1
 K_epochs = 1
 episode_num = 3000000
 gamma = 0.98
-sub_proc_count = 4
+sub_proc_count = 5
 exp = 'paral_ppo_share'
 want_load_model = False
 max_episode_length = 100
@@ -54,7 +54,7 @@ episode_start = 1
 save_peri = 5
 batch_size = 100
 map_size = 32
-os.environ['HOME'] = 'D:'
+# os.environ['HOME'] = 'D:'
 update_interv = 20
 
 dim_info = [ObsSpace(None).total_dims, ActSpaceFactory().f_dims, ActSpaceUnit().u_dims]  # obs and act dims
@@ -146,7 +146,9 @@ def sub_run(replay_queue: multiprocessing.Queue, param_queue: multiprocessing.Qu
                         last_stats.factories[g_agent.player],
                         env.state.factories[g_agent.player],
                         last_stats.units[g_agent.player],
-                        env.state.units[g_agent.player]
+                        env.state.units[g_agent.player],
+                        obs[g_agent.player],
+                        next_obs[g_agent.player]
                     )
                     sum_rwd += reward[g_agent.player]
                     ############################ record the simple data ################################

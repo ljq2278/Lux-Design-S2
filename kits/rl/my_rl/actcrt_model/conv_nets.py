@@ -86,13 +86,13 @@ class OutConv(nn.Module):
 
 
 class Decoder(nn.Module):
-    def __init__(self, n_channels, base_channel=8):
+    def __init__(self, n_channels, base_channel=32):
         super(Decoder, self).__init__()
         # self.n_channels = n_channels
         # self.up1 = UpConv(base_channel*16, base_channel * 8)
         # self.up2 = UpConv(base_channel * 8, base_channel * 4)
-        self.up3 = UpConv(base_channel * 16, base_channel * 4)
-        self.up4 = UpConv(base_channel * 4, base_channel * 1)
+        self.up3 = UpConv(base_channel * 4, base_channel * 2)
+        self.up4 = UpConv(base_channel * 2, base_channel * 1)
         self.outc = OutConv(base_channel, n_channels)
 
     def forward(self, x):
@@ -106,12 +106,12 @@ class Decoder(nn.Module):
 
 
 class BaseNet(nn.Module):
-    def __init__(self, n_channels, base_channel=8):
+    def __init__(self, n_channels, base_channel=32):
         super(BaseNet, self).__init__()
         # self.n_channels = n_channels
         self.inc = nn.Conv2d(n_channels, base_channel, kernel_size=(1, 1))
-        self.down1 = Down(base_channel, base_channel * 4)
-        self.down2 = Down(base_channel * 4, base_channel * 16)
+        self.down1 = Down(base_channel, base_channel * 2)
+        self.down2 = Down(base_channel * 2, base_channel * 4)
         # self.down3 = Down(base_channel * 4, base_channel * 8)
         # self.down4 = Down(base_channel * 8, base_channel * 16)
 
@@ -126,7 +126,7 @@ class BaseNet(nn.Module):
 
 
 class UActNet(nn.Module):
-    def __init__(self, n_channels, n_classes, base_net, base_channel=8):
+    def __init__(self, n_channels, n_classes, base_net, base_channel=32):
         super(UActNet, self).__init__()
         self.n_channels = n_channels
         self.n_classes = n_classes
@@ -134,8 +134,8 @@ class UActNet(nn.Module):
         self.base_net = base_net
         # self.up1 = Up(base_channel * 16 + base_channel * 8, base_channel * 8)
         # self.up2 = Up(base_channel * 8 + base_channel * 4, base_channel * 4)
-        self.up3 = Up(base_channel * 16 + base_channel * 4, base_channel * 4)
-        self.up4 = Up(base_channel * 4 + base_channel * 1, base_channel * 1)
+        self.up3 = Up(base_channel * 4 + base_channel * 2, base_channel * 2)
+        self.up4 = Up(base_channel * 2 + base_channel * 1, base_channel * 1)
         self.outc = OutConv(base_channel, n_classes)
 
     def forward(self, x):
@@ -149,7 +149,7 @@ class UActNet(nn.Module):
 
 
 class FActNet(nn.Module):
-    def __init__(self, n_channels, n_classes, base_net, base_channel=8):
+    def __init__(self, n_channels, n_classes, base_net, base_channel=32):
         super(FActNet, self).__init__()
         self.n_channels = n_channels
         self.n_classes = n_classes
@@ -157,8 +157,8 @@ class FActNet(nn.Module):
         self.base_net = base_net
         # self.up1 = Up(base_channel * 16 + base_channel * 8, base_channel * 8)
         # self.up2 = Up(base_channel * 8 + base_channel * 4, base_channel * 4)
-        self.up3 = Up(base_channel * 16 + base_channel * 4, base_channel * 4)
-        self.up4 = Up(base_channel * 4 + base_channel * 1, base_channel * 1)
+        self.up3 = Up(base_channel * 4 + base_channel * 2, base_channel * 2)
+        self.up4 = Up(base_channel * 2 + base_channel * 1, base_channel * 1)
         self.outc = OutConv(base_channel, n_classes)
 
     def forward(self, x):
@@ -172,7 +172,7 @@ class FActNet(nn.Module):
 
 
 class ValueNet(nn.Module):
-    def __init__(self, n_channels, n_classes, base_net, fc_dims, base_channel=8):
+    def __init__(self, n_channels, n_classes, base_net, fc_dims, base_channel=32):
         super(ValueNet, self).__init__()
         self.n_channels = n_channels
         self.n_classes = n_classes
