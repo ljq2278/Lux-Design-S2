@@ -129,7 +129,8 @@ class CentralOfflineAgent(CentralAgent):
                 v_loss = v_loss_factor * self.mseLoss(state_values, old_rewards)
                 f_loss = f_loss_factor * (-torch.min(f_surr1, f_surr2) - entropy_loss_factor * f_dist_entropy) * old_f_masks
                 u_loss = u_loss_factor * (-torch.min(u_surr1, u_surr2) - entropy_loss_factor * u_dist_entropy) * old_u_masks
-                ed_loss = ed_loss_factor * self.mseLoss(self.policy.decoder(hidden), old_states)
+                obs_normer = torch.FloatTensor(self.policy.critic.obs_space.normer).unsqueeze(0).unsqueeze(-1).unsqueeze(-1).expand(old_states.shape).cuda()
+                ed_loss = ed_loss_factor * self.mseLoss(self.policy.decoder(hidden), old_states / obs_normer)
                 l1_regularization = l1_factor * sum([torch.norm(v, p=1) for v in self.policy.parameters()])
                 l2_regularization = l2_factor * sum([torch.norm(v, p=2) for v in self.policy.parameters()])
                 loss = f_loss + u_loss + v_loss + ed_loss + l1_regularization + l2_regularization

@@ -34,12 +34,12 @@ tdn = 8
 state_val_adv_debug = True
 soft_update_tau = 0.8
 gumbel_softmax_tau_online, gumbel_softmax_tau_train = 8, 1
-actor_lr, critic_lr = 0.05, 0.1
-encoder_lr, decoder_lr = 0.005, 0.005
-v_loss_factor, f_loss_factor, u_loss_factor, ed_loss_factor = 0, 0, 0, 1
+actor_lr, critic_lr = 0.005, 0.01
+encoder_lr, decoder_lr = 0.001, 0.001
+v_loss_factor, f_loss_factor, u_loss_factor, ed_loss_factor = 1, 1, 1, 1
 eps_clip = 0.2
-entropy_loss_factor = 10
-l1_factor, l2_factor = 0.01, 0.01
+entropy_loss_factor = 1
+l1_factor, l2_factor = 0.00, 0.00
 K_epochs = 1
 episode_num = 3000000
 gamma = 0.98
@@ -55,7 +55,7 @@ save_peri = 5
 batch_size = 300
 map_size = 32
 os.environ['HOME'] = 'E:'
-update_interv = 20
+update_interv = 50
 
 dim_info = [ObsSpace(None).total_dims, ActSpaceFactory().f_dims, ActSpaceUnit().u_dims]  # obs and act dims
 base_res_dir = os.environ['HOME'] + '/train_res/' + exp
@@ -108,7 +108,7 @@ def sub_run(replay_queue: multiprocessing.Queue, param_queue: multiprocessing.Qu
                             # env.state.factories[p_id][f_id].cargo.metal = 200
                             # env.state.factories[p_id][f_id].power = 300000
                         else:
-                            env.state.factories[p_id][f_id].cargo.water = 20
+                            env.state.factories[p_id][f_id].cargo.water = 10
                 # print(raw_obs['player_0']["real_env_steps"], raw_action['player_0'])
                 raw_next_obs, raw_reward, done, info = env.step(raw_action)
                 # print(raw_obs['player_0']["real_env_steps"], env.state.stats['player_0'])
