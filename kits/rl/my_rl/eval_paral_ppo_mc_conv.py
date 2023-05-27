@@ -39,7 +39,7 @@ agent_debug = False
 density_rwd = False
 epochs = 1
 map_size = 32
-os.environ['HOME'] = 'D:'
+os.environ['HOME'] = 'E:'
 want_load_model = True
 dim_info = [ObsSpace(None).total_dims, ActSpaceFactory().f_dims, ActSpaceUnit().u_dims]  # obs and act dims
 base_res_dir = os.environ['HOME'] + '/train_res/' + exp
@@ -65,7 +65,7 @@ if __name__ == "__main__":
     for episode in range(0, epochs):
         np.random.seed()
         seed = np.random.randint(0, 100000000)
-        seed = 1
+        # seed = 1
         raw_obs = env.reset(seed=seed)
         done = {'player_0': False, 'player_1': False}
         ################################ interact with the env for an episode ###################################
@@ -133,7 +133,9 @@ if __name__ == "__main__":
                         last_stats.factories[g_agent.player],
                         env.state.factories[g_agent.player],
                         last_stats.units[g_agent.player],
-                        env.state.units[g_agent.player]
+                        env.state.units[g_agent.player],
+                        obs[g_agent.player],
+                        next_obs[g_agent.player]
                     )
                     sum_rwd += reward[g_agent.player]
                 if debug:

@@ -8,8 +8,9 @@ from .conv_nets import UActNet, FActNet, ValueNet, BaseNet, Decoder
 
 
 class ActMLPNetwork(nn.Module):
-    def __init__(self, in_dim, f_out_dim, u_out_dim, env_cfg, base_net, hidden_dim=32, non_linear=nn.Tanh()):
+    def __init__(self, in_dim, f_out_dim, u_out_dim, env_cfg, base_net, gumbel_softmax_tau=8):
         super(ActMLPNetwork, self).__init__()
+        self.gumbel_softmax_tau = gumbel_softmax_tau
         self.obs_space = ObsSpace(env_cfg)
         self.f_deep_net = FActNet(in_dim, f_out_dim, base_net)
         self.u_deep_net = UActNet(in_dim, u_out_dim, base_net)
@@ -20,8 +21,8 @@ class ActMLPNetwork(nn.Module):
         else:
             normer = torch.unsqueeze(torch.unsqueeze(torch.tensor(self.obs_space.normer).cuda(), 1), 1)
         x = (x / normer).float()
-        f_output = F.gumbel_softmax(self.f_deep_net(x), dim=1, tau=8)
-        u_output = F.gumbel_softmax(self.u_deep_net(x), dim=1, tau=8)
+        f_output = F.gumbel_softmax(self.f_deep_net(x), dim=1, tau=self.gumbel_softmax_tau)
+        u_output = F.gumbel_softmax(self.u_deep_net(x), dim=1, tau=self.gumbel_softmax_tau)
         return f_output, u_output
 
 
@@ -43,11 +44,11 @@ class CriMLPNetwork(nn.Module):
 
 
 class ActorCritic(nn.Module):
-    def __init__(self, state_dim, f_action_dim, u_action_dim, env_cfg, hidden_dim=64, non_linear=nn.ReLU()):
+    def __init__(self, state_dim, f_action_dim, u_action_dim, env_cfg, gumbel_softmax_tau=8):
         super(ActorCritic, self).__init__()
         self.base_net = BaseNet(state_dim)
         self.decoder = Decoder(state_dim)
-        self.actor = ActMLPNetwork(state_dim, f_action_dim, u_action_dim, env_cfg, self.base_net)
+        self.actor = ActMLPNetwork(state_dim, f_action_dim, u_action_dim, env_cfg, self.base_net, gumbel_softmax_tau)
         self.critic = CriMLPNetwork(state_dim, 1, env_cfg, self.base_net)
 
     def forward(self):

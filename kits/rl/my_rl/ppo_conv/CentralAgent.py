@@ -15,12 +15,12 @@ import copy
 
 
 class CentralAgent:
-    def __init__(self, state_dim, f_action_dim, u_action_dim, env_cfg, lr_actor, lr_critic, encoder_lr, decoder_lr, save_dir='./', is_cuda=True):
+    def __init__(self, state_dim, f_action_dim, u_action_dim, env_cfg, lr_actor, lr_critic, encoder_lr, decoder_lr, gumbel_softmax_tau=8, save_dir='./', is_cuda=True):
         self.save_dir = save_dir
         if is_cuda:
-            self.policy = ActorCritic(state_dim, f_action_dim, u_action_dim, env_cfg).cuda()
+            self.policy = ActorCritic(state_dim, f_action_dim, u_action_dim, env_cfg, gumbel_softmax_tau).cuda()
         else:
-            self.policy = ActorCritic(state_dim, f_action_dim, u_action_dim, env_cfg)
+            self.policy = ActorCritic(state_dim, f_action_dim, u_action_dim, env_cfg, gumbel_softmax_tau)
         self.optimizer = torch.optim.Adam([
             {'params': list(self.policy.actor.u_deep_net.up3.parameters())
                        + list(self.policy.actor.u_deep_net.up4.parameters())
@@ -53,8 +53,8 @@ class CentralAgent:
 
 
 class CentralOnlineAgent(CentralAgent):
-    def __init__(self, state_dim, f_action_dim, u_action_dim, env_cfg, lr_actor=0, lr_critic=0, encoder_lr=0, decoder_lr=0, save_dir='./', is_cuda=True):
-        super().__init__(state_dim, f_action_dim, u_action_dim, env_cfg, lr_actor, lr_critic, encoder_lr, decoder_lr, save_dir, is_cuda)
+    def __init__(self, state_dim, f_action_dim, u_action_dim, env_cfg, lr_actor=0, lr_critic=0, encoder_lr=0, decoder_lr=0, gumbel_softmax_tau=8, save_dir='./', is_cuda=True):
+        super().__init__(state_dim, f_action_dim, u_action_dim, env_cfg, lr_actor, lr_critic, encoder_lr, decoder_lr, gumbel_softmax_tau, save_dir, is_cuda)
 
     def update(self, new_params):
         self.policy.load_state_dict(new_params)
@@ -66,15 +66,14 @@ class CentralOnlineAgent(CentralAgent):
         self.policy.load_state_dict(soft_new_params)
 
 
-
 class CentralOfflineAgent(CentralAgent):
-    def __init__(self, state_dim, f_action_dim, u_action_dim, env_cfg, lr_actor, lr_critic, encoder_lr, decoder_lr, eps_clip, save_dir='./', is_cuda=True):
-        super().__init__(state_dim, f_action_dim, u_action_dim, env_cfg, lr_actor, lr_critic, encoder_lr, decoder_lr, save_dir, is_cuda)
+    def __init__(self, state_dim, f_action_dim, u_action_dim, env_cfg, lr_actor, lr_critic, encoder_lr, decoder_lr, gumbel_softmax_tau=8, eps_clip=0.2, save_dir='./', is_cuda=True):
+        super().__init__(state_dim, f_action_dim, u_action_dim, env_cfg, lr_actor, lr_critic, encoder_lr, decoder_lr, gumbel_softmax_tau, save_dir, is_cuda)
         self.eps_clip = eps_clip
         self.obs_space = ObsSpace(env_cfg)
         self.mseLoss = nn.MSELoss()
 
-    def update_and_get_new_param2(self, train_data, K_epochs, bz, log_writer, online_agent_update_time, entropy_loss_factor, ed_loss_factor):
+    def update_and_get_new_param2(self, train_data, K_epochs, bz, log_writer, online_agent_update_time, entropy_loss_factor, ed_loss_factor, l1_factor, l2_factor):
         # Monte Carlo estimate of returns
         # Optimize policy for K epochs
         tt_loss = {
@@ -130,7 +129,9 @@ class CentralOfflineAgent(CentralAgent):
                 f_loss = (-torch.min(f_surr1, f_surr2) - entropy_loss_factor * f_dist_entropy) * old_f_masks
                 u_loss = (-torch.min(u_surr1, u_surr2) - entropy_loss_factor * u_dist_entropy) * old_u_masks
                 ed_loss = ed_loss_factor * self.mseLoss(self.policy.decoder(hidden), old_states)
-                loss = f_loss + u_loss + v_loss + ed_loss
+                l1_regularization = l1_factor * sum([torch.norm(v, p=1) for v in self.policy.parameters()])
+                l2_regularization = l2_factor * sum([torch.norm(v, p=2) for v in self.policy.parameters()])
+                loss = f_loss + u_loss + v_loss + ed_loss + l1_regularization + l2_regularization
                 # take gradient step
                 self.optimizer.zero_grad()
                 loss.mean().backward()
