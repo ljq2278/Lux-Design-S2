@@ -21,6 +21,7 @@ from ppo_conv.Buffer import Buffer
 from ppo_conv.CentralAgent import CentralOnlineAgent, CentralOfflineAgent
 import matplotlib.pyplot as plt
 from luxai_s2.map.position import Position
+import torch
 
 
 class GlobalAgent(EarlyRuleAgent):
@@ -29,9 +30,13 @@ class GlobalAgent(EarlyRuleAgent):
         self.central_agent = central_agent
 
 
+torch.set_printoptions(threshold=10000000)
+
 env_id = "LuxAI_S2-v0"
 debug = True
 debug_param = False
+debug_decoder = True
+gumbel_softmax_tau = 10
 gamma = 0.98
 exp = 'paral_ppo_share'
 max_episode_length = 100
@@ -53,7 +58,7 @@ if __name__ == "__main__":
     obsTransfer = ObsTransfer(env, env_cfg)
     rwdTransfer = RwdTransfer(env, env_cfg, debug=False, density=density_rwd)
     agent_cont = 2
-    online_agent = CentralOnlineAgent(dim_info[0], dim_info[1], dim_info[2], env_cfg, save_dir=base_res_dir, is_cuda=False)
+    online_agent = CentralOnlineAgent(dim_info[0], dim_info[1], dim_info[2], env_cfg, gumbel_softmax_tau=gumbel_softmax_tau, save_dir=base_res_dir, is_cuda=False)
     if want_load_model:
         new_params = online_agent.load()
     globalAgents = [GlobalAgent('player_' + str(i), env_cfg, online_agent) for i in range(0, agent_cont)]
@@ -109,8 +114,12 @@ if __name__ == "__main__":
                 for g_agent in [globalAgents[0]]:
                     f_action[g_agent.player], u_action[g_agent.player] = {}, {}
                     f_action_logprob[g_agent.player], u_action_logprob[g_agent.player] = {}, {}
-                    state_val[g_agent.player], f_action[g_agent.player], f_action_logprob[g_agent.player], u_action[g_agent.player], u_action_logprob[g_agent.player] \
+                    state_val[g_agent.player], f_action[g_agent.player], f_action_logprob[g_agent.player], u_action[g_agent.player], u_action_logprob[g_agent.player], h \
                         = online_agent.policy.act(np.array([obs[g_agent.player]]), np.array([obs_stat[g_agent.player]]), device='cpu')
+                    if debug_decoder:
+                        print(torch.argwhere(online_agent.policy.decoder(h)[0, online_agent.policy.critic.obs_space.b_ice_dim, :, :] > 0.2))
+                        print(torch.argwhere(torch.Tensor(obs[g_agent.player][online_agent.policy.critic.obs_space.b_ice_dim, :, :]) > 0.5))
+                        # print(online_agent.policy.decoder(h)[0, online_agent.policy.critic.obs_space.b_ice_dim, :, :])
                     state_val[g_agent.player], f_action[g_agent.player], f_action_logprob[g_agent.player], u_action[g_agent.player], u_action_logprob[g_agent.player] \
                         = state_val[g_agent.player][0][0], f_action[g_agent.player][0], f_action_logprob[g_agent.player][0], u_action[g_agent.player][0], u_action_logprob[g_agent.player][0]
                     raw_action[g_agent.player] = actTransfer.wrap_to_raw(

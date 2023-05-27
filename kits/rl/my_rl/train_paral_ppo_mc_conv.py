@@ -33,16 +33,13 @@ env_id = "LuxAI_S2-v0"
 tdn = 8
 state_val_adv_debug = True
 soft_update_tau = 0.8
-gumbel_softmax_tau = 20
-print_interv = 1
-actor_lr = 0.001
-critic_lr = 0.01
-encoder_lr = 0.0001
-decoder_lr = 0.0001
-ed_loss_factor = 1
+gumbel_softmax_tau_online, gumbel_softmax_tau_train = 8, 1
+actor_lr, critic_lr = 0.05, 0.1
+encoder_lr, decoder_lr = 0.005, 0.005
+v_loss_factor, f_loss_factor, u_loss_factor, ed_loss_factor = 0, 0, 0, 1
 eps_clip = 0.2
-entropy_loss_factor = 1
-l1_factor, l2_factor = 0.000001, 0.000001
+entropy_loss_factor = 10
+l1_factor, l2_factor = 0.01, 0.01
 K_epochs = 1
 episode_num = 3000000
 gamma = 0.98
@@ -53,6 +50,7 @@ max_episode_length = 100
 agent_debug = False
 density_rwd = False
 episode_start = 1
+print_interv = 1
 save_peri = 5
 batch_size = 300
 map_size = 32
@@ -75,7 +73,7 @@ def sub_run(replay_queue: multiprocessing.Queue, param_queue: multiprocessing.Qu
     obsTransfer = ObsTransfer(env, env_cfg)
     rwdTransfer = RwdTransfer(env, env_cfg, debug=False, density=density_rwd)
     agent_cont = 2
-    online_agent = CentralOnlineAgent(dim_info[0], dim_info[1], dim_info[2], env_cfg, gumbel_softmax_tau=gumbel_softmax_tau)
+    online_agent = CentralOnlineAgent(dim_info[0], dim_info[1], dim_info[2], env_cfg, gumbel_softmax_tau=gumbel_softmax_tau_online)
     if want_load_model:
         new_params = param_queue.get()
         online_agent.update(new_params)
@@ -125,7 +123,7 @@ def sub_run(replay_queue: multiprocessing.Queue, param_queue: multiprocessing.Qu
                 for g_agent in [globalAgents[0]]:
                     f_action[g_agent.player], u_action[g_agent.player] = {}, {}
                     f_action_logprob[g_agent.player], u_action_logprob[g_agent.player] = {}, {}
-                    state_val[g_agent.player], f_action[g_agent.player], f_action_logprob[g_agent.player], u_action[g_agent.player], u_action_logprob[g_agent.player] \
+                    state_val[g_agent.player], f_action[g_agent.player], f_action_logprob[g_agent.player], u_action[g_agent.player], u_action_logprob[g_agent.player], h \
                         = online_agent.policy.act(np.array([obs[g_agent.player]]), np.array([obs_stat[g_agent.player]]))
                     state_val[g_agent.player], f_action[g_agent.player], f_action_logprob[g_agent.player], u_action[g_agent.player], u_action_logprob[g_agent.player] \
                         = state_val[g_agent.player][0][0], f_action[g_agent.player][0], f_action_logprob[g_agent.player][0], u_action[g_agent.player][0], u_action_logprob[g_agent.player][0]
@@ -220,7 +218,8 @@ def offline_learn(replay_queue: multiprocessing.Queue, param_queue_list, pid):
     env = gym.make(env_id, verbose=0, collect_stats=True, MAX_FACTORIES=2)
     env_cfg = env.env_cfg
     env_cfg.map_size = map_size
-    offline_agent = CentralOfflineAgent(dim_info[0], dim_info[1], dim_info[2], env_cfg, actor_lr, critic_lr, encoder_lr, decoder_lr, gumbel_softmax_tau, eps_clip, base_res_dir)
+    offline_agent = CentralOfflineAgent(dim_info[0], dim_info[1], dim_info[2], env_cfg, actor_lr, critic_lr, encoder_lr, decoder_lr,
+                                        gumbel_softmax_tau=gumbel_softmax_tau_train, eps_clip=eps_clip, save_dir=base_res_dir)
     if want_load_model:
         offline_agent.load()
         for param_queue in param_queue_list:
@@ -234,7 +233,8 @@ def offline_learn(replay_queue: multiprocessing.Queue, param_queue_list, pid):
                 if len(data[0]) == 0:
                     print('data can not be null !')
                 train_data.append(data)
-            new_params = offline_agent.update_and_get_new_param2(train_data, K_epochs, batch_size, train_writer, online_agent_update_time, entropy_loss_factor, ed_loss_factor, l1_factor, l2_factor)
+            new_params = offline_agent.update_and_get_new_param2(train_data, K_epochs, batch_size, train_writer, online_agent_update_time, entropy_loss_factor,
+                                                                 v_loss_factor, f_loss_factor, u_loss_factor, ed_loss_factor, l1_factor, l2_factor)
             online_agent_update_time += 1
             train_data.clear()
             for param_queue in param_queue_list:

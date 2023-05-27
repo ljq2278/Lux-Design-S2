@@ -66,7 +66,7 @@ class ActorCritic(nn.Module):
             f_dist, u_dist = Categorical(torch.permute(f_action_probs, (0, 2, 3, 1))), Categorical(torch.permute(u_action_probs, (0, 2, 3, 1)))
             f_action, u_action = f_dist.sample(), u_dist.sample()
             f_action_logprob, u_action_logprob = f_dist.log_prob(f_action), u_dist.log_prob(u_action)
-            return state_val.tolist(), f_action.tolist(), f_action_logprob.tolist(), u_action.tolist(), u_action_logprob.tolist()
+            return state_val.tolist(), f_action.tolist(), f_action_logprob.tolist(), u_action.tolist(), u_action_logprob.tolist(), h
 
     def evaluate(self, state, state_stat, f_action, u_action):
         h, state_values = self.critic(state, state_stat, device='gpu')

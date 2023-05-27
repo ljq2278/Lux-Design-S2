@@ -73,7 +73,8 @@ class CentralOfflineAgent(CentralAgent):
         self.obs_space = ObsSpace(env_cfg)
         self.mseLoss = nn.MSELoss()
 
-    def update_and_get_new_param2(self, train_data, K_epochs, bz, log_writer, online_agent_update_time, entropy_loss_factor, ed_loss_factor, l1_factor, l2_factor):
+    def update_and_get_new_param2(self, train_data, K_epochs, bz, log_writer, online_agent_update_time, entropy_loss_factor,
+                                  v_loss_factor, f_loss_factor, u_loss_factor, ed_loss_factor, l1_factor, l2_factor):
         # Monte Carlo estimate of returns
         # Optimize policy for K epochs
         tt_loss = {
@@ -125,9 +126,9 @@ class CentralOfflineAgent(CentralAgent):
                                    torch.clamp(u_ratios, 1 - self.eps_clip, 1 + self.eps_clip) * us_advantages
                 # final loss of clipped objective PPO
 
-                v_loss = self.mseLoss(state_values, old_rewards)
-                f_loss = (-torch.min(f_surr1, f_surr2) - entropy_loss_factor * f_dist_entropy) * old_f_masks
-                u_loss = (-torch.min(u_surr1, u_surr2) - entropy_loss_factor * u_dist_entropy) * old_u_masks
+                v_loss = v_loss_factor * self.mseLoss(state_values, old_rewards)
+                f_loss = f_loss_factor * (-torch.min(f_surr1, f_surr2) - entropy_loss_factor * f_dist_entropy) * old_f_masks
+                u_loss = u_loss_factor * (-torch.min(u_surr1, u_surr2) - entropy_loss_factor * u_dist_entropy) * old_u_masks
                 ed_loss = ed_loss_factor * self.mseLoss(self.policy.decoder(hidden), old_states)
                 l1_regularization = l1_factor * sum([torch.norm(v, p=1) for v in self.policy.parameters()])
                 l2_regularization = l2_factor * sum([torch.norm(v, p=2) for v in self.policy.parameters()])
