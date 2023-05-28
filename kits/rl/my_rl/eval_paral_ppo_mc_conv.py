@@ -92,7 +92,7 @@ if __name__ == "__main__":
                             # env.state.factories[p_id][f_id].cargo.metal = 200
                             # env.state.factories[p_id][f_id].power = 300000
                         else:
-                            env.state.factories[p_id][f_id].cargo.water = 20
+                            env.state.factories[p_id][f_id].cargo.water = 30
                 print(raw_obs['player_0']["real_env_steps"], raw_action['player_0'])
                 raw_next_obs, raw_reward, done, info = env.step(raw_action)
                 print(raw_obs['player_0']["real_env_steps"], env.state.stats['player_0'])

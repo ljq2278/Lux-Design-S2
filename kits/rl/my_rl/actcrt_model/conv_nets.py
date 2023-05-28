@@ -132,7 +132,10 @@ class UActNet(nn.Module):
 
         self.upSample3 = nn.Upsample(scale_factor=4, mode='bilinear', align_corners=True)
         self.upSample4 = nn.Upsample(scale_factor=2, mode='bilinear', align_corners=True)
-        self.outc = OutConv(self.n_channels + base_channel + base_channel * 2 + base_channel * 4, n_classes)
+        self.outc = nn.Sequential(
+            OutConv(self.n_channels + base_channel + base_channel * 2 + base_channel * 4, 1024),
+            OutConv(1024, n_classes)
+        )
 
     def forward(self, x):
         x0, x1, x2, x = self.base_net(x)
@@ -163,7 +166,10 @@ class FActNet(nn.Module):
 
         self.upSample3 = nn.Upsample(scale_factor=4, mode='bilinear', align_corners=True)
         self.upSample4 = nn.Upsample(scale_factor=2, mode='bilinear', align_corners=True)
-        self.outc = OutConv(self.n_channels + base_channel + base_channel * 2 + base_channel * 4, n_classes)
+        self.outc = nn.Sequential(
+            OutConv(self.n_channels + base_channel + base_channel * 2 + base_channel * 4, 1024),
+            OutConv(1024, n_classes)
+        )
 
     def forward(self, x):
         x0, x1, x2, x = self.base_net(x)
