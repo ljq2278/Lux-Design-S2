@@ -30,20 +30,19 @@ class GlobalAgent(EarlyRuleAgent):
 
 
 env_id = "LuxAI_S2-v0"
-tdn = 8
+tdn = -1
 state_val_adv_debug = True
-soft_update_tau = 0.8
-gumbel_softmax_tau_online, gumbel_softmax_tau_train = 8, 1
-actor_lr, critic_lr = 0.005, 0.01
-encoder_lr, decoder_lr = 0.001, 0.001
-v_loss_factor, f_loss_factor, u_loss_factor, ed_loss_factor = 1, 1, 1, 1
-eps_clip = 0.2
-entropy_loss_factor = 1
+soft_update_tau = 1
+gumbel_softmax_tau_online, gumbel_softmax_tau_train = 8, 8
+actor_lr, critic_lr = 0.0005, 0.001
+encoder_lr, decoder_lr = 0.0001, 0.0000
+v_loss_factor, f_loss_factor, u_loss_factor, entropy_loss_factor, ed_loss_factor = 1, 1, 1, 1, 0
 l1_factor, l2_factor = 0.00, 0.00
+eps_clip = 0.2
 K_epochs = 1
 episode_num = 3000000
 gamma = 0.98
-sub_proc_count = 3
+sub_proc_count = 5
 exp = 'paral_ppo_share'
 want_load_model = True
 max_episode_length = 100
@@ -52,10 +51,10 @@ density_rwd = False
 episode_start = 1
 print_interv = 1
 save_peri = 5
-batch_size = 300
-map_size = 32
+batch_size = 280
+map_size = 24
 os.environ['HOME'] = 'E:'
-update_interv = 50
+update_interv = 2
 
 dim_info = [ObsSpace(None).total_dims, ActSpaceFactory().f_dims, ActSpaceUnit().u_dims]  # obs and act dims
 base_res_dir = os.environ['HOME'] + '/train_res/' + exp
@@ -65,7 +64,7 @@ train_writer = SummaryWriter(os.environ['HOME'] + '/logs/' + exp + '_loss')
 
 
 def sub_run(replay_queue: multiprocessing.Queue, param_queue: multiprocessing.Queue, process_id):
-    env = gym.make(env_id, verbose=0, collect_stats=True, MAX_FACTORIES=3)
+    env = gym.make(env_id, verbose=0, collect_stats=True, MAX_FACTORIES=2)
     env_cfg = env.env_cfg
     env_cfg.map_size = map_size
     env_cfg.max_episode_length = max_episode_length
@@ -108,7 +107,7 @@ def sub_run(replay_queue: multiprocessing.Queue, param_queue: multiprocessing.Qu
                             # env.state.factories[p_id][f_id].cargo.metal = 200
                             # env.state.factories[p_id][f_id].power = 300000
                         else:
-                            env.state.factories[p_id][f_id].cargo.water = 10
+                            env.state.factories[p_id][f_id].cargo.water = 30
                 # print(raw_obs['player_0']["real_env_steps"], raw_action['player_0'])
                 raw_next_obs, raw_reward, done, info = env.step(raw_action)
                 # print(raw_obs['player_0']["real_env_steps"], env.state.stats['player_0'])

@@ -83,8 +83,8 @@ class EarlyRuleAgent(Agent):
                     ice_tile_distances = np.mean((ice_tile_locations - loc) ** 2, 1)
                     ore_tile_distances = np.mean((ore_tile_locations - loc) ** 2, 1)
                     density_rubble = np.mean(
-                        obs["board"]["rubble"][max(loc[0] - d_rubble, 0):min(loc[0] + d_rubble, 47),
-                        max(loc[1] - d_rubble, 0):max(loc[1] + d_rubble, 47)])
+                        obs["board"]["rubble"][max(loc[0] - d_rubble, 0):min(loc[0] + d_rubble, self.env_cfg.map_size - 1),
+                        max(loc[1] - d_rubble, 0):max(loc[1] + d_rubble, self.env_cfg.map_size - 1)])
 
                     closes_opp_factory_dist = 0
                     if len(opp_factories) >= 1:
@@ -92,14 +92,17 @@ class EarlyRuleAgent(Agent):
                     closes_my_factory_dist = 0
                     if len(my_factories) >= 1:
                         closes_my_factory_dist = np.min(np.mean((np.array(my_factories) - loc) ** 2, 1))
-
-                    minimum_ice_dist = 10 * np.min(ice_tile_distances) + 10 * np.min(ore_tile_distances) + 10 * density_rubble / (
-                        d_rubble) - closes_opp_factory_dist * 0.1 + closes_opp_factory_dist * 0.01
-                    if strategy == 'random':
-                        minimum_ice_dist = np.random.random()
-                    if minimum_ice_dist < min_dist:
-                        min_dist = minimum_ice_dist
-                        best_loc = loc
+                    try:
+                        minimum_ice_dist = 10 * np.min(ice_tile_distances) + 10 * np.min(ore_tile_distances) + 10 * density_rubble / (
+                            d_rubble) - closes_opp_factory_dist * 0.1 + closes_my_factory_dist * 0.01
+                        if strategy == 'random':
+                            minimum_ice_dist = np.random.random()
+                        if minimum_ice_dist < min_dist:
+                            min_dist = minimum_ice_dist
+                            best_loc = loc
+                    except:
+                        print('early_setup best loc error !')
+                        break
 
                 #                 spawn_loc = potential_spawns[np.random.randint(0, len(potential_spawns))]
                 spawn_loc = best_loc

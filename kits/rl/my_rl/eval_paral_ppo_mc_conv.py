@@ -43,7 +43,7 @@ max_episode_length = 100
 agent_debug = False
 density_rwd = False
 epochs = 1
-map_size = 32
+map_size = 24
 os.environ['HOME'] = 'E:'
 want_load_model = True
 dim_info = [ObsSpace(None).total_dims, ActSpaceFactory().f_dims, ActSpaceUnit().u_dims]  # obs and act dims
@@ -117,6 +117,12 @@ if __name__ == "__main__":
                     state_val[g_agent.player], f_action[g_agent.player], f_action_logprob[g_agent.player], u_action[g_agent.player], u_action_logprob[g_agent.player], h \
                         = online_agent.policy.act(np.array([obs[g_agent.player]]), np.array([obs_stat[g_agent.player]]), device='cpu')
                     if debug_decoder:
+                        print(np.array(u_action[g_agent.player]))
+                        print('####################################### hidden: start ###############################################')
+                        for i in range(0, h.size()[1]):
+                            print(h[0, i, :, :])
+                        print('######################################## hidden: end ###############################################')
+                        print(np.array(u_action[g_agent.player]))
                         print(online_agent.policy.decoder(h)[0, online_agent.policy.critic.obs_space.b_ice_dim_start, :, :])
                         print(torch.argwhere(online_agent.policy.decoder(h)[0, online_agent.policy.critic.obs_space.b_ice_dim_start, :, :] > 0.0))
                         print(torch.argwhere(torch.Tensor(obs[g_agent.player][online_agent.policy.critic.obs_space.b_ice_dim_start, :, :]) > 0.5))
