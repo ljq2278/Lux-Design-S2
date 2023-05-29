@@ -53,8 +53,8 @@ class RwdTransfer:
             'power_generation': (stats['generation']['power']['FACTORY'] - last_stats['generation']['power']['FACTORY']) * 0,
             'water_generation': (stats['generation']['water'] - last_stats['generation']['water']) * 100,
             'metal_generation': (stats['generation']['metal'] - last_stats['generation']['metal']) * 100,
-            # 'ice_transfer': stats['transfer']['ice'] - last_stats['transfer']['ice'],
-            # 'ore_transfer': stats['transfer']['ore'] - last_stats['transfer']['ore'],
+            # 'ice_transfer': (stats['transfer']['ice'] - last_stats['transfer']['ice']) * 0.1,
+            # 'ore_transfer': (stats['transfer']['ore'] - last_stats['transfer']['ore']) * 0.1,
             'destroyed_rubble': (sum(list(stats['destroyed']['rubble'].values())) - sum(list(last_stats['destroyed']['rubble'].values()))) * 1,
         }
         # if self.reward_collect['ice_generation'] != 0:

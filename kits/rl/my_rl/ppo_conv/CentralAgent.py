@@ -94,9 +94,9 @@ class CentralOfflineAgent(CentralAgent):
             tt_old_rewards += train_data[i][7]
             tt_old_done += train_data[i][8]
             tt_advantages += train_data[i][9]
-        permute_list = np.random.permutation(len(tt_old_states))
         for epochs_i in range(K_epochs):
             print('train_epochs: ', epochs_i)
+            permute_list = np.random.permutation(len(tt_old_states))
             for i in range(0, len(tt_old_states), bz):
                 old_states, old_states_stat, old_state_vals, old_f_actions, old_f_logprobs, old_u_actions, old_u_logprobs, old_rewards, old_done, advantages \
                     = torch.Tensor(np.array(tt_old_states)[permute_list[i:i + bz]]).cuda(), \

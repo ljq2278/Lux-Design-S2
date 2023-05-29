@@ -45,7 +45,7 @@ density_rwd = False
 epochs = 1
 map_size = 24
 os.environ['HOME'] = 'E:'
-want_load_model = True
+want_load_model = False
 dim_info = [ObsSpace(None).total_dims, ActSpaceFactory().f_dims, ActSpaceUnit().u_dims]  # obs and act dims
 base_res_dir = os.environ['HOME'] + '/train_res/' + exp
 
@@ -92,7 +92,8 @@ if __name__ == "__main__":
                             # env.state.factories[p_id][f_id].cargo.metal = 200
                             # env.state.factories[p_id][f_id].power = 300000
                         else:
-                            env.state.factories[p_id][f_id].cargo.water = 30
+                            env.state.factories[p_id][f_id].cargo.water = 20
+                            # env.state.factories[p_id][f_id].cargo.metal = 3000
                 print(raw_obs['player_0']["real_env_steps"], raw_action['player_0'])
                 raw_next_obs, raw_reward, done, info = env.step(raw_action)
                 print(raw_obs['player_0']["real_env_steps"], env.state.stats['player_0'])
@@ -117,14 +118,13 @@ if __name__ == "__main__":
                     state_val[g_agent.player], f_action[g_agent.player], f_action_logprob[g_agent.player], u_action[g_agent.player], u_action_logprob[g_agent.player], h \
                         = online_agent.policy.act(np.array([obs[g_agent.player]]), np.array([obs_stat[g_agent.player]]), device='cpu')
                     if debug_decoder:
-                        print(np.array(u_action[g_agent.player]))
                         print('####################################### hidden: start ###############################################')
-                        for i in range(0, h.size()[1]):
-                            print(h[0, i, :, :])
+                        # for i in range(0, h.size()[1]):
+                        #     print(h[0, i, :, :])
                         print('######################################## hidden: end ###############################################')
                         print(np.array(u_action[g_agent.player]))
-                        print(online_agent.policy.decoder(h)[0, online_agent.policy.critic.obs_space.b_ice_dim_start, :, :])
-                        print(torch.argwhere(online_agent.policy.decoder(h)[0, online_agent.policy.critic.obs_space.b_ice_dim_start, :, :] > 0.0))
+                        # print(online_agent.policy.decoder(h)[0, online_agent.policy.critic.obs_space.b_ice_dim_start, :, :])
+                        # print(torch.argwhere(online_agent.policy.decoder(h)[0, online_agent.policy.critic.obs_space.b_ice_dim_start, :, :] > 0.0))
                         print(torch.argwhere(torch.Tensor(obs[g_agent.player][online_agent.policy.critic.obs_space.b_ice_dim_start, :, :]) > 0.5))
                         # print(online_agent.policy.decoder(h)[0, online_agent.policy.critic.obs_space.b_ice_dim, :, :])
                     state_val[g_agent.player], f_action[g_agent.player], f_action_logprob[g_agent.player], u_action[g_agent.player], u_action_logprob[g_agent.player] \

@@ -21,9 +21,9 @@ class ActSpaceUnit:
         self.u_move_dim_start = start_dim
         self.u_move_dim = 4
         self.u_pickup_dim_start = self.u_move_dim_start + self.u_move_dim
-        self.u_pickup_dim = 4  # 100p, 300p, 1000p, 2000p
+        self.u_pickup_dim = 2  # 100p, 300p, 1000p, 2000p
         self.u_transfer_dim_start = self.u_pickup_dim_start + self.u_pickup_dim
-        self.u_transfer_dim = 2 * 5  # ice 5 direct/ ore 5 direct
+        self.u_transfer_dim = 1  # ice 5 direct/ ore 5 direct # changed, transfer or move to nearest home
         self.u_dig_dim_start = self.u_transfer_dim_start + self.u_transfer_dim
         self.u_dig_dim = 1
         self.u_noop_dim_start = self.u_dig_dim_start + self.u_dig_dim
