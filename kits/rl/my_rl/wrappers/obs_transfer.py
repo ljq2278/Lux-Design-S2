@@ -33,8 +33,12 @@ class ObsTransfer:
         for p_id in ['player_0', 'player_1']:
             matrix_features = np.zeros([self.obs_space.total_dims, self.env_cfg.map_size, self.env_cfg.map_size], dtype=float)  # CxHxW
             ret[p_id] = matrix_features
-            ret[p_id][self.obs_space.b_ice_dim_start][:, :] = env_state.board.ice
-            ret[p_id][self.obs_space.b_ore_dim_start][:, :] = env_state.board.ore
+            if np.random.random() > 1:
+                ret[p_id][self.obs_space.b_ice_dim_start][:, :] = env_state.board.ore
+                ret[p_id][self.obs_space.b_ore_dim_start][:, :] = env_state.board.ice
+            else:
+                ret[p_id][self.obs_space.b_ice_dim_start][:, :] = env_state.board.ice
+                ret[p_id][self.obs_space.b_ore_dim_start][:, :] = env_state.board.ore
             ret[p_id][self.obs_space.b_rub_dim_start][:, :] = env_state.board.rubble
             # ret[p_id][self.obs_space.b_time_dim_start][:, :] = raw_obs['real_env_steps'] % self.env_cfg.CYCLE_LENGTH
             # ret[p_id][self.obs_space.b_left_step_dim_start][:, :] = left_step

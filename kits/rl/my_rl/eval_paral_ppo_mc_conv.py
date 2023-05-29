@@ -36,7 +36,7 @@ env_id = "LuxAI_S2-v0"
 debug = True
 debug_param = False
 debug_decoder = True
-gumbel_softmax_tau = 10
+gumbel_softmax_tau = 1
 gamma = 0.98
 exp = 'paral_ppo_share'
 max_episode_length = 100
@@ -44,8 +44,8 @@ agent_debug = False
 density_rwd = False
 epochs = 1
 map_size = 24
-os.environ['HOME'] = 'E:'
-want_load_model = False
+os.environ['HOME'] = 'D:'
+want_load_model = True
 dim_info = [ObsSpace(None).total_dims, ActSpaceFactory().f_dims, ActSpaceUnit().u_dims]  # obs and act dims
 base_res_dir = os.environ['HOME'] + '/train_res/' + exp
 
@@ -70,7 +70,7 @@ if __name__ == "__main__":
     for episode in range(0, epochs):
         np.random.seed()
         seed = np.random.randint(0, 100000000)
-        # seed = 1
+        seed = 88
         raw_obs = env.reset(seed=seed)
         done = {'player_0': False, 'player_1': False}
         ################################ interact with the env for an episode ###################################
@@ -92,8 +92,9 @@ if __name__ == "__main__":
                             # env.state.factories[p_id][f_id].cargo.metal = 200
                             # env.state.factories[p_id][f_id].power = 300000
                         else:
-                            env.state.factories[p_id][f_id].cargo.water = 20
-                            # env.state.factories[p_id][f_id].cargo.metal = 3000
+                            env.state.factories[p_id][f_id].cargo.water = 40
+                            env.state.factories[p_id][f_id].cargo.metal += 2000  # int(1000 * np.random.random())
+                            env.state.factories[p_id][f_id].power = 300000
                 print(raw_obs['player_0']["real_env_steps"], raw_action['player_0'])
                 raw_next_obs, raw_reward, done, info = env.step(raw_action)
                 print(raw_obs['player_0']["real_env_steps"], env.state.stats['player_0'])

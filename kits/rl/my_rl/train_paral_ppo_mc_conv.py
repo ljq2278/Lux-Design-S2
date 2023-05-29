@@ -30,7 +30,7 @@ class GlobalAgent(EarlyRuleAgent):
 
 
 env_id = "LuxAI_S2-v0"
-tdn = -1
+tdn = 10
 state_val_adv_debug = True
 soft_update_tau = 0.5
 gumbel_softmax_tau_online, gumbel_softmax_tau_train = 5, 5
@@ -39,12 +39,12 @@ encoder_lr, decoder_lr = 0.0001, 0.0000
 v_loss_factor, f_loss_factor, u_loss_factor, entropy_loss_factor, ed_loss_factor = 1, 1, 1, 1, 0
 l1_factor, l2_factor = 0.00, 0.00
 eps_clip = 0.2
-K_epochs = 1
+K_epochs = 5
 episode_num = 3000000
 gamma = 0.98
-sub_proc_count = 5
+sub_proc_count = 4
 exp = 'paral_ppo_share'
-want_load_model = False
+want_load_model = True
 max_episode_length = 100
 agent_debug = False
 density_rwd = False
@@ -53,8 +53,9 @@ print_interv = 1
 save_peri = 5
 batch_size = 20
 map_size = 24
-os.environ['HOME'] = 'E:'
-update_interv = 5
+os.environ['HOME'] = 'D:'
+update_interv = 1
+early_setup_strategy = 'resource'
 
 dim_info = [ObsSpace(None).total_dims, ActSpaceFactory().f_dims, ActSpaceUnit().u_dims]  # obs and act dims
 base_res_dir = os.environ['HOME'] + '/train_res/' + exp
@@ -64,7 +65,7 @@ train_writer = SummaryWriter(os.environ['HOME'] + '/logs/' + exp + '_loss')
 
 
 def sub_run(replay_queue: multiprocessing.Queue, param_queue: multiprocessing.Queue, process_id):
-    env = gym.make(env_id, verbose=0, collect_stats=True, MAX_FACTORIES=2)
+    env = gym.make(env_id, verbose=0, collect_stats=True, MAX_FACTORIES=3)
     env_cfg = env.env_cfg
     env_cfg.map_size = map_size
     env_cfg.max_episode_length = max_episode_length
@@ -85,7 +86,7 @@ def sub_run(replay_queue: multiprocessing.Queue, param_queue: multiprocessing.Qu
     for episode in range(episode_start, episode_num):
         np.random.seed()
         seed = np.random.randint(0, 100000000)
-        # seed = 1
+        seed = 88
         raw_obs = env.reset(seed=seed)
         done = {'player_0': False, 'player_1': False}
         ################################ interact with the env for an episode ###################################
@@ -94,7 +95,7 @@ def sub_run(replay_queue: multiprocessing.Queue, param_queue: multiprocessing.Qu
             raw_action = {'player_0': {}, 'player_1': {}}
             if raw_obs['player_0']["real_env_steps"] < 0:
                 for g_agent in globalAgents:
-                    raw_action[g_agent.player] = g_agent.early_setup(env.get_state().env_steps, raw_obs[g_agent.player])
+                    raw_action[g_agent.player] = g_agent.early_setup(env.get_state().env_steps, raw_obs[g_agent.player], strategy=early_setup_strategy)
                 raw_next_obs, raw_reward, done, info = env.step(raw_action)
                 raw_obs = raw_next_obs
             elif raw_obs['player_0']["real_env_steps"] == 0:
@@ -107,8 +108,9 @@ def sub_run(replay_queue: multiprocessing.Queue, param_queue: multiprocessing.Qu
                             # env.state.factories[p_id][f_id].cargo.metal = 200
                             # env.state.factories[p_id][f_id].power = 300000
                         else:
-                            env.state.factories[p_id][f_id].cargo.water = 20
-                            # env.state.factories[p_id][f_id].cargo.metal += int(1000 * np.random.random())
+                            env.state.factories[p_id][f_id].cargo.water = 40
+                            env.state.factories[p_id][f_id].cargo.metal += 2000  # int(1000 * np.random.random())
+                            env.state.factories[p_id][f_id].power = 300000
                 # print(raw_obs['player_0']["real_env_steps"], raw_action['player_0'])
                 raw_next_obs, raw_reward, done, info = env.step(raw_action)
                 # print(raw_obs['player_0']["real_env_steps"], env.state.stats['player_0'])
@@ -204,7 +206,7 @@ def sub_run(replay_queue: multiprocessing.Queue, param_queue: multiprocessing.Qu
             message = f'episode {episode}, '
             message += f'avg episode reward: {sum_rwd / print_interv}, '
             message += f'avg survive step: {survive_step / print_interv}'
-            print(message)
+            print(process_id, message)
             print(raw_obs["player_0"]["real_env_steps"], rwdTransfer.reward_collect)
             sum_rwd = 0
             survive_step = 0
