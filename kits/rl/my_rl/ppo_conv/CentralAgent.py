@@ -126,24 +126,31 @@ class CentralOfflineAgent(CentralAgent):
 
                 f_one_hot = torch.nn.functional.one_hot(old_f_actions.reshape([-1]).to(torch.int64), self.policy.actor.f_deep_net.n_classes)
                 f_tensor_one_hot = f_one_hot.reshape([old_f_actions.shape[0], old_f_actions.shape[1], old_f_actions.shape[2], -1]).permute(0, 3, 1, 2)
-                f_atten = self.policy.actor.f_deep_net.get_mask(old_states / obs_normer, f_tensor_one_hot.cuda())
+                f_atten = torch.clamp(self.policy.actor.f_deep_net.get_mask(old_states / obs_normer, f_tensor_one_hot.cuda()), 0.04, 1)
                 f_loss = f_loss_factor * (-torch.min(f_surr1, f_surr2)) * old_f_masks * f_atten
                 f_entropy_loss = -entropy_loss_factor * f_dist_entropy
 
                 u_one_hot = torch.nn.functional.one_hot(old_u_actions.reshape([-1]).to(torch.int64), self.policy.actor.u_deep_net.n_classes)
                 u_tensor_one_hot = u_one_hot.reshape([old_u_actions.shape[0], old_u_actions.shape[1], old_u_actions.shape[2], -1]).permute(0, 3, 1, 2)
-                u_atten = self.policy.actor.u_deep_net.get_mask(old_states / obs_normer, u_tensor_one_hot.cuda())
+                u_atten = torch.clamp(self.policy.actor.u_deep_net.get_mask(old_states / obs_normer, u_tensor_one_hot.cuda()), 0.04, 1)
                 u_loss = u_loss_factor * (-torch.min(u_surr1, u_surr2)) * old_u_masks * u_atten
                 u_entropy_loss = -entropy_loss_factor * u_dist_entropy
 
                 if i == 0:
-                    print('#################################### u_tensor_one_hot f_tensor_one_hot start #######################################')
-                    for itm in u_atten[0, 0, :, :].tolist():
-                        print(['%.03f' % x for x in itm])
-                    print('#################################### u_tensor_one_hot f_tensor_one_hot mid #######################################')
-                    for itm in f_atten[0, 0, :, :].tolist():
-                        print(['%.03f' % x for x in itm])
-                    print('#################################### u_tensor_one_hot f_tensor_one_hot end #######################################')
+                    print('#################################### u_tensor_one_hot start #######################################')
+                    # for itm in u_atten[0, 0, :, :].tolist():
+                    #     print(['%.03f' % x for x in itm])
+                    # print('#################################### unit_pos start #######################################')
+                    # for itm in old_states[0, self.policy.actor.obs_space.u_pos_dim_start, :, :].tolist():
+                    #     print(['%.03f' % x for x in itm])
+                    print('ori_units atten_units: ', torch.sum(old_states[:, self.policy.actor.obs_space.u_pos_dim_start, :, :]).tolist(),
+                          torch.sum(u_atten[:, 0, :, :] * old_states[:, self.policy.actor.obs_space.u_pos_dim_start, :, :]).tolist())
+                    print('#################################### f_tensor_one_hot mid #######################################')
+                    # for itm in f_atten[0, 0, :, :].tolist():
+                    #     print(['%.03f' % x for x in itm])
+                    print('ori_factories atten_factories: ', torch.sum(old_states[:, self.policy.actor.obs_space.f_pos_dim_start, :, :]).tolist(),
+                          torch.sum(f_atten[:, 0, :, :] * old_states[:, self.policy.actor.obs_space.f_pos_dim_start, :, :]).tolist())
+                    print('#################################### u_tensor_one_hot unit_pos f_tensor_one_hot end #######################################')
 
                 ed_loss = ed_loss_factor * self.mseLoss(self.policy.decoder(hidden), old_states / obs_normer)
                 l1_regularization = l1_factor * sum([torch.norm(v, p=1) for v in self.policy.parameters()])

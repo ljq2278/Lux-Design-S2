@@ -35,25 +35,25 @@ state_val_adv_debug = True
 soft_update_tau = 0.5
 gumbel_softmax_tau_online, gumbel_softmax_tau_train = 5, 5
 lr = {
-    'actor_u_lr': 0.00001,
-    'actor_f_lr': 0.00002,
-    'actor_u_mask_lr': 0.000001,
-    'actor_f_mask_lr': 0.000002,
-    'critic_lr': 0.00004,
-    'encoder_lr': 0.00001,
+    'actor_u_lr': 0.001,
+    'actor_f_lr': 0.002,
+    'actor_u_mask_lr': 0.0001,
+    'actor_f_mask_lr': 0.0002,
+    'critic_lr': 0.004,
+    'encoder_lr': 0.0001,
     'decoder_lr': 0,
 }
 # actor_lr, critic_lr = 0.0005, 0.001
 # encoder_lr, decoder_lr = 0.0001, 0.0000
 v_loss_factor, f_loss_factor, u_loss_factor, entropy_loss_factor, ed_loss_factor = 1, 1, 1, 1, 0
 l1_factor, l2_factor = 0.00, 0.00
-eps_clip = 0.2
+eps_clip = 0.5
 K_epochs = 5
 episode_num = 3000000
 gamma = 0.98
 sub_proc_count = 4
 exp = 'paral_ppo_share'
-want_load_model = False
+want_load_model = True
 max_episode_length = 50
 agent_debug = False
 density_rwd = False
@@ -63,7 +63,7 @@ save_peri = 5
 batch_size = 64
 map_size = 24
 os.environ['HOME'] = 'D:'
-update_interv = 4
+update_interv = 2
 early_setup_strategy = 'resource'
 
 dim_info = [ObsSpace(None).total_dims, ActSpaceFactory().f_dims, ActSpaceUnit().u_dims]  # obs and act dims
