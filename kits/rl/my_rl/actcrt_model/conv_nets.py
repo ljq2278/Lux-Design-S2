@@ -90,7 +90,7 @@ class OutConv(nn.Module):
         # self.conv = nn.Conv2d(in_channels, out_channels, kernel_size=(1, 1))
         self.conv = nn.Sequential(
             nn.Conv2d(in_channels, out_channels, kernel_size=(1, 1)),
-            nn.ReLU()
+            nn.LeakyReLU()
         )
 
     def forward(self, x):
@@ -137,15 +137,13 @@ class UActNet(nn.Module):
             OutConv(1024, n_classes)
         )
         self.mask_outc = nn.Sequential(
-            OutConv(self.n_channels + base_channel + base_channel * 2 + base_channel * 4 + self.n_classes, 1),
-            nn.LeakyReLU()
+            OutConv(self.n_channels + base_channel + self.n_classes, 128),
+            OutConv(128, 1)
         )
 
     def get_mask(self, x, acts):
         x0, x1, x2, x = self.base_net(x)
-        x_ = self.upSample3(x)
-        x2_ = self.upSample4(x2)
-        g_x = torch.cat([x0, x1, x2_, x_], dim=1)
+        g_x = torch.cat([x0, x1], dim=1)
         att_x = torch.concat([g_x, acts], dim=1)
         return self.mask_outc(att_x)
 
@@ -183,15 +181,15 @@ class FActNet(nn.Module):
             OutConv(1024, n_classes)
         )
         self.mask_outc = nn.Sequential(
-            OutConv(self.n_channels + base_channel + base_channel * 2 + base_channel * 4 + self.n_classes, 1),
-            nn.LeakyReLU()
+            OutConv(self.n_channels + base_channel + self.n_classes, 64),
+            OutConv(64, 1)
         )
 
     def get_mask(self, x, acts):
         x0, x1, x2, x = self.base_net(x)
-        x_ = self.upSample3(x)
-        x2_ = self.upSample4(x2)
-        g_x = torch.cat([x0, x1, x2_, x_], dim=1)
+        # x_ = self.upSample3(x)
+        # x2_ = self.upSample4(x2)
+        g_x = torch.cat([x0, x1], dim=1)
         att_x = torch.concat([g_x, acts], dim=1)
         return self.mask_outc(att_x)
 
