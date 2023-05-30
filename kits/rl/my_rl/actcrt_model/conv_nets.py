@@ -136,6 +136,18 @@ class UActNet(nn.Module):
             OutConv(self.n_channels + base_channel + base_channel * 2 + base_channel * 4, 1024),
             OutConv(1024, n_classes)
         )
+        self.mask_outc = nn.Sequential(
+            OutConv(self.n_channels + base_channel + base_channel * 2 + base_channel * 4 + self.n_classes, 1),
+            nn.Sigmoid()
+        )
+
+    def get_mask(self, x, acts):
+        x0, x1, x2, x = self.base_net(x)
+        x_ = self.upSample3(x)
+        x2_ = self.upSample4(x2)
+        g_x = torch.cat([x0, x1, x2_, x_], dim=1)
+        att_x = torch.concat([g_x, acts], dim=1)
+        return self.mask_outc(att_x)
 
     def forward(self, x):
         x0, x1, x2, x = self.base_net(x)
@@ -170,6 +182,18 @@ class FActNet(nn.Module):
             OutConv(self.n_channels + base_channel + base_channel * 2 + base_channel * 4, 1024),
             OutConv(1024, n_classes)
         )
+        self.mask_outc = nn.Sequential(
+            OutConv(self.n_channels + base_channel + base_channel * 2 + base_channel * 4 + self.n_classes, 1),
+            nn.Sigmoid()
+        )
+
+    def get_mask(self, x, acts):
+        x0, x1, x2, x = self.base_net(x)
+        x_ = self.upSample3(x)
+        x2_ = self.upSample4(x2)
+        g_x = torch.cat([x0, x1, x2_, x_], dim=1)
+        att_x = torch.concat([g_x, acts], dim=1)
+        return self.mask_outc(att_x)
 
     def forward(self, x):
         x0, x1, x2, x = self.base_net(x)

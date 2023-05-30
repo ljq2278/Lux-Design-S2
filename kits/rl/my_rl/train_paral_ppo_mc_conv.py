@@ -30,12 +30,12 @@ class GlobalAgent(EarlyRuleAgent):
 
 
 env_id = "LuxAI_S2-v0"
-tdn = 10
+tdn = 8
 state_val_adv_debug = True
 soft_update_tau = 0.5
-gumbel_softmax_tau_online, gumbel_softmax_tau_train = 2, 2
-actor_lr, critic_lr = 0.0005, 0.001
-encoder_lr, decoder_lr = 0.0001, 0.0000
+gumbel_softmax_tau_online, gumbel_softmax_tau_train = 5, 5
+actor_lr, critic_lr = 0.005, 0.01
+encoder_lr, decoder_lr = 0.001, 0.0000
 v_loss_factor, f_loss_factor, u_loss_factor, entropy_loss_factor, ed_loss_factor = 1, 1, 1, 1, 0
 l1_factor, l2_factor = 0.00, 0.00
 eps_clip = 0.2
@@ -44,17 +44,17 @@ episode_num = 3000000
 gamma = 0.98
 sub_proc_count = 4
 exp = 'paral_ppo_share'
-want_load_model = True
-max_episode_length = 100
+want_load_model = False
+max_episode_length = 50
 agent_debug = False
 density_rwd = False
 episode_start = 1
 print_interv = 1
 save_peri = 5
-batch_size = 20
+batch_size = 64
 map_size = 24
 os.environ['HOME'] = 'D:'
-update_interv = 1
+update_interv = 4
 early_setup_strategy = 'resource'
 
 dim_info = [ObsSpace(None).total_dims, ActSpaceFactory().f_dims, ActSpaceUnit().u_dims]  # obs and act dims
@@ -79,16 +79,16 @@ def sub_run(replay_queue: multiprocessing.Queue, param_queue: multiprocessing.Qu
         online_agent.update(new_params)
     globalAgents = [GlobalAgent('player_' + str(i), env_cfg, online_agent) for i in range(0, agent_cont)]
     globale_step = 0
-    sum_rwd = 0
-    survive_step = 0
     buffer = Buffer()
-    tmp_buffer = {}  # record every datas
+    tmp_buffer = {'player_0': []}  # record every datas
     for episode in range(episode_start, episode_num):
         np.random.seed()
         seed = np.random.randint(0, 100000000)
         seed = 88
         raw_obs = env.reset(seed=seed)
         done = {'player_0': False, 'player_1': False}
+        episode_tmp_buffer = {'player_0': []}
+        episode_reward = 0
         ################################ interact with the env for an episode ###################################
         while raw_obs['player_0']["real_env_steps"] < 0 or sum(done.values()) < len(done):
             globale_step += 1
@@ -152,11 +152,9 @@ def sub_run(replay_queue: multiprocessing.Queue, param_queue: multiprocessing.Qu
                         obs[g_agent.player],
                         next_obs[g_agent.player]
                     )
-                    sum_rwd += reward[g_agent.player]
+                    episode_reward += reward[g_agent.player]
                     ############################ record the simple data ################################
-                    if g_agent.player not in tmp_buffer.keys():
-                        tmp_buffer[g_agent.player] = []
-                    tmp_buffer[g_agent.player].append([
+                    episode_tmp_buffer[g_agent.player].append([
                         g_agent.player,
                         obs[g_agent.player],
                         obs_stat[g_agent.player],
@@ -174,10 +172,24 @@ def sub_run(replay_queue: multiprocessing.Queue, param_queue: multiprocessing.Qu
                 obs_stat = next_obs_stat
                 last_stats = copy.deepcopy(env.state)
 
-        ############################### episode data record  #################################
-        survive_step += raw_obs["player_0"]["real_env_steps"]
+        ############################### episode data record and print  #################################
+        survive_step = raw_obs["player_0"]["real_env_steps"]
+        message = f'episode {episode}, '
+        message += f'episode reward: {episode_reward}, '
+        message += f'survive step: {survive_step }'
+        print(process_id, message)
+        print(raw_obs["player_0"]["real_env_steps"], rwdTransfer.reward_collect)
+        if process_id == 0:
+            writer.add_scalars('rewards', rwdTransfer.reward_collect, episode)
+        for k, v in rwdTransfer.reward_collect.items():
+            rwdTransfer.reward_collect[k] = 0
+        ############################## add train data #######################################################
+        for k, v in episode_tmp_buffer.items():
+            if episode_reward > -1000000:
+                tmp_buffer[k] += v
         ##################### after a game, use MC the reward and get Advantage and tranport #####################
         if episode % update_interv == 0:
+        # if len(tmp_buffer['player_0']) > 0:
             for p_id, behaviors in tmp_buffer.items():
                 buffer.add_examples(*list(zip(*behaviors)))
             if tdn > 0:
@@ -199,21 +211,7 @@ def sub_run(replay_queue: multiprocessing.Queue, param_queue: multiprocessing.Qu
             else:
                 online_agent.update(new_params)
             buffer.clear()
-            tmp_buffer.clear()
-
-        ########################################### episode finishes  ########################################
-        if episode % print_interv == 0:  # print info every 100 g_step
-            message = f'episode {episode}, '
-            message += f'avg episode reward: {sum_rwd / print_interv}, '
-            message += f'avg survive step: {survive_step / print_interv}'
-            print(process_id, message)
-            print(raw_obs["player_0"]["real_env_steps"], rwdTransfer.reward_collect)
-            sum_rwd = 0
-            survive_step = 0
-            if process_id == 0:
-                writer.add_scalars('rewards', rwdTransfer.reward_collect, episode)
-            for k, v in rwdTransfer.reward_collect.items():
-                rwdTransfer.reward_collect[k] = 0
+            tmp_buffer = {'player_0': []}
 
 
 def offline_learn(replay_queue: multiprocessing.Queue, param_queue_list, pid):

@@ -123,10 +123,10 @@ if __name__ == "__main__":
                         # for i in range(0, h.size()[1]):
                         #     print(h[0, i, :, :])
                         print('######################################## hidden: end ###############################################')
-                        print(np.array(u_action[g_agent.player]))
+                        # print(np.array(u_action[g_agent.player]))
                         # print(online_agent.policy.decoder(h)[0, online_agent.policy.critic.obs_space.b_ice_dim_start, :, :])
                         # print(torch.argwhere(online_agent.policy.decoder(h)[0, online_agent.policy.critic.obs_space.b_ice_dim_start, :, :] > 0.0))
-                        print(torch.argwhere(torch.Tensor(obs[g_agent.player][online_agent.policy.critic.obs_space.b_ice_dim_start, :, :]) > 0.5))
+                        # print(torch.argwhere(torch.Tensor(obs[g_agent.player][online_agent.policy.critic.obs_space.b_ice_dim_start, :, :]) > 0.5))
                         # print(online_agent.policy.decoder(h)[0, online_agent.policy.critic.obs_space.b_ice_dim, :, :])
                     state_val[g_agent.player], f_action[g_agent.player], f_action_logprob[g_agent.player], u_action[g_agent.player], u_action_logprob[g_agent.player] \
                         = state_val[g_agent.player][0][0], f_action[g_agent.player][0], f_action_logprob[g_agent.player][0], u_action[g_agent.player][0], u_action_logprob[g_agent.player][0]

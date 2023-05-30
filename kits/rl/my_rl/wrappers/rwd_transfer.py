@@ -50,9 +50,9 @@ class RwdTransfer:
             # 'ore_transfer': (stats['transfer']['ore'] - last_stats['transfer']['ore']) * 0.1,
             'destroyed_rubble': (sum(list(stats['destroyed']['rubble'].values())) - sum(list(last_stats['destroyed']['rubble'].values()))) * 0.01,
             'light_gene_collide': (sum([1 for u_id, u_info in units.items() if str(u_info.unit_type) == 'UnitType.LIGHT']) -
-                                   sum([1 for u_id, u_info in last_units.items() if str(u_info.unit_type) == 'UnitType.LIGHT'])) * 40,
+                                   sum([1 for u_id, u_info in last_units.items() if str(u_info.unit_type) == 'UnitType.LIGHT'])) * 10,
             'heavy_gene_collide': (sum([1 for u_id, u_info in units.items() if str(u_info.unit_type) == 'UnitType.HEAVY']) -
-                                   sum([1 for u_id, u_info in last_units.items() if str(u_info.unit_type) == 'UnitType.HEAVY'])) * 400
+                                   sum([1 for u_id, u_info in last_units.items() if str(u_info.unit_type) == 'UnitType.HEAVY'])) * 100
         }
         # if self.reward_collect['ice_generation'] != 0:
         #     print('debug_water_transfer: ',

@@ -24,6 +24,8 @@ class CentralAgent:
         self.optimizer = torch.optim.Adam([
             {'params': list(self.policy.actor.u_deep_net.outc.parameters()), 'lr': lr_actor},
             {'params': list(self.policy.actor.f_deep_net.outc.parameters()), 'lr': lr_actor},
+            {'params': list(self.policy.actor.u_deep_net.mask_outc.parameters()), 'lr': lr_actor},
+            {'params': list(self.policy.actor.f_deep_net.mask_outc.parameters()), 'lr': lr_actor},
             {'params': self.policy.critic.deep_net.fc.parameters(), 'lr': lr_critic},
             {'params': self.policy.base_net.parameters(), 'lr': encoder_lr},
             {'params': self.policy.decoder.parameters(), 'lr': decoder_lr}
@@ -121,13 +123,28 @@ class CentralOfflineAgent(CentralAgent):
                 f_surr2, u_surr2 = torch.clamp(f_ratios, 1 - self.eps_clip, 1 + self.eps_clip) * us_advantages, \
                                    torch.clamp(u_ratios, 1 - self.eps_clip, 1 + self.eps_clip) * us_advantages
                 # final loss of clipped objective PPO
+                obs_normer = torch.FloatTensor(self.policy.critic.obs_space.normer).unsqueeze(0).unsqueeze(-1).unsqueeze(-1).expand(old_states.shape).cuda()
 
                 v_loss = v_loss_factor * self.mseLoss(state_values, old_rewards)
-                f_loss = f_loss_factor * (-torch.min(f_surr1, f_surr2)) * old_f_masks
+
+                f_one_hot = torch.nn.functional.one_hot(old_f_actions.reshape([-1]).to(torch.int64), self.policy.actor.f_deep_net.n_classes)
+                f_tensor_one_hot = f_one_hot.reshape([old_f_actions.shape[0], old_f_actions.shape[1], old_f_actions.shape[2], -1]).permute(0, 3, 1, 2)
+                f_atten = self.policy.actor.f_deep_net.get_mask(old_states / obs_normer, f_tensor_one_hot.cuda())
+                f_loss = f_loss_factor * (-torch.min(f_surr1, f_surr2)) * old_f_masks * f_atten
                 f_entropy_loss = -entropy_loss_factor * f_dist_entropy
-                u_loss = u_loss_factor * (-torch.min(u_surr1, u_surr2)) * old_u_masks
+
+                u_one_hot = torch.nn.functional.one_hot(old_u_actions.reshape([-1]).to(torch.int64), self.policy.actor.u_deep_net.n_classes)
+                u_tensor_one_hot = u_one_hot.reshape([old_u_actions.shape[0], old_u_actions.shape[1], old_u_actions.shape[2], -1]).permute(0, 3, 1, 2)
+                u_atten = self.policy.actor.u_deep_net.get_mask(old_states / obs_normer, u_tensor_one_hot.cuda())
+                u_loss = u_loss_factor * (-torch.min(u_surr1, u_surr2)) * old_u_masks * u_atten
                 u_entropy_loss = -entropy_loss_factor * u_dist_entropy
-                obs_normer = torch.FloatTensor(self.policy.critic.obs_space.normer).unsqueeze(0).unsqueeze(-1).unsqueeze(-1).expand(old_states.shape).cuda()
+
+                if i == 0:
+                    print('#################################### u_tensor_one_hot f_tensor_one_hot start #######################################')
+                    print(u_atten[0, :, :, :])
+                    print(f_atten[0, :, :, :])
+                    print('#################################### u_tensor_one_hot f_tensor_one_hot end #######################################')
+
                 ed_loss = ed_loss_factor * self.mseLoss(self.policy.decoder(hidden), old_states / obs_normer)
                 l1_regularization = l1_factor * sum([torch.norm(v, p=1) for v in self.policy.parameters()])
                 l2_regularization = l2_factor * sum([torch.norm(v, p=2) for v in self.policy.parameters()])

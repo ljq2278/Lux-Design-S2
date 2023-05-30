@@ -16,11 +16,6 @@ class ActMLPNetwork(nn.Module):
         self.u_deep_net = UActNet(in_dim, u_out_dim, base_net)
 
     def forward(self, x, device='cpu'):
-        if device == 'cpu':
-            normer = torch.unsqueeze(torch.unsqueeze(torch.tensor(self.obs_space.normer), 1), 1)
-        else:
-            normer = torch.unsqueeze(torch.unsqueeze(torch.tensor(self.obs_space.normer).cuda(), 1), 1)
-        x = (x / normer).float()
         f_output = F.gumbel_softmax(self.f_deep_net(x), dim=1, tau=self.gumbel_softmax_tau)
         u_output = F.gumbel_softmax(self.u_deep_net(x), dim=1, tau=self.gumbel_softmax_tau)
         return f_output, u_output
@@ -34,11 +29,6 @@ class CriMLPNetwork(nn.Module):
         self.deep_net = ValueNet(in_dim, out_dim, base_net, 128 * (self.obs_space.env_cfg.map_size // 4) * (self.obs_space.env_cfg.map_size // 4))
 
     def forward(self, x, x_stat, device='cpu'):
-        if device == 'cpu':
-            normer = torch.unsqueeze(torch.unsqueeze(torch.tensor(self.obs_space.normer), 1), 1)
-        else:
-            normer = torch.unsqueeze(torch.unsqueeze(torch.tensor(self.obs_space.normer).cuda(), 1), 1)
-        x = (x / normer).float()
         h, ret = self.deep_net(x)
         return h, ret
 
@@ -58,9 +48,12 @@ class ActorCritic(nn.Module):
         with torch.no_grad():
             state = torch.FloatTensor(state)
             state_stat = torch.FloatTensor(state_stat)
+            normer = torch.unsqueeze(torch.unsqueeze(torch.tensor(self.critic.obs_space.normer), 1), 1)
             if device == 'gpu':
                 state = state.cuda()
                 state_stat = state_stat.cuda()
+                normer = normer.cuda()
+            state = (state / normer).float()
             h, state_val = self.critic(state, state_stat, device=device)
             f_action_probs, u_action_probs = self.actor(state, device=device)
             f_dist, u_dist = Categorical(torch.permute(f_action_probs, (0, 2, 3, 1))), Categorical(torch.permute(u_action_probs, (0, 2, 3, 1)))
@@ -68,7 +61,12 @@ class ActorCritic(nn.Module):
             f_action_logprob, u_action_logprob = f_dist.log_prob(f_action), u_dist.log_prob(u_action)
             return state_val.tolist(), f_action.tolist(), f_action_logprob.tolist(), u_action.tolist(), u_action_logprob.tolist(), h
 
-    def evaluate(self, state, state_stat, f_action, u_action):
+    def evaluate(self, state, state_stat, f_action, u_action, device='gpu'):
+        if device == 'cpu':
+            normer = torch.unsqueeze(torch.unsqueeze(torch.tensor(self.critic.obs_space.normer), 1), 1)
+        else:
+            normer = torch.unsqueeze(torch.unsqueeze(torch.tensor(self.critic.obs_space.normer).cuda(), 1), 1)
+        state = (state / normer).float()
         h, state_values = self.critic(state, state_stat, device='gpu')
         f_action_probs, u_action_probs = self.actor(state, device='gpu')
         f_dist, u_dist = Categorical(torch.permute(f_action_probs, (0, 2, 3, 1))), Categorical(torch.permute(u_action_probs, (0, 2, 3, 1)))
