@@ -138,7 +138,7 @@ class UActNet(nn.Module):
         )
         self.mask_outc = nn.Sequential(
             OutConv(self.n_channels + base_channel + base_channel * 2 + base_channel * 4 + self.n_classes, 1),
-            nn.Sigmoid()
+            nn.LeakyReLU()
         )
 
     def get_mask(self, x, acts):
@@ -184,7 +184,7 @@ class FActNet(nn.Module):
         )
         self.mask_outc = nn.Sequential(
             OutConv(self.n_channels + base_channel + base_channel * 2 + base_channel * 4 + self.n_classes, 1),
-            nn.Sigmoid()
+            nn.LeakyReLU()
         )
 
     def get_mask(self, x, acts):

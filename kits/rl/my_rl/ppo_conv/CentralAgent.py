@@ -15,25 +15,22 @@ import copy
 
 
 class CentralAgent:
-    def __init__(self, state_dim, f_action_dim, u_action_dim, env_cfg, lr_actor, lr_critic, encoder_lr, decoder_lr, gumbel_softmax_tau=8, save_dir='./', is_cuda=True):
+    def __init__(self, state_dim, f_action_dim, u_action_dim, env_cfg, lr, gumbel_softmax_tau=8, save_dir='./', is_cuda=True):
         self.save_dir = save_dir
         if is_cuda:
             self.policy = ActorCritic(state_dim, f_action_dim, u_action_dim, env_cfg, gumbel_softmax_tau).cuda()
         else:
             self.policy = ActorCritic(state_dim, f_action_dim, u_action_dim, env_cfg, gumbel_softmax_tau)
-        self.optimizer = torch.optim.Adam([
-            {'params': list(self.policy.actor.u_deep_net.outc.parameters()), 'lr': lr_actor},
-            {'params': list(self.policy.actor.f_deep_net.outc.parameters()), 'lr': lr_actor},
-            {'params': list(self.policy.actor.u_deep_net.mask_outc.parameters()), 'lr': lr_actor},
-            {'params': list(self.policy.actor.f_deep_net.mask_outc.parameters()), 'lr': lr_actor},
-            {'params': self.policy.critic.deep_net.fc.parameters(), 'lr': lr_critic},
-            {'params': self.policy.base_net.parameters(), 'lr': encoder_lr},
-            {'params': self.policy.decoder.parameters(), 'lr': decoder_lr}
-        ])
-        # self.optimizer = torch.optim.Adam([
-        #     {'params': self.policy.actor.parameters(), 'lr': lr_actor},
-        #     {'params': self.policy.critic.parameters(), 'lr': lr_critic}
-        # ])
+        if lr is not None:
+            self.optimizer = torch.optim.Adam([
+                {'params': list(self.policy.actor.u_deep_net.outc.parameters()), 'lr': lr['actor_u_lr']},
+                {'params': list(self.policy.actor.f_deep_net.outc.parameters()), 'lr': lr['actor_f_lr']},
+                {'params': list(self.policy.actor.u_deep_net.mask_outc.parameters()), 'lr': lr['actor_u_mask_lr']},
+                {'params': list(self.policy.actor.f_deep_net.mask_outc.parameters()), 'lr': lr['actor_f_mask_lr']},
+                {'params': self.policy.critic.deep_net.fc.parameters(), 'lr': lr['critic_lr']},
+                {'params': self.policy.base_net.parameters(), 'lr': lr['encoder_lr']},
+                {'params': self.policy.decoder.parameters(), 'lr': lr['decoder_lr']}
+            ])
 
     def save(self):
         """save actor parameters of all agents and training reward to `res_dir`"""
@@ -51,8 +48,8 @@ class CentralAgent:
 
 
 class CentralOnlineAgent(CentralAgent):
-    def __init__(self, state_dim, f_action_dim, u_action_dim, env_cfg, lr_actor=0, lr_critic=0, encoder_lr=0, decoder_lr=0, gumbel_softmax_tau=8, save_dir='./', is_cuda=True):
-        super().__init__(state_dim, f_action_dim, u_action_dim, env_cfg, lr_actor, lr_critic, encoder_lr, decoder_lr, gumbel_softmax_tau, save_dir, is_cuda)
+    def __init__(self, state_dim, f_action_dim, u_action_dim, env_cfg, lr=None, gumbel_softmax_tau=8, save_dir='./', is_cuda=True):
+        super().__init__(state_dim, f_action_dim, u_action_dim, env_cfg, lr, gumbel_softmax_tau, save_dir, is_cuda)
 
     def update(self, new_params):
         self.policy.load_state_dict(new_params)
@@ -65,8 +62,8 @@ class CentralOnlineAgent(CentralAgent):
 
 
 class CentralOfflineAgent(CentralAgent):
-    def __init__(self, state_dim, f_action_dim, u_action_dim, env_cfg, lr_actor, lr_critic, encoder_lr, decoder_lr, gumbel_softmax_tau=8, eps_clip=0.2, save_dir='./', is_cuda=True):
-        super().__init__(state_dim, f_action_dim, u_action_dim, env_cfg, lr_actor, lr_critic, encoder_lr, decoder_lr, gumbel_softmax_tau, save_dir, is_cuda)
+    def __init__(self, state_dim, f_action_dim, u_action_dim, env_cfg, lr, gumbel_softmax_tau=8, eps_clip=0.2, save_dir='./', is_cuda=True):
+        super().__init__(state_dim, f_action_dim, u_action_dim, env_cfg, lr, gumbel_softmax_tau, save_dir, is_cuda)
         self.eps_clip = eps_clip
         self.obs_space = ObsSpace(env_cfg)
         self.mseLoss = nn.MSELoss()
@@ -141,8 +138,11 @@ class CentralOfflineAgent(CentralAgent):
 
                 if i == 0:
                     print('#################################### u_tensor_one_hot f_tensor_one_hot start #######################################')
-                    print(u_atten[0, :, :, :])
-                    print(f_atten[0, :, :, :])
+                    for itm in u_atten[0, 0, :, :].tolist():
+                        print(['%.03f' % x for x in itm])
+                    print('#################################### u_tensor_one_hot f_tensor_one_hot mid #######################################')
+                    for itm in f_atten[0, 0, :, :].tolist():
+                        print(['%.03f' % x for x in itm])
                     print('#################################### u_tensor_one_hot f_tensor_one_hot end #######################################')
 
                 ed_loss = ed_loss_factor * self.mseLoss(self.policy.decoder(hidden), old_states / obs_normer)

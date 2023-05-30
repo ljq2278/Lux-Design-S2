@@ -34,8 +34,17 @@ tdn = 8
 state_val_adv_debug = True
 soft_update_tau = 0.5
 gumbel_softmax_tau_online, gumbel_softmax_tau_train = 5, 5
-actor_lr, critic_lr = 0.005, 0.01
-encoder_lr, decoder_lr = 0.001, 0.0000
+lr = {
+    'actor_u_lr': 0.00001,
+    'actor_f_lr': 0.00002,
+    'actor_u_mask_lr': 0.000001,
+    'actor_f_mask_lr': 0.000002,
+    'critic_lr': 0.00004,
+    'encoder_lr': 0.00001,
+    'decoder_lr': 0,
+}
+# actor_lr, critic_lr = 0.0005, 0.001
+# encoder_lr, decoder_lr = 0.0001, 0.0000
 v_loss_factor, f_loss_factor, u_loss_factor, entropy_loss_factor, ed_loss_factor = 1, 1, 1, 1, 0
 l1_factor, l2_factor = 0.00, 0.00
 eps_clip = 0.2
@@ -176,7 +185,7 @@ def sub_run(replay_queue: multiprocessing.Queue, param_queue: multiprocessing.Qu
         survive_step = raw_obs["player_0"]["real_env_steps"]
         message = f'episode {episode}, '
         message += f'episode reward: {episode_reward}, '
-        message += f'survive step: {survive_step }'
+        message += f'survive step: {survive_step}'
         print(process_id, message)
         print(raw_obs["player_0"]["real_env_steps"], rwdTransfer.reward_collect)
         if process_id == 0:
@@ -189,7 +198,7 @@ def sub_run(replay_queue: multiprocessing.Queue, param_queue: multiprocessing.Qu
                 tmp_buffer[k] += v
         ##################### after a game, use MC the reward and get Advantage and tranport #####################
         if episode % update_interv == 0:
-        # if len(tmp_buffer['player_0']) > 0:
+            # if len(tmp_buffer['player_0']) > 0:
             for p_id, behaviors in tmp_buffer.items():
                 buffer.add_examples(*list(zip(*behaviors)))
             if tdn > 0:
@@ -218,8 +227,7 @@ def offline_learn(replay_queue: multiprocessing.Queue, param_queue_list, pid):
     env = gym.make(env_id, verbose=0, collect_stats=True, MAX_FACTORIES=2)
     env_cfg = env.env_cfg
     env_cfg.map_size = map_size
-    offline_agent = CentralOfflineAgent(dim_info[0], dim_info[1], dim_info[2], env_cfg, actor_lr, critic_lr, encoder_lr, decoder_lr,
-                                        gumbel_softmax_tau=gumbel_softmax_tau_train, eps_clip=eps_clip, save_dir=base_res_dir)
+    offline_agent = CentralOfflineAgent(dim_info[0], dim_info[1], dim_info[2], env_cfg, lr, gumbel_softmax_tau=gumbel_softmax_tau_train, eps_clip=eps_clip, save_dir=base_res_dir)
     if want_load_model:
         offline_agent.load()
         for param_queue in param_queue_list:
