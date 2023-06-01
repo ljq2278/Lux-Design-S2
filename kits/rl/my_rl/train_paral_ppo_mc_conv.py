@@ -51,19 +51,19 @@ eps_clip = 0.5
 K_epochs = 5
 episode_num = 3000000
 gamma = 0.98
-sub_proc_count = 4
+sub_proc_count = 5
 exp = 'paral_ppo_share'
 want_load_model = True
-max_episode_length = 100
+max_episode_length = 50
 agent_debug = False
 density_rwd = False
 episode_start = 1
 print_interv = 1
 save_peri = 5
-batch_size = 64
+batch_size = 300
 map_size = 24
-os.environ['HOME'] = 'E:'
-update_interv = 2
+os.environ['HOME'] = 'D:'
+update_interv = 5
 early_setup_strategy = 'resource'
 
 dim_info = [ObsSpace(None).total_dims, ActSpaceFactory().f_dims, ActSpaceUnit().u_dims]  # obs and act dims
@@ -82,9 +82,9 @@ def sub_run(replay_queue: multiprocessing.Queue, param_queue: multiprocessing.Qu
     obsTransfer = ObsTransfer(env, env_cfg)
     rwdTransfer = RwdTransfer(env, env_cfg, debug=False, density=density_rwd)
     agent_cont = 2
-    online_agent = CentralOnlineAgent(dim_info[0], dim_info[1], dim_info[2], env_cfg, gumbel_softmax_tau=gumbel_softmax_tau_online)
+    online_agent = CentralOnlineAgent(dim_info[0], dim_info[1], dim_info[2], env_cfg, gumbel_softmax_tau=gumbel_softmax_tau_online, is_cuda=False)
     if want_load_model:
-        new_params = param_queue.get()
+        new_params = param_queue[0].recv()
         online_agent.update(new_params)
     globalAgents = [GlobalAgent('player_' + str(i), env_cfg, online_agent) for i in range(0, agent_cont)]
     globale_step = 0
@@ -135,7 +135,7 @@ def sub_run(replay_queue: multiprocessing.Queue, param_queue: multiprocessing.Qu
                     f_action[g_agent.player], u_action[g_agent.player] = {}, {}
                     f_action_logprob[g_agent.player], u_action_logprob[g_agent.player] = {}, {}
                     state_val[g_agent.player], f_action[g_agent.player], f_action_logprob[g_agent.player], u_action[g_agent.player], u_action_logprob[g_agent.player], h \
-                        = online_agent.policy.act(np.array([obs[g_agent.player]]), np.array([obs_stat[g_agent.player]]))
+                        = online_agent.policy.act(np.array([obs[g_agent.player]]), np.array([obs_stat[g_agent.player]]), device='cpu')
                     state_val[g_agent.player], f_action[g_agent.player], f_action_logprob[g_agent.player], u_action[g_agent.player], u_action_logprob[g_agent.player] \
                         = state_val[g_agent.player][0][0], f_action[g_agent.player][0], f_action_logprob[g_agent.player][0], u_action[g_agent.player][0], u_action_logprob[g_agent.player][0]
                     raw_action[g_agent.player] = actTransfer.wrap_to_raw(
@@ -214,7 +214,7 @@ def sub_run(replay_queue: multiprocessing.Queue, param_queue: multiprocessing.Qu
             replay_queue.put(
                 [buffer.states, buffer.states_stat, buffer.state_vals, buffer.f_actions, buffer.f_action_logprobs, buffer.u_actions, buffer.u_action_logprobs, buffer.rewards, buffer.dones,
                  buffer.advantages])
-            new_params = param_queue.get()
+            new_params = param_queue[0].recv()
             if soft_update_tau < 1:
                 online_agent.soft_update(new_params, soft_update_tau)
             else:
@@ -231,7 +231,7 @@ def offline_learn(replay_queue: multiprocessing.Queue, param_queue_list, pid):
     if want_load_model:
         offline_agent.load()
         for param_queue in param_queue_list:
-            param_queue.put(offline_agent.policy.to('cpu').state_dict())
+            param_queue[1].send(offline_agent.policy.to('cpu').state_dict())
     online_agent_update_time = 0
     train_data = []
     while True:
@@ -246,7 +246,7 @@ def offline_learn(replay_queue: multiprocessing.Queue, param_queue_list, pid):
             online_agent_update_time += 1
             train_data.clear()
             for param_queue in param_queue_list:
-                param_queue.put(new_params)
+                param_queue[1].send(new_params)
             if online_agent_update_time % save_peri == 0:
                 print('save model, online agent update time ', online_agent_update_time)
                 offline_agent.save()
@@ -254,7 +254,7 @@ def offline_learn(replay_queue: multiprocessing.Queue, param_queue_list, pid):
 
 if __name__ == "__main__":
     replay_queue = multiprocessing.Queue(maxsize=0)
-    param_queue_list = [multiprocessing.Queue(maxsize=0) for _ in range(0, sub_proc_count)]
+    param_queue_list = [multiprocessing.Pipe() for _ in range(0, sub_proc_count)]
 
     processes = []
 

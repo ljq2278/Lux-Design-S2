@@ -169,37 +169,4 @@ class CentralOfflineAgent(CentralAgent):
         mean_loss = dict([(k, v / tt) for k, v in tt_loss.items()])
         log_writer.add_scalars('loss', mean_loss, online_agent_update_time)
         print(mean_loss, tt_loss)
-        return self.policy.to('cpu').state_dict()
-
-    def update_and_get_new_param(self, train_data, K_epochs, bz=10):
-        # Monte Carlo estimate of returns
-        # Optimize policy for K epochs
-        for epochs_i in range(K_epochs):
-            print('train_epochs: ', epochs_i)
-            for pid_data in train_data:
-                # Evaluating old actions and values
-                for i in range(0, len(pid_data[0]), bz):
-                    old_states, old_state_vals, old_f_actions, old_f_logprobs, old_u_actions, old_u_logprobs, old_rewards, old_done, advantages \
-                        = [torch.Tensor(np.array(x[i:min(i + bz, len(pid_data[0]))])).cuda() for x in pid_data]
-                    old_f_masks, old_u_masks = old_states[:, self.obs_space.f_pos_dim_start, :, :].cuda(), old_states[:, self.obs_space.u_pos_dim_start, :, :].cuda()
-                    state_values, f_logprobs, f_dist_entropy, u_logprobs, u_dist_entropy, hidden = self.policy.evaluate(old_states, old_f_actions, old_u_actions)
-                    # match state_values tensor dimensions with rewards tensor
-                    state_values = torch.squeeze(state_values)
-                    # Finding the ratio (pi_theta / pi_theta__old)
-                    f_ratios, u_ratios = torch.exp(f_logprobs - old_f_logprobs), torch.exp(u_logprobs - old_u_logprobs)
-                    # Finding Surrogate Loss
-                    us_advantages = advantages.unsqueeze(dim=1).unsqueeze(dim=1)
-                    f_surr1, u_surr1 = f_ratios * us_advantages, u_ratios * us_advantages
-                    f_surr2, u_surr2 = torch.clamp(f_ratios, 1 - self.eps_clip, 1 + self.eps_clip) * us_advantages, \
-                                       torch.clamp(u_ratios, 1 - self.eps_clip, 1 + self.eps_clip) * us_advantages
-                    # final loss of clipped objective PPO
-                    v_loss = 0.5 * self.mseLoss(state_values, old_rewards)
-                    f_loss = (-torch.min(f_surr1, f_surr2) - 0.01 * f_dist_entropy) * old_f_masks
-                    u_loss = (-torch.min(u_surr1, u_surr2) - 0.01 * u_dist_entropy) * old_u_masks
-                    loss = f_loss + u_loss + v_loss
-                    # take gradient step
-                    self.optimizer.zero_grad()
-                    loss.mean().backward()
-                    self.optimizer.step()
-
-        return self.policy.state_dict()
+        return self.policy.cpu().state_dict()
