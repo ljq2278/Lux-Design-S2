@@ -44,7 +44,7 @@ agent_debug = False
 density_rwd = False
 epochs = 1
 map_size = 24
-os.environ['HOME'] = 'D:'
+os.environ['HOME'] = 'E:'
 want_load_model = True
 dim_info = [ObsSpace(None).total_dims, ActSpaceFactory().f_dims, ActSpaceUnit().u_dims]  # obs and act dims
 base_res_dir = os.environ['HOME'] + '/train_res/' + exp
@@ -92,7 +92,7 @@ if __name__ == "__main__":
                             # env.state.factories[p_id][f_id].cargo.metal = 200
                             # env.state.factories[p_id][f_id].power = 300000
                         else:
-                            env.state.factories[p_id][f_id].cargo.water = 40
+                            env.state.factories[p_id][f_id].cargo.water = 50
                             env.state.factories[p_id][f_id].cargo.metal += 2000  # int(1000 * np.random.random())
                             env.state.factories[p_id][f_id].power = 300000
                 print(raw_obs['player_0']["real_env_steps"], raw_action['player_0'])
